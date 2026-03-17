@@ -1,0 +1,18 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build
+.next
+out
+build
+
+# Env (no subir claves ni wallet)
+.env
+.env.local
+.env*.local
+
+# Debug
+npm-debug.log*
+.DS_Store

@@ -1,0 +1,63 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { createClient } from "@/lib/supabase/server";
+
+const REQUIRE_AUTH = process.env.REQUIRE_AUTH === "true";
+const LOCAL_USER_EMAIL = (process.env.LOCAL_USER_EMAIL || "albertonava@gmail.com").trim().toLowerCase();
+
+export interface CurrentUser {
+  id: string;
+  email: string;
+  name?: string;
+  isAdmin: boolean;
+}
+
+/**
+ * Devuelve el usuario actual: sesión real si REQUIRE_AUTH=true, o usuario local si no.
+ * En local (REQUIRE_AUTH !== 'true') sin sesión usa LOCAL_USER_EMAIL.
+ */
+export async function getCurrentUserId(): Promise<string | null> {
+  const session = await getServerSession(authOptions);
+  if (session?.user && (session.user as { id?: string }).id) {
+    return (session.user as { id: string }).id;
+  }
+  if (REQUIRE_AUTH) return null;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("email", LOCAL_USER_EMAIL)
+    .single();
+  return data?.id ?? null;
+}
+
+/**
+ * Devuelve el usuario actual con email e isAdmin (para /api/me y layout).
+ */
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  const session = await getServerSession(authOptions);
+  if (session?.user && (session.user as { id?: string }).id) {
+    const id = (session.user as { id: string }).id;
+    const isAdmin = (session.user as { isAdmin?: boolean }).isAdmin ?? false;
+    return {
+      id,
+      email: session.user.email ?? "",
+      name: session.user.name ?? undefined,
+      isAdmin,
+    };
+  }
+  if (REQUIRE_AUTH) return null;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, email, name, is_admin")
+    .eq("email", LOCAL_USER_EMAIL)
+    .single();
+  if (!data) return null;
+  return {
+    id: data.id,
+    email: data.email ?? LOCAL_USER_EMAIL,
+    name: data.name ?? undefined,
+    isAdmin: !!data.is_admin,
+  };
+}
