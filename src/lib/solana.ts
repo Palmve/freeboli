@@ -15,9 +15,9 @@ function friendlyRpcError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err);
   if (msg.includes("401") || msg.includes("missing api key")) {
     return (
-      "RPC requiere API key. En .env.local pon SOLANA_RPC_URL con la URL completa, por ejemplo: " +
-      "Helius: https://mainnet.helius-rpc.com/?api_key=TU_KEY. " +
-      "Reinicia el servidor (npm run dev) después de guardar."
+      "Error 401: RPC requiere API Key. Configura SOLANA_RPC_URL en tus variables de entorno " +
+      "(Vercel Settings -> Environment Variables en producción, o .env.local en desarrollo) " +
+      "con la URL completa de un proveedor como Helius."
     );
   }
   return msg;
