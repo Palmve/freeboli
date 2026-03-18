@@ -17,8 +17,11 @@ Este archivo lista tareas pendientes para que el agente (o un desarrollador) sep
   - Ejecutar la migración `003_deposit_wallet_per_user.sql` en Supabase (tabla `deposit_wallets`, columna `profiles.deposit_address`).
 
 - **RPC de Solana para detectar depósitos**
-  - El RPC público (`api.mainnet-beta.solana.com`) suele devolver **0 firmas** en `getSignaturesForAddress`, por eso "Procesar depósitos" puede mostrar "Firmas: 0" aunque en Solscan sí haya movimientos.
-  - Configurar **`SOLANA_RPC_URL`** con un RPC que devuelva historial (p. ej. [Helius](https://helius.dev), [QuickNode](https://quicknode.com), [Alchemy](https://alchemy.com)). En local: añadir en `.env.local`; en producción: variable de entorno del servidor (Vercel, etc.).
+  - El RPC público (`api.mainnet-beta.solana.com`) suele devolver **0 firmas** o error **401 (Unauthorized)**.
+  - **Solución rápida:**
+    1. Regístrate gratis en [Helius.dev](https://helius.dev).
+    2. Copia tu URL de RPC (ej: `https://mainnet.helius-rpc.com/?api-key=TU_API_KEY`).
+    3. Configura **`SOLANA_RPC_URL`** en Vercel (Producción) y en `.env.local` (Local).
 
 ---
 
