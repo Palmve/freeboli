@@ -1,29 +1,65 @@
 @echo off
-REM Iniciar entorno de desarrollo de FreeBoli y abrir el juego en el navegador
-
-REM Ir a la carpeta del proyecto
+title FreeBoli - Servidor de desarrollo
 cd /d "e:\2026 Desarrollo Web\freeboli"
 
-REM Instalar dependencias si no existe node_modules (solo la primera vez)
-if not exist "node_modules" (
-  echo Instalando dependencias con npm install...
-  npm install
+echo ========================================
+echo   FreeBoli - Iniciando entorno local
+echo ========================================
+echo.
+
+REM 1. Liberar el puerto 3000 si hay un proceso anterior ocupandolo
+echo [1/5] Liberando puerto 3000...
+for /f "tokens=5" %%p in ('netstat -aon ^| findstr ":3000 " ^| findstr "LISTENING" 2^>nul') do (
+  echo   Cerrando proceso PID %%p en puerto 3000...
+  taskkill /PID %%p /F >nul 2>&1
+)
+echo   Puerto 3000 libre.
+
+REM 2. Limpiar cache de Next.js para evitar errores de compilacion
+echo [2/5] Limpiando cache .next...
+if exist ".next" (
+  rmdir /s /q ".next" >nul 2>&1
+  echo   Cache eliminado.
+) else (
+  echo   No habia cache.
 )
 
-REM Iniciar el servidor de desarrollo en una nueva ventana
-echo Iniciando servidor de desarrollo (npm run dev)...
-start "freeboli-dev-server" cmd /c "npm run dev"
+REM 3. Instalar dependencias si no existe node_modules
+echo [3/5] Verificando dependencias...
+if not exist "node_modules" (
+  echo   Instalando dependencias con pnpm install...
+  pnpm install
+) else (
+  echo   node_modules existe, OK.
+)
 
-REM Esperar unos segundos para que arranque el servidor
-echo Esperando a que arranque el servidor...
-timeout /t 10 /nobreak >nul
+REM 4. Iniciar el servidor de desarrollo en una nueva ventana minimizada
+echo [4/5] Iniciando servidor de desarrollo (pnpm run dev)...
+start /min "freeboli-dev" cmd /c "pnpm run dev"
 
-REM Abrir el juego en el navegador.
-REM Next intenta usar primero el 3000; si está ocupado, usará 3001, 3002, 3003, etc.
-REM Abrimos 3000 y 3003 (el que esté activo se verá con diseño).
+REM 5. Esperar a que el servidor responda en puerto 3000
+echo [5/5] Esperando a que el servidor arranque en puerto 3000...
+set INTENTOS=0
+:esperar
+set /a INTENTOS+=1
+if %INTENTOS% gtr 30 (
+  echo   Timeout: el servidor no respondio en 30 segundos.
+  echo   Abriendo http://localhost:3000 de todas formas...
+  goto abrir
+)
+timeout /t 1 /nobreak >nul
+curl -s -o nul -w "" http://localhost:3000/ >nul 2>&1
+if errorlevel 1 goto esperar
+
+:abrir
+echo.
+echo ========================================
+echo   Servidor listo en http://localhost:3000
+echo ========================================
 start "" "http://localhost:3000"
-start "" "http://localhost:3003"
-
-echo Listo. Deja esta ventana abierta si quieres que el servidor siga corriendo.
+echo.
+echo Puedes cerrar esta ventana. El servidor
+echo sigue corriendo en la ventana minimizada.
+echo.
 pause
 

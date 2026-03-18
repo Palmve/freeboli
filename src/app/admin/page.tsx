@@ -1,8 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import Link from "next/link";
-import AdminWalletBalance from "./AdminWalletBalance";
-import AdminGrantPoints from "./AdminGrantPoints";
-import AdminProcessDeposits from "./AdminProcessDeposits";
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -23,11 +19,12 @@ export default async function AdminPage() {
     supabase
       .from("withdrawals")
       .select("id, user_id, points, wallet_destination, status, created_at")
+      .eq("status", "pending")
       .order("created_at", { ascending: false })
-      .limit(50),
+      .limit(20),
   ]);
 
-  const totalPoints = (balances?.reduce((s, b) => s + Number(b.points || 0), 0) ?? 0);
+  const totalPoints = balances?.reduce((s, b) => s + Number(b.points || 0), 0) ?? 0;
   const byType =
     movements?.reduce(
       (acc, m) => {
@@ -36,94 +33,82 @@ export default async function AdminPage() {
       },
       {} as Record<string, number>
     ) ?? {};
-  const pendingWithdrawals = withdrawals?.filter((w) => w.status === "pending") ?? [];
+  const pendingCount = withdrawals?.length ?? 0;
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      <div className="card">
-        <h2 className="text-lg font-semibold text-slate-300">Usuarios</h2>
-        <p className="text-3xl font-bold text-white">{usersCount ?? 0}</p>
+    <div className="space-y-6">
+      {/* KPIs */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <div className="card">
+          <p className="text-sm text-slate-400">Usuarios</p>
+          <p className="text-3xl font-bold text-white">{usersCount ?? 0}</p>
+        </div>
+        <div className="card">
+          <p className="text-sm text-slate-400">Puntos en circulación</p>
+          <p className="text-3xl font-bold text-white">{totalPoints.toLocaleString()}</p>
+        </div>
+        <div className="card">
+          <p className="text-sm text-slate-400">Equiv. BOLIS</p>
+          <p className="text-3xl font-bold text-amber-400">{(totalPoints / 1000).toFixed(2)}</p>
+        </div>
+        <div className="card">
+          <p className="text-sm text-slate-400">Retiros pendientes</p>
+          <p className={`text-3xl font-bold ${pendingCount > 0 ? "text-red-400" : "text-green-400"}`}>
+            {pendingCount}
+          </p>
+        </div>
       </div>
-      <div className="card">
-        <h2 className="text-lg font-semibold text-slate-300">Puntos totales en cuentas</h2>
-        <p className="text-3xl font-bold text-white">
-          {totalPoints.toLocaleString()}
-        </p>
-      </div>
+
+      {/* Movimientos por tipo */}
       <div className="card">
         <h2 className="text-lg font-semibold text-slate-300">Movimientos por tipo</h2>
-        <ul className="mt-2 space-y-1 text-sm text-slate-400">
+        <div className="mt-3 grid gap-x-6 gap-y-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 text-sm">
           {Object.entries(byType).map(([type, pts]) => (
-            <li key={type}>
-              {type}: {pts.toLocaleString()} pts
-            </li>
+            <div key={type}>
+              <p className="text-slate-500 text-xs">{type}</p>
+              <p className="text-white font-mono">{pts.toLocaleString()} pts</p>
+            </div>
           ))}
-          {Object.keys(byType).length === 0 && <li>Sin movimientos</li>}
-        </ul>
-      </div>
-      <div className="card md:col-span-2">
-        <h2 className="text-lg font-semibold text-slate-300">Retiros pendientes</h2>
-        <div className="mt-2 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-slate-400">
-                <th>Usuario</th>
-                <th>Puntos</th>
-                <th>Wallet</th>
-                <th>Estado</th>
-                <th>Fecha</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(withdrawals ?? []).slice(0, 20).map((w) => (
-                <tr key={w.id} className="border-t border-slate-700">
-                  <td className="font-mono text-xs">{w.user_id}</td>
-                  <td>{Number(w.points).toLocaleString()}</td>
-                  <td className="font-mono text-xs truncate max-w-[120px]">{w.wallet_destination}</td>
-                  <td>
-                    <span
-                      className={
-                        w.status === "pending"
-                          ? "text-amber-400"
-                          : "text-green-400"
-                      }
-                    >
-                      {w.status}
-                    </span>
-                  </td>
-                  <td>{new Date(w.created_at).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {(!withdrawals || withdrawals.length === 0) && (
-            <p className="py-4 text-slate-500">No hay retiros.</p>
+          {Object.keys(byType).length === 0 && (
+            <p className="text-slate-500 col-span-full">Sin movimientos</p>
           )}
         </div>
       </div>
-      <AdminWalletBalance />
-      <AdminGrantPoints />
-      <AdminProcessDeposits />
-      <div className="card">
-        <h2 className="text-lg font-semibold text-slate-300">Enlaces</h2>
-        <ul className="mt-2 space-y-2">
-          <li>
-            <Link href="/admin/usuarios" className="text-amber-400 hover:underline">
-              Ver usuarios
-            </Link>
-          </li>
-          <li>
-            <Link href="/admin/retiros" className="text-amber-400 hover:underline">
-              Procesar retiros
-            </Link>
-          </li>
-          <li>
-            <Link href="/admin/estadisticas" className="text-amber-400 hover:underline">
-              Estadísticas
-            </Link>
-          </li>
-        </ul>
-      </div>
+
+      {/* Retiros pendientes */}
+      {pendingCount > 0 && (
+        <div className="card">
+          <h2 className="text-lg font-semibold text-slate-300">
+            Retiros pendientes ({pendingCount})
+          </h2>
+          <div className="mt-3 overflow-x-auto -mx-6 px-6">
+            <table className="w-full text-sm min-w-[480px]">
+              <thead>
+                <tr className="text-left text-slate-400 border-b border-slate-700">
+                  <th className="pb-2 pr-3">Usuario</th>
+                  <th className="pb-2 pr-3">Puntos</th>
+                  <th className="pb-2 pr-3">Wallet</th>
+                  <th className="pb-2">Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(withdrawals ?? []).map((w) => (
+                  <tr key={w.id} className="border-t border-slate-700/50">
+                    <td className="py-2 pr-3 font-mono text-xs">{w.user_id.slice(0, 8)}...</td>
+                    <td className="py-2 pr-3 text-amber-400 font-mono">{Number(w.points).toLocaleString()}</td>
+                    <td className="py-2 pr-3 font-mono text-xs text-slate-400 truncate max-w-[140px]">
+                      {w.wallet_destination}
+                    </td>
+                    <td className="py-2 text-slate-400 text-xs">
+                      {new Date(w.created_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -8,8 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 import { verifyPassword } from "@/lib/password";
 
 export async function GET(req: Request) {
-  if (process.env.NODE_ENV !== "development") {
-    return NextResponse.json({ error: "Solo en desarrollo" }, { status: 404 });
+  if (process.env.NODE_ENV !== "development" || process.env.REQUIRE_AUTH === "true") {
+    return NextResponse.json({ error: "No disponible." }, { status: 404 });
   }
   const { searchParams } = new URL(req.url);
   const email = searchParams.get("email");

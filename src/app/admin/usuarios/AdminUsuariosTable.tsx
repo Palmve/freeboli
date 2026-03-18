@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 
 type UserRow = {
   id: string;
@@ -152,9 +151,6 @@ export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
         </div>
       )}
 
-      <Link href="/admin" className="text-amber-400 hover:underline">
-        ← Volver al panel
-      </Link>
     </div>
   );
 }

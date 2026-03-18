@@ -2,13 +2,36 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { hashPassword } from "@/lib/password";
 import { WELCOME_POINTS } from "@/lib/config";
+import { rateLimit } from "@/lib/rate-limit";
+import { headers } from "next/headers";
+
+function getIpFromHeaders(h: Headers): string {
+  const forwarded = h.get("x-forwarded-for");
+  return forwarded?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
+}
 
 export async function POST(req: Request) {
+  const h = await headers();
+  const ip = getIpFromHeaders(h);
+  const { allowed, retryAfterSeconds } = rateLimit(`register:${ip}`, 3, 15 * 60 * 1000);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: `Demasiados intentos. Espera ${Math.ceil(retryAfterSeconds / 60)} minuto(s).` },
+      { status: 429 }
+    );
+  }
+
   const body = await req.json().catch(() => ({}));
   const { email, password, referrerCode } = body;
   if (!email || typeof email !== "string" || !password || typeof password !== "string") {
     return NextResponse.json(
       { error: "Correo y contraseña requeridos." },
+      { status: 400 }
+    );
+  }
+  if (password.length < 8) {
+    return NextResponse.json(
+      { error: "La contraseña debe tener al menos 8 caracteres." },
       { status: 400 }
     );
   }

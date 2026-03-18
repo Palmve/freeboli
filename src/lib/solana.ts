@@ -78,6 +78,20 @@ export async function getTreasuryBalance(): Promise<{
   }
 }
 
+/** Saldo BOLIS de cualquier wallet (dirección base, no ATA). */
+export async function getWalletBolisBalance(walletAddress: string): Promise<number> {
+  const conn = new Connection(RPC);
+  const mint = new PublicKey(BOLIS_MINT);
+  const owner = new PublicKey(walletAddress);
+  const ata = await getAssociatedTokenAddress(mint, owner);
+  try {
+    const account = await getAccount(conn, ata);
+    return account?.amount != null ? Number(account.amount) / 1e6 : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function getTreasuryTokenAccount(): Promise<PublicKey | null> {
   const kp = getTreasuryKeypair();
   if (!kp) return null;
@@ -170,7 +184,8 @@ export async function sendBolisToWallet(
   return sig;
 }
 
-/** Transfiere BOLIS desde una wallet de depósito de usuario al treasury (sweep). */
+/** Transfiere BOLIS desde una wallet de depósito de usuario al treasury (sweep).
+ *  Treasury paga el gas (SOL fee) para que la wallet de depósito no necesite SOL. */
 export async function sweepBolisToTreasury(
   fromKeypair: Keypair,
   amountBolis: number
@@ -192,9 +207,9 @@ export async function sweepBolisToTreasury(
   const tx = new Transaction().add(ix);
   const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
   tx.recentBlockhash = blockhash;
-  tx.feePayer = fromKeypair.publicKey;
-  tx.sign(fromKeypair);
-  const sig = await conn.sendTransaction(tx, [fromKeypair], { skipPreflight: false });
+  tx.feePayer = treasury.publicKey;
+  tx.sign(treasury, fromKeypair);
+  const sig = await conn.sendTransaction(tx, [treasury, fromKeypair], { skipPreflight: false });
   await conn.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight });
   return sig;
 }

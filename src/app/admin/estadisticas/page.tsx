@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import Link from "next/link";
 
 export default async function AdminEstadisticasPage() {
   const supabase = await createClient();
@@ -174,9 +173,6 @@ export default async function AdminEstadisticasPage() {
           )}
         </div>
       </div>
-      <Link href="/admin" className="text-amber-400 hover:underline">
-        ← Volver al panel
-      </Link>
     </div>
   );
 }

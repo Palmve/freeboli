@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -20,6 +21,9 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email) return null;
+        const email = credentials.email.trim().toLowerCase();
+        const { allowed } = rateLimit(`login:${email}`, 5, 15 * 60 * 1000);
+        if (!allowed) return null;
         try {
           const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
           const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -29,7 +33,6 @@ export const authOptions: NextAuthOptions = {
           }
           const { createClient } = await import("@supabase/supabase-js");
           const supabase = createClient(url, key);
-          const email = credentials.email.trim().toLowerCase();
           const { data: profile } = await supabase
             .from("profiles")
             .select("id, email, name, password_hash")

@@ -16,33 +16,28 @@ const RPC = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 const SIGS_PER_ADDRESS = 20;
 const IS_PUBLIC_RPC = !process.env.SOLANA_RPC_URL || process.env.SOLANA_RPC_URL.includes("api.mainnet-beta.solana.com");
 
-/**
- * Escanea la dirección de depósito de cada usuario en busca de BOLIS recibidos,
- * acredita puntos y (opcional) hace sweep al treasury.
- * Autorizado: Bearer CRON_SECRET (cron) o sesión de admin (botón en panel).
- */
-export async function POST(req: Request) {
+async function authorize(req: Request): Promise<boolean> {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
-  const allowedByCron = cronSecret && authHeader === `Bearer ${cronSecret}`;
-  if (!allowedByCron) {
-    const user = await getCurrentUser();
-    if (!user?.isAdmin) {
-      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
-    }
-  }
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) return true;
+  const user = await getCurrentUser();
+  return !!user?.isAdmin;
+}
 
+/**
+ * Escanea la dirección de depósito de cada usuario en busca de BOLIS recibidos,
+ * acredita puntos y hace sweep al treasury (treasury paga gas).
+ */
+async function processDeposits() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  let users: { id: string; deposit_address: string }[] = [];
   const { data: usersData, error: usersError } = await supabase
     .from("profiles")
     .select("id, deposit_address")
     .not("deposit_address", "is", null);
-  users = usersData ?? [];
 
   if (usersError) {
     return NextResponse.json({
@@ -52,11 +47,13 @@ export async function POST(req: Request) {
     }, { status: 500 });
   }
 
+  const users: { id: string; deposit_address: string }[] = usersData ?? [];
+
   if (!users.length) {
     return NextResponse.json({
       ok: true,
       processed: 0,
-      message: "No hay usuarios con dirección de depósito. Que cada usuario entre en Depositar BOLIS para generar la suya.",
+      message: "No hay usuarios con dirección de depósito.",
     });
   }
 
@@ -79,8 +76,8 @@ export async function POST(req: Request) {
         const raw = e instanceof Error ? e.message : String(e);
         const is401 = raw.includes("401") || raw.includes("missing api key");
         const msg = is401
-          ? "RPC requiere API key. Pon en .env.local SOLANA_RPC_URL con la URL completa (ej. Helius: https://mainnet.helius-rpc.com/?api_key=TU_KEY). Reinicia el servidor."
-          : `Dirección ${depositAddress}: no se pudieron obtener firmas del ATA (${ataStr}). ¿RPC correcto / misma red? ${raw}`;
+          ? "RPC requiere API key. Configura SOLANA_RPC_URL con la URL completa (ej. Helius)."
+          : `Dirección ${depositAddress}: no se pudieron obtener firmas del ATA (${ataStr}). ${raw}`;
         errors.push(msg);
         debug.push({ deposit_address: depositAddress, ata: ataStr, signatures_found: 0, skip_reasons: ["getSignaturesForAddress error"] });
         continue;
@@ -138,7 +135,7 @@ export async function POST(req: Request) {
               await sweepBolisToTreasury(kp, result.amount);
             }
           } catch {
-            // Sweep opcional (p. ej. la wallet de depósito no tiene SOL para la fee). El usuario ya tiene los puntos.
+            // Sweep failed (e.g. no ATA created yet). Points already credited.
           }
 
           await supabase.from("processed_deposits").insert({
@@ -166,7 +163,7 @@ export async function POST(req: Request) {
   const hasZeroSigs = debug.some((d) => d.signatures_found === 0);
   const rpcHint =
     hasZeroSigs && IS_PUBLIC_RPC
-      ? " El RPC público suele no devolver historial. Configura SOLANA_RPC_URL (Helius, QuickNode, etc.) en el servidor."
+      ? " El RPC público suele no devolver historial. Configura SOLANA_RPC_URL (Helius, QuickNode, etc.)."
       : "";
 
   return NextResponse.json({
@@ -182,4 +179,20 @@ export async function POST(req: Request) {
         : undefined,
     rpc_hint: hasZeroSigs && IS_PUBLIC_RPC ? rpcHint : undefined,
   });
+}
+
+/** GET — Vercel Cron llama esta ruta cada 5 minutos. */
+export async function GET(req: Request) {
+  if (!(await authorize(req))) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
+  return processDeposits();
+}
+
+/** POST — Botón "Procesar depósitos ahora" del panel admin. */
+export async function POST(req: Request) {
+  if (!(await authorize(req))) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
+  return processDeposits();
 }
