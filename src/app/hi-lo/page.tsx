@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import RollDisplay from "./RollDisplay";
+import { MAX_BET_POINTS, MAX_WIN_POINTS } from "@/lib/config";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 /** Proporción 49% jugador / 51% casa: odds * winChance = 98 (winChance en %) */
@@ -129,7 +130,7 @@ export default function HiLoPage() {
 
   const betNum = Math.floor(Number(bet)) || 0;
   const minBet = 1;
-  const maxBet = balance != null ? Math.max(balance, 1) : 100000;
+  const maxBet = balance != null ? Math.min(balance, MAX_BET_POINTS) : MAX_BET_POINTS;
   const oddsNum = Math.max(ODDS_MIN, Math.min(ODDS_MAX, Number(betOdds) || 2));
   const winChanceNum = Math.max(WIN_CHANCE_MIN, Math.min(WIN_CHANCE_MAX, Number(winChance) || 49));
 
@@ -167,7 +168,14 @@ export default function HiLoPage() {
       body: JSON.stringify({ bet: betAmount, choice: choiceHiLo, odds }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) return null;
+    if (!res.ok) {
+      if (data.requireTerms) {
+        window.location.href = "/terminos";
+        return null;
+      }
+      setError(data.error || "Error al jugar.");
+      return null;
+    }
     return data as Result;
   }
 
@@ -328,7 +336,10 @@ export default function HiLoPage() {
       <div className="rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-center text-slate-200 sm:px-4 sm:py-3">
         <p className="text-sm font-semibold sm:text-base">Multiplica tus puntos con el juego HI-LO (cuota 1.01 a 4900).</p>
         <p className="mt-1 text-xs text-slate-400 sm:text-sm">
-          Elige cantidad, apuesta MAYOR (Hi) o MENOR (Lo). Rango 0000-9999. Prob. de acierto según cuota (ej. 49% con cuota 2).
+          Elige cantidad, apuesta MAYOR (Hi) o MENOR (Lo). Rango 0000-9999. Prob. de acierto segun cuota (ej. 49% con cuota 2).
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          Max apuesta: {MAX_BET_POINTS.toLocaleString()} pts | Max ganancia/jugada: {MAX_WIN_POINTS.toLocaleString()} pts
         </p>
       </div>
 
@@ -410,7 +421,10 @@ export default function HiLoPage() {
                 onChange={(e) => setBet(e.target.value)}
                 className="mt-2 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 font-mono text-white"
               />
-              <p className="mt-2 text-sm text-slate-400">GANANCIA POTENCIAL: {Math.floor(betNum * oddsNum).toLocaleString()} pts</p>
+              <p className={`mt-2 text-sm ${Math.floor(betNum * (oddsNum - 1)) > MAX_WIN_POINTS ? "text-red-400" : "text-slate-400"}`}>
+                GANANCIA POTENCIAL: {Math.floor(betNum * oddsNum).toLocaleString()} pts
+                {Math.floor(betNum * (oddsNum - 1)) > MAX_WIN_POINTS && " (excede limite)"}
+              </p>
               <p className="mt-2 text-sm font-semibold text-slate-300">CUOTAS DE APUESTA (?)</p>
               <input
                 type="number"

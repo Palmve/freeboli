@@ -31,6 +31,9 @@ const FIELDS: SettingField[] = [
   { key: "PRIZE_MONTHLY_1", label: "Premio mensual 1er lugar", type: "number", description: "Puntos para el 1er lugar del ranking mensual", group: "Premios Ranking" },
   { key: "PRIZE_MONTHLY_2", label: "Premio mensual 2do lugar", type: "number", description: "Puntos para el 2do lugar del ranking mensual", group: "Premios Ranking" },
   { key: "PRIZE_MONTHLY_3", label: "Premio mensual 3er lugar", type: "number", description: "Puntos para el 3er lugar del ranking mensual", group: "Premios Ranking" },
+  { key: "MAX_BET_POINTS", label: "Apuesta maxima (pts)", type: "number", description: "Maximo de puntos que un usuario puede apostar en una jugada", group: "Limites de Juego" },
+  { key: "MAX_WIN_POINTS", label: "Ganancia maxima/jugada (pts)", type: "number", description: "Maximo de puntos que un usuario puede ganar en una jugada", group: "Limites de Juego" },
+  { key: "MAX_DAILY_WIN_POINTS", label: "Ganancia maxima/dia (pts)", type: "number", description: "Maximo de puntos que un usuario puede ganar en un dia", group: "Limites de Juego" },
 ];
 
 export default function ConfiguracionPage() {

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
 import { playHiLo } from "@/lib/hilo";
-import { AFFILIATE_COMMISSION_PERCENT } from "@/lib/config";
+import { AFFILIATE_COMMISSION_PERCENT, MAX_BET_POINTS, MAX_WIN_POINTS, MAX_DAILY_WIN_POINTS } from "@/lib/config";
+import { getSetting } from "@/lib/site-settings";
 
 export async function POST(req: Request) {
   const currentUser = await getCurrentUser();
@@ -20,12 +21,49 @@ export async function POST(req: Request) {
   if (!Number.isFinite(odds) || odds < 1.01 || odds > 4900) odds = 2;
   if (!choice || bet < 1) {
     return NextResponse.json(
-      { error: "Apuesta inválida (mínimo 1 punto) y elección hi o lo." },
+      { error: "Apuesta invalida (minimo 1 punto) y eleccion hi o lo." },
+      { status: 400 }
+    );
+  }
+
+  const maxBet = await getSetting<number>("MAX_BET_POINTS", MAX_BET_POINTS);
+  const maxWin = await getSetting<number>("MAX_WIN_POINTS", MAX_WIN_POINTS);
+  const maxDailyWin = await getSetting<number>("MAX_DAILY_WIN_POINTS", MAX_DAILY_WIN_POINTS);
+
+  if (bet > maxBet) {
+    return NextResponse.json(
+      { error: `Apuesta maxima: ${maxBet.toLocaleString()} puntos.` },
+      { status: 400 }
+    );
+  }
+
+  const potentialWin = Math.floor(bet * odds) - bet;
+  if (potentialWin > maxWin) {
+    return NextResponse.json(
+      { error: `Ganancia maxima por jugada: ${maxWin.toLocaleString()} puntos. Reduce tu apuesta o la cuota.` },
       { status: 400 }
     );
   }
 
   const supabase = await createClient();
+
+  // Check daily win cap
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const { data: todayWins } = await supabase
+    .from("movements")
+    .select("points")
+    .eq("user_id", userId)
+    .eq("type", "premio_hi_lo")
+    .gte("created_at", todayStart.toISOString());
+  const totalWonToday = (todayWins ?? []).reduce((s, m) => s + (Number(m.points) || 0), 0);
+  if (totalWonToday >= maxDailyWin) {
+    return NextResponse.json(
+      { error: `Has alcanzado el limite diario de ganancias (${maxDailyWin.toLocaleString()} pts). Vuelve manana.` },
+      { status: 400 }
+    );
+  }
+
   const { data: balanceRow } = await supabase
     .from("balances")
     .select("points")
@@ -34,6 +72,19 @@ export async function POST(req: Request) {
   const currentPoints = Number(balanceRow?.points ?? 0);
   if (currentPoints < bet) {
     return NextResponse.json({ error: "Saldo insuficiente." }, { status: 400 });
+  }
+
+  // Check terms acceptance
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("terms_accepted_at")
+    .eq("id", userId)
+    .single();
+  if (!profile?.terms_accepted_at) {
+    return NextResponse.json(
+      { error: "Debes aceptar los terminos y condiciones antes de jugar.", requireTerms: true },
+      { status: 403 }
+    );
   }
 
   const { count } = await supabase

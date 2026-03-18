@@ -15,6 +15,7 @@ export default function RegistroPage() {
     const ref = params.get("ref");
     if (ref) setReferral(ref);
   }, []);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,6 +24,10 @@ export default function RegistroPage() {
     e.preventDefault();
     setError("");
     setMessage("");
+    if (!termsAccepted) {
+      setError("Debes aceptar los terminos y condiciones para registrarte.");
+      return;
+    }
     setLoading(true);
     const res = await fetch("/api/auth/register", {
       method: "POST",
@@ -80,6 +85,23 @@ export default function RegistroPage() {
             className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white"
           />
         </div>
+        {/* Terms acceptance */}
+        <div className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            id="terms"
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            className="mt-1 shrink-0"
+          />
+          <label htmlFor="terms" className="text-sm text-slate-400">
+            He leido y acepto los{" "}
+            <Link href="/terminos" target="_blank" className="text-amber-400 hover:underline">
+              Terminos y Condiciones
+            </Link>
+            {" "}de juego. Confirmo que soy mayor de 18 anos.
+          </label>
+        </div>
         {/* Honeypot - invisible to real users, bots auto-fill it */}
         <div className="absolute -left-[9999px] opacity-0 h-0 overflow-hidden" aria-hidden="true">
           <input
@@ -91,8 +113,8 @@ export default function RegistroPage() {
             onChange={(e) => setHp(e.target.value)}
           />
         </div>
-        <button type="submit" className="btn-primary w-full" disabled={loading}>
-          {loading ? "Creando…" : "Registrarse"}
+        <button type="submit" className="btn-primary w-full" disabled={loading || !termsAccepted}>
+          {loading ? "Creando..." : "Registrarse"}
         </button>
       </form>
       {process.env.NEXT_PUBLIC_GOOGLE_ENABLED === "true" && (

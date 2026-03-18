@@ -102,6 +102,7 @@ export async function POST(req: Request) {
       name: email.split("@")[0],
       password_hash,
       referrer_id: referrerId,
+      terms_accepted_at: new Date().toISOString(),
     })
     .select("id")
     .single();

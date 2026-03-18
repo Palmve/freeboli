@@ -33,3 +33,10 @@ export const REFERRAL_MIN_DAYS = Number(process.env.NEXT_PUBLIC_REFERRAL_MIN_DAY
 /** HI-LO */
 export const HILO_PLAYER_WIN_CHANCE = Number(process.env.NEXT_PUBLIC_HILO_PLAYER_WIN_CHANCE) || 0.49;
 export const HILO_WIN_MULTIPLIER = Number(process.env.NEXT_PUBLIC_HILO_WIN_MULTIPLIER) || 2;
+
+/** House reserves: 10,000 BOLIS of 250,000 total. Max win = 1,000 BOLIS = 1,000,000 pts */
+export const HOUSE_BOLIS_RESERVE = Number(process.env.NEXT_PUBLIC_HOUSE_BOLIS_RESERVE) || 10_000;
+export const BOLIS_TOTAL_SUPPLY = Number(process.env.NEXT_PUBLIC_BOLIS_TOTAL_SUPPLY) || 250_000;
+export const MAX_BET_POINTS = Number(process.env.NEXT_PUBLIC_MAX_BET_POINTS) || 1_000_000;
+export const MAX_WIN_POINTS = Number(process.env.NEXT_PUBLIC_MAX_WIN_POINTS) || 1_000_000;
+export const MAX_DAILY_WIN_POINTS = Number(process.env.NEXT_PUBLIC_MAX_DAILY_WIN_POINTS) || 2_000_000;
