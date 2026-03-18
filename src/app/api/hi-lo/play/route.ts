@@ -4,6 +4,7 @@ import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
 import { playHiLo } from "@/lib/hilo";
 import { AFFILIATE_COMMISSION_PERCENT, MAX_BET_POINTS, MAX_WIN_POINTS, MAX_DAILY_WIN_POINTS } from "@/lib/config";
 import { getSetting } from "@/lib/site-settings";
+import { alertLargeWin, alertDailyLimitReached } from "@/lib/telegram";
 
 export async function POST(req: Request) {
   const currentUser = await getCurrentUser();
@@ -126,6 +127,16 @@ export async function POST(req: Request) {
       reference: null,
       metadata: { roll: result.roll, choice: result.choice },
     });
+
+    const winAmount = result.payout - result.bet;
+    if (winAmount >= maxWin * 0.5) {
+      alertLargeWin(currentUser.email, result.bet, result.payout);
+    }
+
+    const newTotalWon = totalWonToday + result.payout;
+    if (newTotalWon >= maxDailyWin * 0.8) {
+      alertDailyLimitReached(currentUser.email, newTotalWon);
+    }
   }
 
   // Mantener solo las últimas 100 jugadas HI-LO por usuario (apuestas + premios)

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
 import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
 import { rateLimit } from "@/lib/rate-limit";
+import { alertWithdrawalRequest } from "@/lib/telegram";
 
 export async function POST(req: Request) {
   const currentUser = await getCurrentUser();
@@ -70,6 +71,8 @@ export async function POST(req: Request) {
     reference: inserted.id,
     metadata: { wallet_destination: wallet, status: "pending" },
   });
+
+  alertWithdrawalRequest(currentUser.email, points, wallet);
 
   return NextResponse.json({
     ok: true,

@@ -5,6 +5,7 @@ import { WELCOME_POINTS } from "@/lib/config";
 import { rateLimit } from "@/lib/rate-limit";
 import { isDisposableEmail } from "@/lib/disposable-emails";
 import { headers } from "next/headers";
+import { alertNewUser } from "@/lib/telegram";
 
 function getIpFromHeaders(h: Headers): string {
   const forwarded = h.get("x-forwarded-for");
@@ -126,5 +127,8 @@ export async function POST(req: Request) {
       referred_id: inserted.id,
     });
   }
+
+  alertNewUser(email, !!referrerId);
+
   return NextResponse.json({ ok: true, userId: inserted.id });
 }

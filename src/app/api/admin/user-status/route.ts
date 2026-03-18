@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
+import { alertUserBlocked } from "@/lib/telegram";
 
 const VALID_STATUSES = ["normal", "evaluar", "suspendido", "bloqueado"];
 
@@ -25,6 +26,11 @@ export async function PUT(request: Request) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (status === "suspendido" || status === "bloqueado") {
+    const { data: profile } = await supabase.from("profiles").select("email").eq("id", userId).single();
+    alertUserBlocked(profile?.email ?? userId, status);
   }
 
   return NextResponse.json({ ok: true, status });
