@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserId } from "@/lib/current-user";
+import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
 import { playHiLo } from "@/lib/hilo";
 import { AFFILIATE_COMMISSION_PERCENT } from "@/lib/config";
 
 export async function POST(req: Request) {
-  const userId = await getCurrentUserId();
-  if (!userId) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  if (isUserBlocked(currentUser.status)) {
+    return NextResponse.json({ error: "Tu cuenta está suspendida o bloqueada." }, { status: 403 });
+  }
+  const userId = currentUser.id;
 
   const body = await req.json().catch(() => ({}));
   const bet = Math.floor(Number(body.bet));

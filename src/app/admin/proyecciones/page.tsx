@@ -18,6 +18,15 @@ const DEFAULT = {
   comisionLogros: 10,
   logrosPromedioUsuario: 3,
   puntosPromedioLogro: 1000,
+  premioDiario1: 500,
+  premioDiario2: 300,
+  premioDiario3: 100,
+  premioSemanal1: 5000,
+  premioSemanal2: 3000,
+  premioSemanal3: 1000,
+  premioMensual1: 25000,
+  premioMensual2: 15000,
+  premioMensual3: 5000,
 };
 
 function calc(p: typeof DEFAULT) {
@@ -52,9 +61,14 @@ function calc(p: typeof DEFAULT) {
   const puntosLogros = logrosTotales * p.puntosPromedioLogro;
   const comisionLogrosTotal = Math.floor(puntosLogros * p.comisionLogros / 100);
 
-  const totalDia = faucetDia + comisionFaucetDia;
+  const premiosDia = p.premioDiario1 + p.premioDiario2 + p.premioDiario3;
+  const premiosSemana = p.premioSemanal1 + p.premioSemanal2 + p.premioSemanal3;
+  const premiosMes = p.premioMensual1 + p.premioMensual2 + p.premioMensual3;
+  const premiosRankingMes = premiosDia * 30 + premiosSemana * 4 + premiosMes;
+
+  const totalDia = faucetDia + comisionFaucetDia + premiosDia;
   const totalUnico = bonusVerificadoTotal + puntosLogros + comisionLogrosTotal;
-  const totalMes = totalDia * 30 + totalUnico;
+  const totalMes = totalDia * 30 + totalUnico + premiosSemana * 4 + premiosMes;
   const bolisMes = totalMes / POINTS_PER_BOLIS;
 
   return {
@@ -66,6 +80,7 @@ function calc(p: typeof DEFAULT) {
     bonusVerificadoTotal,
     puntosLogros,
     comisionLogrosTotal,
+    premiosRankingMes,
     totalDia,
     totalUnico,
     totalMes,
@@ -95,6 +110,15 @@ export default function ProyeccionesPage() {
     { label: "Comisión logros (%)", key: "comisionLogros", suffix: "%" },
     { label: "Logros promedio/usuario", key: "logrosPromedioUsuario" },
     { label: "Puntos promedio/logro", key: "puntosPromedioLogro" },
+    { label: "Premio diario 1er", key: "premioDiario1" },
+    { label: "Premio diario 2do", key: "premioDiario2" },
+    { label: "Premio diario 3er", key: "premioDiario3" },
+    { label: "Premio semanal 1er", key: "premioSemanal1" },
+    { label: "Premio semanal 2do", key: "premioSemanal2" },
+    { label: "Premio semanal 3er", key: "premioSemanal3" },
+    { label: "Premio mensual 1er", key: "premioMensual1" },
+    { label: "Premio mensual 2do", key: "premioMensual2" },
+    { label: "Premio mensual 3er", key: "premioMensual3" },
   ];
 
   const results: { label: string; value: string; color?: string }[] = [
@@ -106,6 +130,7 @@ export default function ProyeccionesPage() {
     { label: "Bonus verificados (único)", value: r.bonusVerificadoTotal.toLocaleString(), color: "text-green-400" },
     { label: "Puntos logros (único)", value: r.puntosLogros.toLocaleString() },
     { label: "Comisión sobre logros (único)", value: r.comisionLogrosTotal.toLocaleString() },
+    { label: "Premios ranking / mes", value: r.premiosRankingMes.toLocaleString(), color: "text-purple-400" },
     { label: "Total recurrente / día", value: r.totalDia.toLocaleString(), color: "text-amber-400" },
     { label: "Total único (verificación + logros)", value: r.totalUnico.toLocaleString(), color: "text-green-400" },
     { label: "Total estimado / mes", value: r.totalMes.toLocaleString(), color: "text-white text-lg font-bold" },

@@ -1,7 +1,16 @@
+"use client";
+
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { POINTS_PER_BOLIS } from "@/lib/config";
 
+const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
+
 export default function HomePage() {
+  const { data: session, status } = useSession();
+  const loggedIn = !!session?.user || !REQUIRE_AUTH;
+  const loading = REQUIRE_AUTH && status === "loading";
+
   return (
     <div className="space-y-16 py-8">
       <section className="text-center">
@@ -13,16 +22,31 @@ export default function HomePage() {
           <span className="font-semibold text-green-400">BOLIS</span> de Solana.
           <br />
           <span className="text-amber-400">
-            {POINTS_PER_BOLIS.toLocaleString()} puntos = 1 BOLIS
+            {String(POINTS_PER_BOLIS)} puntos = 1 BOLIS
           </span>
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-4">
-          <Link href="/auth/registro" className="btn-primary text-lg px-6 py-3">
-            Jugar ahora
-          </Link>
-          <Link href="/auth/login" className="btn-secondary text-lg px-6 py-3">
-            Entrar
-          </Link>
+          {loading ? (
+            <div className="h-12" />
+          ) : loggedIn ? (
+            <>
+              <Link href="/faucet" className="btn-primary text-lg px-6 py-3">
+                Ir al Faucet
+              </Link>
+              <Link href="/hi-lo" className="btn-secondary text-lg px-6 py-3">
+                Jugar HI-LO
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/auth/registro" className="btn-primary text-lg px-6 py-3">
+                Jugar ahora
+              </Link>
+              <Link href="/auth/login" className="btn-secondary text-lg px-6 py-3">
+                Entrar
+              </Link>
+            </>
+          )}
         </div>
       </section>
 
@@ -35,7 +59,7 @@ export default function HomePage() {
             Reclama puntos cada hora sin invertir. Acumula y convierte en BOLIS.
           </p>
           <Link href="/faucet" className="mt-4 inline-block text-amber-400 hover:underline">
-            Ir al faucet →
+            Ir al faucet
           </Link>
         </div>
         <div className="card">
@@ -46,7 +70,7 @@ export default function HomePage() {
             Apuesta puntos y multiplica. Juego provably fair con tus puntos.
           </p>
           <Link href="/hi-lo" className="mt-4 inline-block text-amber-400 hover:underline">
-            Jugar HI-LO →
+            Jugar HI-LO
           </Link>
         </div>
         <div className="card">
@@ -57,7 +81,7 @@ export default function HomePage() {
             Invita amigos y gana comisión de por vida sobre sus puntos.
           </p>
           <Link href="/afiliados" className="mt-4 inline-block text-amber-400 hover:underline">
-            Ver programa →
+            Ver programa
           </Link>
         </div>
       </section>
@@ -71,7 +95,7 @@ export default function HomePage() {
           puntos, retira BOLIS a tu wallet de Solana (Phantom, etc.).
         </p>
         <p className="mt-2 text-sm text-amber-400">
-          Equivalencia: {POINTS_PER_BOLIS.toLocaleString()} puntos = 1 BOLIS (ajustable)
+          Equivalencia: {String(POINTS_PER_BOLIS)} puntos = 1 BOLIS (ajustable)
         </p>
       </section>
     </div>

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 
 // Movement types from the platform's perspective
-const COST_TYPES = ["faucet", "premio_hi_lo", "comision_afiliado", "logro", "recompensa", "bonus_referido_verificado"] as const;
+const COST_TYPES = ["faucet", "premio_hi_lo", "comision_afiliado", "logro", "recompensa", "bonus_referido_verificado", "premio_ranking"] as const;
 const REVENUE_TYPES = ["apuesta_hi_lo"] as const;
 const NEUTRAL_TYPES = ["deposito_bolis", "retiro_bolis"] as const;
 
@@ -13,6 +13,7 @@ const TYPE_LABELS: Record<string, string> = {
   recompensa: "Bienvenida / Promo (costo)",
   apuesta_hi_lo: "Apuestas HI-LO (ingreso)",
   bonus_referido_verificado: "Bonus referido verificado (costo)",
+  premio_ranking: "Premios ranking (costo)",
   deposito_bolis: "Depósitos usuarios (neutral)",
   retiro_bolis: "Retiros usuarios (neutral)",
 };

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserId } from "@/lib/current-user";
+import { getCurrentUserId, getCurrentUser, isUserBlocked } from "@/lib/current-user";
 import { getRequestIpHash } from "@/lib/ip";
 import {
   FAUCET_POINTS,
@@ -34,8 +34,12 @@ async function getConfig() {
 }
 
 export async function POST(request: Request) {
-  const userId = await getCurrentUserId();
-  if (!userId) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  if (isUserBlocked(currentUser.status)) {
+    return NextResponse.json({ error: "Tu cuenta está suspendida o bloqueada." }, { status: 403 });
+  }
+  const userId = currentUser.id;
 
   const supabase = await createClient();
   const ipHash = await getRequestIpHash();

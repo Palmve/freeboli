@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserId } from "@/lib/current-user";
+import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
 import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
 import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
-  const userId = await getCurrentUserId();
-  if (!userId) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  if (isUserBlocked(currentUser.status)) {
+    return NextResponse.json({ error: "Tu cuenta está suspendida o bloqueada." }, { status: 403 });
+  }
+  const userId = currentUser.id;
 
   const { allowed, retryAfterSeconds } = rateLimit(`withdraw:${userId}`, 5, 60 * 60 * 1000);
   if (!allowed) {

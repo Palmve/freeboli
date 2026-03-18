@@ -22,6 +22,15 @@ const FIELDS: SettingField[] = [
   { key: "REFERRAL_MIN_DAYS", label: "Mín. días para bonus", type: "number", description: "Días mínimos de registro del referido para dar bonus", group: "Afiliados" },
   { key: "HOURLY_STREAK_TIERS", label: "Tiers racha por horas", type: "json", description: "JSON array con min, max, multiplier", group: "Streaks" },
   { key: "DAILY_STREAK_TIERS", label: "Tiers racha por días", type: "json", description: "JSON array con min, max, bonus", group: "Streaks" },
+  { key: "PRIZE_DAILY_1", label: "Premio diario 1er lugar", type: "number", description: "Puntos para el 1er lugar del ranking diario", group: "Premios Ranking" },
+  { key: "PRIZE_DAILY_2", label: "Premio diario 2do lugar", type: "number", description: "Puntos para el 2do lugar del ranking diario", group: "Premios Ranking" },
+  { key: "PRIZE_DAILY_3", label: "Premio diario 3er lugar", type: "number", description: "Puntos para el 3er lugar del ranking diario", group: "Premios Ranking" },
+  { key: "PRIZE_WEEKLY_1", label: "Premio semanal 1er lugar", type: "number", description: "Puntos para el 1er lugar del ranking semanal", group: "Premios Ranking" },
+  { key: "PRIZE_WEEKLY_2", label: "Premio semanal 2do lugar", type: "number", description: "Puntos para el 2do lugar del ranking semanal", group: "Premios Ranking" },
+  { key: "PRIZE_WEEKLY_3", label: "Premio semanal 3er lugar", type: "number", description: "Puntos para el 3er lugar del ranking semanal", group: "Premios Ranking" },
+  { key: "PRIZE_MONTHLY_1", label: "Premio mensual 1er lugar", type: "number", description: "Puntos para el 1er lugar del ranking mensual", group: "Premios Ranking" },
+  { key: "PRIZE_MONTHLY_2", label: "Premio mensual 2do lugar", type: "number", description: "Puntos para el 2do lugar del ranking mensual", group: "Premios Ranking" },
+  { key: "PRIZE_MONTHLY_3", label: "Premio mensual 3er lugar", type: "number", description: "Puntos para el 3er lugar del ranking mensual", group: "Premios Ranking" },
 ];
 
 export default function ConfiguracionPage() {

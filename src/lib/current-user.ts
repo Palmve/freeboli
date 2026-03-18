@@ -5,11 +5,18 @@ import { createClient } from "@/lib/supabase/server";
 const REQUIRE_AUTH = process.env.REQUIRE_AUTH === "true";
 const LOCAL_USER_EMAIL = (process.env.LOCAL_USER_EMAIL || "albertonava@gmail.com").trim().toLowerCase();
 
+export type UserStatus = "normal" | "evaluar" | "suspendido" | "bloqueado";
+
+export function isUserBlocked(status: UserStatus): boolean {
+  return status === "suspendido" || status === "bloqueado";
+}
+
 export interface CurrentUser {
   id: string;
   email: string;
   name?: string;
   isAdmin: boolean;
+  status: UserStatus;
 }
 
 /**
@@ -39,18 +46,25 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   if (session?.user && (session.user as { id?: string }).id) {
     const id = (session.user as { id: string }).id;
     const isAdmin = (session.user as { isAdmin?: boolean }).isAdmin ?? false;
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("status")
+      .eq("id", id)
+      .single();
     return {
       id,
       email: session.user.email ?? "",
       name: session.user.name ?? undefined,
       isAdmin,
+      status: (profile?.status as UserStatus) || "normal",
     };
   }
   if (REQUIRE_AUTH) return null;
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
-    .select("id, email, name, is_admin")
+    .select("id, email, name, is_admin, status")
     .eq("email", LOCAL_USER_EMAIL)
     .single();
   if (!data) return null;
@@ -59,5 +73,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     email: data.email ?? LOCAL_USER_EMAIL,
     name: data.name ?? undefined,
     isAdmin: !!data.is_admin,
+    status: (data.status as UserStatus) || "normal",
   };
 }
