@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
@@ -83,13 +83,18 @@ export function Header() {
                   Admin
                 </Link>
               )}
-              {REQUIRE_AUTH ? (
-                <Link href="/api/auth/signout" className="btn-primary text-sm">
-                  Salir
-                </Link>
-              ) : (
-                <span className="text-xs text-slate-500">Modo local</span>
+              {!REQUIRE_AUTH && (
+                <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                  Modo local
+                </span>
               )}
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="btn-primary text-sm"
+              >
+                Salir
+              </button>
             </>
           ) : (
             <>

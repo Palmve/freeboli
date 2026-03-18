@@ -52,11 +52,20 @@ En Vercel deben estar configuradas (no en el código):
 
 - Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - NextAuth: `NEXTAUTH_URL` (en producción: `https://freeboli.vercel.app`), `NEXTAUTH_SECRET`, `ADMIN_EMAILS`
+- **Auth en producción:** `REQUIRE_AUTH=true` y `NEXT_PUBLIC_REQUIRE_AUTH=true` para que la web pida login real, no muestre "Modo local" y el botón **Salir** cierre sesión. Si no se ponen, la app usa modo local (usuario implícito, sin Salir real).
 - Solana: `SOLANA_WALLET_PRIVATE_KEY_BASE58`, `SOLANA_RPC_URL` (recomendado RPC con historial para depósitos)
 - Depósitos por usuario: `DEPOSIT_WALLET_ENCRYPTION_KEY`
 - Opcional cron: `CRON_SECRET` para `POST /api/deposit/process-incoming`
 
 Nunca subir claves privadas ni API keys al repositorio.
+
+---
+
+## Login, registro y "Modo local"
+
+- **Crear usuarios:** Sí. Los usuarios se registran en **Registrarse** (`/auth/registro`) y se crean en Supabase (perfil, saldo, movimientos). El login es por correo/contraseña o Google (si está configurado).
+- **"Modo local" en el header:** Aparece cuando `NEXT_PUBLIC_REQUIRE_AUTH` no es `"true"`. En ese modo la app usa un usuario local (variable `LOCAL_USER_EMAIL`) y no exige login.
+- **Para producción:** Configurar `REQUIRE_AUTH=true` y `NEXT_PUBLIC_REQUIRE_AUTH=true` en Vercel para que haya login real, desaparezca "Modo local" y **Salir** cierre la sesión.
 
 ---
 
