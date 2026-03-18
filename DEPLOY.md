@@ -9,71 +9,110 @@ Este archivo describe dónde está la web en producción, la base de datos, el r
 | Qué | Dónde |
 |-----|--------|
 | **Web en producción** | https://freeboli.vercel.app/ |
-| **Panel Vercel (dominios y proyecto)** | https://vercel.com/albertonava-2595s-projects/freeboli/settings/domains |
+| **Panel Vercel** | https://vercel.com/albertonava-2595s-projects/freeboli/settings/domains |
 | **Código fuente (GitHub)** | https://github.com/Palmve/freeboli |
-| **Base de datos** | Supabase (URL y claves en variables de entorno; no están en el repo). El proyecto usa `NEXT_PUBLIC_SUPABASE_URL` y las migraciones están en `supabase/migrations/`. |
+| **Base de datos** | Supabase (credenciales en variables de entorno, nunca en el repo) |
 
 ---
 
 ## Flujo de despliegue
 
-1. **Desarrollo local**  
-   - Carpeta del proyecto: `e:\2026 Desarrollo Web\freeboli` (Windows) o la ruta donde esté clonado el repo.  
-   - Variables en `.env.local` (nunca subir este archivo a Git).  
-   - Comandos: `pnpm install`, `pnpm run dev`. Abre http://localhost:3000 (o el puerto que indique Next.js).
+1. **Desarrollo local**
+   - Carpeta: `e:\2026 Desarrollo Web\freeboli` (Windows).
+   - Variables en `.env.local` (nunca subir a Git).
+   - Comandos: `pnpm install`, `pnpm run dev`. Abre http://localhost:3000.
+   - Ver `LOCAL.md` para configuración detallada.
 
-2. **Subir cambios a GitHub**  
-   - Repositorio: **Palmve/freeboli**. Rama principal: **main**.  
-   - Desde la carpeta del proyecto:
-     ```bash
-     git add .
-     git commit -m "Descripción del cambio"
-     git push origin main
-     ```
+2. **Subir cambios a GitHub**
+   - Repositorio: **Palmve/freeboli**. Rama principal: **main**.
+   ```bash
+   git add .
+   git commit -m "Descripción del cambio"
+   git push origin main
+   ```
    - No hacer push de `.env.local`, claves privadas ni tokens.
 
-3. **Producción (Vercel)**  
-   - El proyecto **freeboli** está vinculado al repo **Palmve/freeboli** en la cuenta de Vercel **albertonava-2595's projects**.  
-   - Cada push a `main` dispara un deploy automático.  
-   - La web pública queda en: **https://freeboli.vercel.app/**  
-   - Dominios y configuración: **Vercel → Project freeboli → Settings → Domains** (enlace arriba).
+3. **Producción (Vercel)**
+   - El proyecto **freeboli** está vinculado al repo **Palmve/freeboli** en Vercel.
+   - Cada push a `main` dispara un deploy automático.
+   - Web: **https://freeboli.vercel.app/**
 
-4. **Base de datos**  
-   - Es un proyecto **Supabase**. La URL y las claves se configuran solo en:
-     - Local: `.env.local`
-     - Producción: **Vercel → Project freeboli → Settings → Environment Variables**
-   - Migraciones: ejecutar en el SQL Editor de Supabase en orden: `001_initial.sql`, `002_deposit_code.sql`, `003_deposit_wallet_per_user.sql` (y las que se añadan después).
-
----
-
-## Variables de entorno (recordatorio para producción)
-
-En Vercel deben estar configuradas (no en el código):
-
-- Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-- NextAuth: `NEXTAUTH_URL` (en producción: `https://freeboli.vercel.app`), `NEXTAUTH_SECRET`, `ADMIN_EMAILS`
-- **Auth en producción:** `REQUIRE_AUTH=true` y `NEXT_PUBLIC_REQUIRE_AUTH=true` para que la web pida login real, no muestre "Modo local" y el botón **Salir** cierre sesión. Si no se ponen, la app usa modo local (usuario implícito, sin Salir real).
-- Solana: `SOLANA_WALLET_PRIVATE_KEY_BASE58`, `SOLANA_RPC_URL` (URL completa con `?api-key=...`).
-  - **CRÍTICO:** Asegúrate de usar el guion medio en `api-key`. Helius rechaza `api_key` con error 401.
-- Depósitos por usuario: `DEPOSIT_WALLET_ENCRYPTION_KEY`
-- Opcional cron: `CRON_SECRET` para `POST /api/deposit/process-incoming`
-
-Nunca subir claves privadas ni API keys al repositorio.
+4. **Base de datos (Supabase)**
+   - Migraciones en `supabase/migrations/`, ejecutar en orden en el SQL Editor:
+     - `001_initial.sql` → tablas base
+     - `002_deposit_code.sql` → códigos de depósito
+     - `003_deposit_wallet_per_user.sql` → wallets de depósito por usuario
+     - `004_rewards_streaks.sql` → streaks faucet, site_settings, reward_templates
+   - Credenciales solo en env (local `.env.local`, producción en Vercel).
 
 ---
 
-## Login, registro y "Modo local"
+## Variables de entorno (producción en Vercel)
 
-- **Crear usuarios:** Sí. Los usuarios se registran en **Registrarse** (`/auth/registro`) y se crean en Supabase (perfil, saldo, movimientos). El login es por correo/contraseña o Google (si está configurado).
-- **"Modo local" en el header:** Aparece cuando `NEXT_PUBLIC_REQUIRE_AUTH` no es `"true"`. En ese modo la app usa un usuario local (variable `LOCAL_USER_EMAIL`) y no exige login.
-- **Para producción:** Configurar `REQUIRE_AUTH=true` y `NEXT_PUBLIC_REQUIRE_AUTH=true` en Vercel para que haya login real, desaparezca "Modo local" y **Salir** cierre la sesión.
+### Requeridas
+- `NEXT_PUBLIC_SUPABASE_URL` — URL del proyecto Supabase
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Clave anon de Supabase
+- `SUPABASE_SERVICE_ROLE_KEY` — Clave service_role (para operaciones admin)
+- `NEXTAUTH_URL` — `https://freeboli.vercel.app`
+- `NEXTAUTH_SECRET` — String aleatorio largo (mín 32 chars)
+- `ADMIN_EMAILS` — Emails de admin separados por coma
+- `REQUIRE_AUTH=true` — Activa login obligatorio
+- `NEXT_PUBLIC_REQUIRE_AUTH=true` — Activa login en el frontend
+- `SOLANA_WALLET_PRIVATE_KEY_BASE58` — Clave privada del treasury wallet
+- `SOLANA_RPC_URL` — URL RPC de Solana (Helius recomendado, usar `api-key` con guion medio)
+- `DEPOSIT_WALLET_ENCRYPTION_KEY` — Clave para encriptar wallets de depósito
+- `CRON_SECRET` — Para autorizar el cron job de depósitos
+
+### Opcionales
+- `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `NEXT_PUBLIC_GOOGLE_ENABLED=true` — Login con Google
+- `CAPTCHA_SECRET` — Clave para CAPTCHA (usa NEXTAUTH_SECRET si no se define)
+- Parámetros del sistema (puntos faucet, comisiones, etc.) se configuran desde `/admin/configuracion` en vez de env vars
+
+---
+
+## Arquitectura de datos (tipos de movimiento)
+
+| Tipo | Descripción | Perspectiva plataforma |
+|------|-------------|----------------------|
+| `faucet` | Puntos reclamados del faucet | Costo |
+| `apuesta_hi_lo` | Apuesta en HI-LO (puntos apostados) | Ingreso |
+| `premio_hi_lo` | Premio por ganar HI-LO | Costo |
+| `comision_afiliado` | Comisión al referente por actividad del referido | Costo |
+| `logro` | Puntos por reclamar un logro/achievement | Costo |
+| `recompensa` | Bienvenida / promo | Costo |
+| `bonus_referido_verificado` | Bonus por referido que cumple requisitos | Costo |
+| `deposito_bolis` | Depósito de BOLIS del usuario | Neutral |
+| `retiro_bolis` | Retiro de BOLIS del usuario | Neutral |
+
+---
+
+## Tabla site_settings (configuración en vivo)
+
+Parametros editables desde `/admin/configuracion` sin redesplegar:
+
+| Key | Default | Descripción |
+|-----|---------|-------------|
+| `FAUCET_POINTS` | 100 | Puntos base del faucet |
+| `FAUCET_COOLDOWN_HOURS` | 1 | Horas entre reclamos |
+| `CAPTCHA_INTERVAL` | 4 | Reclamos entre CAPTCHAs |
+| `FAUCET_ENGAGEMENT_EVERY` | 10 | Reclamos entre checks de engagement |
+| `AFFILIATE_COMMISSION_PERCENT` | 50 | % comisión sobre actividad |
+| `AFFILIATE_ACHIEVEMENT_PERCENT` | 10 | % comisión sobre logros |
+| `REFERRAL_VERIFIED_BONUS` | 10000 | Bonus por referido verificado |
+| `REFERRAL_MIN_BETS` | 20 | Mín apuestas para bonus referido |
+| `REFERRAL_MIN_DAYS` | 3 | Mín días registrado para bonus |
+| `HOURLY_STREAK_TIERS` | JSON | Tiers multiplicador por horas |
+| `DAILY_STREAK_TIERS` | JSON | Tiers bonus por días |
 
 ---
 
 ## Resumen para un agente de IA
 
-- **Web pública:** https://freeboli.vercel.app/  
-- **Código:** https://github.com/Palmve/freeboli (rama `main`)  
-- **Hosting:** Vercel, proyecto **freeboli** (albertonava-2595's projects).  
-- **Base de datos:** Supabase; credenciales solo en env (local `.env.local`, producción en Vercel).  
+- **Web pública:** https://freeboli.vercel.app/
+- **Código:** https://github.com/Palmve/freeboli (rama `main`)
+- **Hosting:** Vercel, proyecto **freeboli**.
+- **Base de datos:** Supabase; credenciales solo en env.
 - **Subir cambios:** `git add . && git commit -m "..." && git push origin main` → Vercel despliega solo.
+- **Migraciones:** 4 archivos SQL en `supabase/migrations/`, ejecutar en orden en Supabase SQL Editor.
+- **Config en vivo:** Tabla `site_settings` editable desde `/admin/configuracion`.
+- **Anti-bot:** CAPTCHA, honeypot, timing, emails desechables, rate limiting, engagement, email verificado.

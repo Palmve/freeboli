@@ -1,76 +1,68 @@
 # Pendientes – FreeBoli
 
-Este archivo lista tareas pendientes para que el agente (o un desarrollador) sepa qué falta por hacer. Revisar cuando pregunten "qué hay pendiente" o "qué falta".
+Este archivo lista tareas completadas y pendientes. Revisar cuando pregunten "qué hay pendiente" o "qué falta".
 
 ---
 
-## Infraestructura / DevOps
+## Completado
 
-- **Cron job para procesar depósitos BOLIS [COMPLETADO ✅]**
-  - Configurado en `vercel.json` con Vercel Cron: cada 12 horas (`0 */12 * * *`) llama `GET /api/deposit/process-incoming`.
-  - La ruta acepta GET (cron) y POST (botón admin). Se autoriza con `CRON_SECRET`.
-  - **Requisito:** Definir `CRON_SECRET` en Vercel → Settings → Environment Variables.
-  - El botón manual "Procesar depósitos ahora" sigue disponible en la pestaña Depósitos del panel admin.
+### Infraestructura / DevOps
+- **Cron job para depósitos BOLIS** — `vercel.json`, cada 12h (`0 */12 * * *`). Botón manual en admin.
+- **Wallets de depósito por usuario** — Migración `003`, encriptación con `DEPOSIT_WALLET_ENCRYPTION_KEY`.
+- **RPC Solana (Helius)** — Usar `api-key` (guion medio).
+- **Sweep de wallets** — Treasury paga gas. Panel admin → Wallets.
+- **Panel admin reorganizado** — 8 pestañas: Resumen, Wallets, Depósitos, Retiros, Usuarios, Estadísticas, Proyecciones, Configuración.
 
-- **Variable de entorno para depósitos por usuario [COMPLETADO ✅]**
-  - `DEPOSIT_WALLET_ENCRYPTION_KEY` configurada.
-  - Migración `003_deposit_wallet_per_user.sql` ejecutada.
+### Seguridad
+- **Rate limiting** — Login (5/15min), registro (3/15min + 5/día por IP), retiros (5/h).
+- **Contraseña mínima** — 8 caracteres.
+- **Headers HTTP** — X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.
+- **Endpoint test-login** — Solo en desarrollo.
+- **Bloqueo emails desechables** — ~60 dominios (guerrillamail, tempmail, yopmail, etc.).
+- **Honeypot en registro** — Campo oculto que solo bots llenan.
+- **Validación de tiempo de registro** — Rechaza envíos < 3 segundos.
+- **Tope diario de registros por IP** — Máx 5 cuentas/24h.
+- **Email verificado obligatorio** — Sin verificar no se puede usar el faucet.
+- **CAPTCHA matemático** — Cada 4 reclamos del faucet, posición alterna, firmado con HMAC.
+- **Engagement obligatorio** — Cada 10 reclamos del faucet se exige haber jugado HI-LO en 24h.
 
-- **RPC de Solana (Helius) [COMPLETADO ✅]**
-  - Configurado. Lección: usar `api-key` (guion medio), no `api_key`.
+### Sistema de recompensas (Migración 004)
+- **Faucet con rachas** — Multiplicador por horas (x1-x3) y bonus por días (+0% a +100%).
+- **Logros** — 6 achievements con progreso y reclamar (email, apuestas 1/100/1K/10K, referido).
+- **Tabla site_settings** — Configuración del sistema editable desde admin sin redesplegar.
+- **Admin: Proyecciones** — Simulador client-side de costos mensuales.
+- **Admin: Configuración** — Editor de todos los parámetros (faucet, afiliados, streaks, logros).
 
-- **Sweep de wallets de depósito [COMPLETADO ✅]**
-  - `sweepBolisToTreasury()` corregido: el treasury paga el gas.
-  - Panel admin → pestaña Wallets: muestra wallets de usuarios con saldo on-chain y botón "Sweep al Treasury".
+### Afiliados mejorado
+- **Página renovada** — Enlace directo visible, botones compartir (WhatsApp, X, Facebook, TikTok, Correo, Copiar).
+- **Tabla de referidos** — Email, fecha, verificado, jugadas, comisión, estado bonus.
+- **Bonus por referido verificado** — 10,000 pts (promocional), requiere: email verificado + 20 apuestas + 3 días.
+- **Comisión sobre logros** — 10% de los logros que reclame el referido.
+- **Anti-granja** — Requisitos de actividad impiden ciclos de cuentas falsas.
 
-- **Panel admin reorganizado [COMPLETADO ✅]**
-  - Pestañas responsive: Resumen, Wallets, Depósitos, Retiros, Usuarios, Estadísticas.
-
----
-
-## Seguridad [COMPLETADO ✅]
-
-- **Rate limiting (anti brute-force)**
-  - Login: 5 intentos por email cada 15 minutos.
-  - Registro: 3 intentos por IP cada 15 minutos.
-  - Retiros: 5 solicitudes por usuario por hora.
-  - Implementado con rate limiter in-memory (`src/lib/rate-limit.ts`).
-
-- **Contraseña mínima**
-  - Registro requiere contraseña de al menos 8 caracteres.
-
-- **Cabeceras de seguridad HTTP** (en `next.config.mjs`)
-  - `X-Frame-Options: DENY` (previene clickjacking)
-  - `X-Content-Type-Options: nosniff` (previene MIME sniffing)
-  - `Referrer-Policy: strict-origin-when-cross-origin`
-  - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
-
-- **Endpoint test-login protegido**
-  - Solo disponible en desarrollo y cuando `REQUIRE_AUTH` no es `true`.
-  - En producción devuelve 404.
-
-- **Hashing de contraseñas:** scrypt con salt aleatorio + comparación timing-safe (ya existía).
-- **Sesiones JWT** con expiración de 30 días (ya existía).
-- **Anti-fraude faucet:** Límite de sesiones por IP (`MAX_SESSIONS_PER_IP`, ya existía).
+### Estadísticas admin corregidas
+- Depósitos de usuarios ya NO cuentan como "ganancia" de la plataforma.
+- Desglose: ingresos (apuestas HI-LO) vs costos (faucet, premios, comisiones, logros, bonus referidos).
+- Incluye todos los tipos de movimiento nuevos.
 
 ---
 
-## Funcionalidad / Producto
+## Pendiente / Opcional
 
-- **(Opcional) Aceptar SOL y convertir a BOLIS**  
-  Depósitos en SOL que se conviertan automáticamente a BOLIS (vía Jupiter u otro DEX) y luego a puntos.
-
-- **(Opcional) Sonidos en HI-LO**  
-  Opción "Habilitar sonidos" en el juego.
+- **(Opcional) Aceptar SOL y convertir a BOLIS** — Depósitos en SOL via DEX (Jupiter).
+- **(Opcional) Sonidos en HI-LO** — Opción "Habilitar sonidos".
+- **(Opcional) Verificación de email** — Implementar flujo de envío de email de verificación (actualmente `email_verified_at` se setea manualmente o via admin). Se requiere un proveedor de email (Resend, SendGrid, etc.).
+- **(Opcional) Más juegos** — Ruleta, dados, slots, etc.
+- **(Opcional) Dashboard de usuario** — Gráficas de ganancias, historial de rachas.
 
 ---
 
 ## Configuración producción
 
 - Usar `REQUIRE_AUTH=true` y `NEXT_PUBLIC_REQUIRE_AUTH=true`.
-- No commitear `.env.local` (ya en `.gitignore`).
+- No commitear `.env.local`.
 - Variables requeridas en Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `ADMIN_EMAILS`, `SOLANA_WALLET_PRIVATE_KEY_BASE58`, `SOLANA_RPC_URL`, `DEPOSIT_WALLET_ENCRYPTION_KEY`, `CRON_SECRET`.
 
 ---
 
-*Última actualización: 18 marzo 2026 - Cron 2x/día, seguridad reforzada (rate limiting, headers, password strength).*
+*Última actualización: 18 marzo 2026 — Sistema de recompensas, afiliados mejorado, anti-bot completo, admin con proyecciones y configuración.*

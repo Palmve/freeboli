@@ -83,7 +83,7 @@ export function Header() {
                   Admin
                 </Link>
               )}
-              {!REQUIRE_AUTH && (
+              {!REQUIRE_AUTH && pathname !== "/" && (
                 <span className="text-[10px] uppercase tracking-wider text-slate-500">
                   Modo local
                 </span>

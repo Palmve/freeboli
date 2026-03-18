@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
@@ -24,6 +25,8 @@ export default function DepositarPage() {
       .catch(() => setInfo(null));
   }, []);
 
+  const minDepositBolis = Math.ceil(MIN_WITHDRAW_POINTS / POINTS_PER_BOLIS);
+
   if (REQUIRE_AUTH && status === "loading") return <div className="py-12 text-slate-400">Cargando…</div>;
   if (REQUIRE_AUTH && !session) {
     return (
@@ -44,6 +47,9 @@ export default function DepositarPage() {
         </p>
         <p className="text-sm text-amber-400">
           {info?.pointsPerBolis != null && `${info.pointsPerBolis.toLocaleString()} puntos = 1 BOLIS`}
+        </p>
+        <p className="text-sm text-slate-400">
+          Para poder retirar, deposita al menos <strong>{String(minDepositBolis)} BOLIS</strong> (equivale a {String(MIN_WITHDRAW_POINTS)} puntos).
         </p>
         {info?.address ? (
           <div className="space-y-4">

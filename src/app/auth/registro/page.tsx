@@ -8,6 +8,8 @@ export default function RegistroPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [referral, setReferral] = useState("");
+  const [hp, setHp] = useState("");
+  const [formTs] = useState(() => Date.now());
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
@@ -25,7 +27,7 @@ export default function RegistroPage() {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, referrerCode: referral || undefined }),
+      body: JSON.stringify({ email, password, referrerCode: referral || undefined, _hp: hp, _ts: formTs }),
     });
     const data = await res.json().catch(() => ({}));
     setLoading(false);
@@ -76,6 +78,17 @@ export default function RegistroPage() {
             value={referral}
             onChange={(e) => setReferral(e.target.value)}
             className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white"
+          />
+        </div>
+        {/* Honeypot - invisible to real users, bots auto-fill it */}
+        <div className="absolute -left-[9999px] opacity-0 h-0 overflow-hidden" aria-hidden="true">
+          <input
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            value={hp}
+            onChange={(e) => setHp(e.target.value)}
           />
         </div>
         <button type="submit" className="btn-primary w-full" disabled={loading}>

@@ -10,6 +10,8 @@ const tabs = [
   { href: "/admin/retiros", label: "Retiros" },
   { href: "/admin/usuarios", label: "Usuarios" },
   { href: "/admin/estadisticas", label: "Estadísticas" },
+  { href: "/admin/proyecciones", label: "Proyecciones" },
+  { href: "/admin/configuracion", label: "Configuración" },
 ];
 
 export default function AdminNav() {

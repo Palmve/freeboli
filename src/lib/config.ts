@@ -1,24 +1,35 @@
 /**
  * Configuración de equivalencia y límites.
- * Ajustable luego desde admin o variables de entorno.
+ * Valores por defecto que pueden sobreescribirse desde admin (site_settings) o env vars.
  */
 export const POINTS_PER_BOLIS = Number(process.env.NEXT_PUBLIC_POINTS_PER_BOLIS) || 1000;
 export const MIN_WITHDRAW_POINTS = Number(process.env.NEXT_PUBLIC_MIN_WITHDRAW_POINTS) || 10_000;
 export const FAUCET_POINTS = Number(process.env.NEXT_PUBLIC_FAUCET_POINTS) || 100;
 export const FAUCET_COOLDOWN_HOURS = Number(process.env.NEXT_PUBLIC_FAUCET_COOLDOWN_HOURS) || 1;
-/** Puntos por registrarse / primera vez que ingresas */
 export const WELCOME_POINTS = Number(process.env.NEXT_PUBLIC_WELCOME_POINTS) || 100;
 
 /** Mint BOLIS en Solana */
 export const BOLIS_MINT = "612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha";
 
-/** Máximo de sesiones/conexiones por IP (anti-fraude) */
 export const MAX_SESSIONS_PER_IP = Number(process.env.NEXT_PUBLIC_MAX_SESSIONS_PER_IP) || 3;
 
-/** Porcentaje comisión afiliados (ej. 50 = 50%) */
 export const AFFILIATE_COMMISSION_PERCENT = Number(process.env.NEXT_PUBLIC_AFFILIATE_COMMISSION_PERCENT) || 50;
+/** % de comisión sobre logros reclamados por el referido */
+export const AFFILIATE_ACHIEVEMENT_PERCENT = Number(process.env.NEXT_PUBLIC_AFFILIATE_ACHIEVEMENT_PERCENT) || 10;
+/** Bonus único cuando un referido verifica su email */
+export const REFERRAL_VERIFIED_BONUS = Number(process.env.NEXT_PUBLIC_REFERRAL_VERIFIED_BONUS) || 10_000;
 
-/** HI-LO: probabilidad de acierto del jugador (0.49 = 49% jugador, 51% casa) */
+/** Cada cuántos reclamos del faucet se pide CAPTCHA */
+export const CAPTCHA_INTERVAL = Number(process.env.NEXT_PUBLIC_CAPTCHA_INTERVAL) || 4;
+
+/** Cada cuántos reclamos del faucet se exige haber jugado al menos 1 vez HI-LO en las últimas 24h */
+export const FAUCET_ENGAGEMENT_EVERY = Number(process.env.NEXT_PUBLIC_FAUCET_ENGAGEMENT_EVERY) || 10;
+
+/** Mínimo de apuestas HI-LO que un referido debe tener para que el referente reciba el bonus */
+export const REFERRAL_MIN_BETS = Number(process.env.NEXT_PUBLIC_REFERRAL_MIN_BETS) || 20;
+/** Mínimo de días registrado para que cuente como referido válido */
+export const REFERRAL_MIN_DAYS = Number(process.env.NEXT_PUBLIC_REFERRAL_MIN_DAYS) || 3;
+
+/** HI-LO */
 export const HILO_PLAYER_WIN_CHANCE = Number(process.env.NEXT_PUBLIC_HILO_PLAYER_WIN_CHANCE) || 0.49;
-/** HI-LO: multiplicador al ganar (2 = doblas la apuesta) */
 export const HILO_WIN_MULTIPLIER = Number(process.env.NEXT_PUBLIC_HILO_WIN_MULTIPLIER) || 2;

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { hashPassword } from "@/lib/password";
 import { WELCOME_POINTS } from "@/lib/config";
 import { rateLimit } from "@/lib/rate-limit";
+import { isDisposableEmail } from "@/lib/disposable-emails";
 import { headers } from "next/headers";
 
 function getIpFromHeaders(h: Headers): string {
@@ -13,16 +14,44 @@ function getIpFromHeaders(h: Headers): string {
 export async function POST(req: Request) {
   const h = await headers();
   const ip = getIpFromHeaders(h);
-  const { allowed, retryAfterSeconds } = rateLimit(`register:${ip}`, 3, 15 * 60 * 1000);
-  if (!allowed) {
+
+  // Short-term burst limit: 3 per 15 min
+  const burst = rateLimit(`register:${ip}`, 3, 15 * 60 * 1000);
+  if (!burst.allowed) {
     return NextResponse.json(
-      { error: `Demasiados intentos. Espera ${Math.ceil(retryAfterSeconds / 60)} minuto(s).` },
+      { error: `Demasiados intentos. Espera ${Math.ceil(burst.retryAfterSeconds / 60)} minuto(s).` },
+      { status: 429 }
+    );
+  }
+
+  // Daily cap: max 5 registrations per IP per 24h
+  const daily = rateLimit(`register-day:${ip}`, 5, 24 * 60 * 60 * 1000);
+  if (!daily.allowed) {
+    return NextResponse.json(
+      { error: "Límite de registros diarios alcanzado. Intenta mañana." },
       { status: 429 }
     );
   }
 
   const body = await req.json().catch(() => ({}));
-  const { email, password, referrerCode } = body;
+  const { email, password, referrerCode, _hp, _ts } = body;
+
+  // Honeypot: if hidden field is filled, it's a bot
+  if (_hp) {
+    return NextResponse.json({ ok: true, userId: "ok" });
+  }
+
+  // Timing: reject if form was submitted in less than 3 seconds
+  if (_ts && typeof _ts === "number") {
+    const elapsed = Date.now() - _ts;
+    if (elapsed < 3000) {
+      return NextResponse.json(
+        { error: "Por favor, completa el formulario con calma." },
+        { status: 400 }
+      );
+    }
+  }
+
   if (!email || typeof email !== "string" || !password || typeof password !== "string") {
     return NextResponse.json(
       { error: "Correo y contraseña requeridos." },
@@ -35,6 +64,15 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+
+  // Block disposable email providers
+  if (isDisposableEmail(email)) {
+    return NextResponse.json(
+      { error: "No se permiten correos temporales. Usa un correo real (Gmail, Outlook, etc.)." },
+      { status: 400 }
+    );
+  }
+
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from("profiles")
