@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/current-user";
+import { getAdminUser } from "@/lib/current-user";
 import { sendTelegramMessage } from "@/lib/telegram";
 
 export async function POST() {
-  const user = await getCurrentUser();
-  if (!user?.isAdmin) {
+  const user = await getAdminUser();
+  if (!user) {
     return NextResponse.json({ error: "No autorizado." }, { status: 403 });
   }
 

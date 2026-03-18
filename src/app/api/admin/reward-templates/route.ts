@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/current-user";
+import { getAdminUser } from "@/lib/current-user";
 
 export async function GET() {
-  const user = await getCurrentUser();
-  if (!user?.isAdmin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  const user = await getAdminUser();
+  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
   const supabase = await createClient();
   const { data } = await supabase
@@ -16,8 +16,8 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const user = await getCurrentUser();
-  if (!user?.isAdmin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  const user = await getAdminUser();
+  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
   const { updates } = await request.json().catch(() => ({ updates: [] }));
   if (!Array.isArray(updates)) {

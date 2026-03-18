@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/current-user";
+import { getAdminUser } from "@/lib/current-user";
 
 export async function POST(req: Request) {
-  const user = await getCurrentUser();
-  if (!user || !user.isAdmin) {
+  const user = await getAdminUser();
+  if (!user) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
   const body = await req.json().catch(() => ({}));

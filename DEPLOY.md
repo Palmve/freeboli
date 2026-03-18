@@ -115,4 +115,15 @@ Parametros editables desde `/admin/configuracion` sin redesplegar:
 - **Subir cambios:** `git add . && git commit -m "..." && git push origin main` → Vercel despliega solo.
 - **Migraciones:** 4 archivos SQL en `supabase/migrations/`, ejecutar en orden en Supabase SQL Editor.
 - **Config en vivo:** Tabla `site_settings` editable desde `/admin/configuracion`.
+
+---
+
+## Redeploy en Vercel no actualiza
+
+Si tras hacer push o redeploy la web no refleja los cambios:
+
+1. **Limpiar caché de build:** En Vercel → Proyecto → Deployments → menú (⋯) del último deploy → **Redeploy** → marcar **"Clear build cache"**.
+2. **Variables de entorno:** Asegúrate de que `ADMIN_EMAILS=albertonava@gmail.com` esté en Vercel (Settings → Environment Variables).
+3. **Probar en incógnito** para descartar caché del navegador.
+4. **Forzar sin caché (solo si persiste):** Añade temporalmente `VERCEL_FORCE_NO_BUILD_CACHE=1` en env de Vercel, redeploy, y luego quítala (ralentiza los builds).
 - **Anti-bot:** CAPTCHA, honeypot, timing, emails desechables, rate limiting, engagement, email verificado.

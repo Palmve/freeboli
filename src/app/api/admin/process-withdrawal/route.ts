@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/current-user";
+import { getAdminUser } from "@/lib/current-user";
 import { sendBolisToWallet } from "@/lib/solana";
 import { POINTS_PER_BOLIS } from "@/lib/config";
 
 export async function POST(req: Request) {
-  const user = await getCurrentUser();
-  if (!user || !user.isAdmin) return NextResponse.json({ error: "No autorizado." }, { status: 403 });
+  const user = await getAdminUser();
+  if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 403 });
 
   const body = await req.json().catch(() => ({}));
   const withdrawalId = typeof body.withdrawalId === "string" ? body.withdrawalId : "";

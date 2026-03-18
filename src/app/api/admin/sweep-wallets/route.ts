@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { getCurrentUser } from "@/lib/current-user";
+import { getAdminUser } from "@/lib/current-user";
 import { getWalletBolisBalance, sweepBolisToTreasury } from "@/lib/solana";
 import { getDepositKeypair } from "@/lib/deposit-wallet";
 
 export async function POST() {
-  const user = await getCurrentUser();
-  if (!user?.isAdmin) {
+  const user = await getAdminUser();
+  if (!user) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 

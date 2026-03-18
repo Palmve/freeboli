@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/current-user";
+import { getAdminUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { alertUserBlocked } from "@/lib/telegram";
 
 const VALID_STATUSES = ["normal", "evaluar", "suspendido", "bloqueado"];
 
 export async function PUT(request: Request) {
-  const user = await getCurrentUser();
-  if (!user?.isAdmin) {
+  const user = await getAdminUser();
+  if (!user) {
     return NextResponse.json({ error: "No autorizado." }, { status: 403 });
   }
 

@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { createClient } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/auth";
 
 const REQUIRE_AUTH = process.env.REQUIRE_AUTH === "true";
 const LOCAL_USER_EMAIL = (process.env.LOCAL_USER_EMAIL || "albertonava@gmail.com").trim().toLowerCase();
@@ -9,6 +10,30 @@ export type UserStatus = "normal" | "evaluar" | "suspendido" | "bloqueado";
 
 export function isUserBlocked(status: UserStatus): boolean {
   return status === "suspendido" || status === "bloqueado";
+}
+
+/**
+ * Usuario admin: SIEMPRE requiere sesión autenticada y email en ADMIN_EMAILS.
+ * Nunca usa el bypass LOCAL_USER. Usar en layout admin y rutas API admin.
+ */
+export async function getAdminUser(): Promise<CurrentUser | null> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email || !isAdmin(session)) return null;
+  const id = (session.user as { id?: string }).id;
+  if (!id) return null;
+  const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("status")
+    .eq("id", id)
+    .single();
+  return {
+    id,
+    email: session.user.email,
+    name: session.user.name ?? undefined,
+    isAdmin: true,
+    status: (profile?.status as UserStatus) || "normal",
+  };
 }
 
 export interface CurrentUser {
