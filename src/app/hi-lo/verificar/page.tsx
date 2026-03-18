@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 
 /**
@@ -34,7 +34,7 @@ async function rollFromSeedsClient(
   return n % 10000;
 }
 
-export default function VerificarPage() {
+function VerificarContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
   const [hashMatches, setHashMatches] = useState<boolean | null>(null);
@@ -110,5 +110,13 @@ export default function VerificarPage() {
         ← Volver a HI-LO
       </Link>
     </div>
+  );
+}
+
+export default function VerificarPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-lg py-8 text-slate-500">Cargando…</div>}>
+      <VerificarContent />
+    </Suspense>
   );
 }

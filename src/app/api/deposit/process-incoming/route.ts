@@ -73,10 +73,7 @@ export async function POST(req: Request) {
       const ataStr = ata.toBase58();
       let sigs: { signature: string }[] = [];
       try {
-        const { data: sigsData } = await conn.getSignaturesForAddress(ata, {
-          limit: SIGS_PER_ADDRESS,
-          commitment: "finalized",
-        });
+        const sigsData = await conn.getSignaturesForAddress(ata, { limit: SIGS_PER_ADDRESS }, "finalized");
         sigs = sigsData ?? [];
       } catch (e) {
         const raw = e instanceof Error ? e.message : String(e);
