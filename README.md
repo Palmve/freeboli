@@ -20,12 +20,25 @@ Web de juego con puntos internos y BOLIS (Solana). Faucet, HI-LO, afiliados, dep
 
 ## Desarrollo
 
+Para este proyecto se recomienda usar **pnpm** por velocidad y compatibilidad.
+
+> [!IMPORTANT]
+> Algunos scripts internos requieren **yarn** instalado globalmente. Si ves errores de instalación, ejecuta: `npm install -g yarn` antes de `pnpm install`.
+
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 Abre [http://localhost:3000](http://localhost:3000).
+
+---
+
+## Solución de Problemas (RPC 401)
+
+Si la wallet del sitio no carga o da error 401:
+- Verifica que `SOLANA_RPC_URL` use el parámetro **`api-key`** (con guion medio `-`) y NO `api_key`.
+- Ejemplo Helius: `https://mainnet.helius-rpc.com/?api-key=TU_KEY`
 
 ## Despliegue
 

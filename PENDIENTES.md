@@ -16,12 +16,10 @@ Este archivo lista tareas pendientes para que el agente (o un desarrollador) sep
   - `DEPOSIT_WALLET_ENCRYPTION_KEY`: clave de al menos 16 caracteres para cifrar la clave privada de cada wallet de depósito. Sin ella no se pueden crear nuevas direcciones de depósito.
   - Ejecutar la migración `003_deposit_wallet_per_user.sql` en Supabase (tabla `deposit_wallets`, columna `profiles.deposit_address`).
 
-- **RPC de Solana para detectar depósitos**
-  - El RPC público (`api.mainnet-beta.solana.com`) suele devolver **0 firmas** o error **401 (Unauthorized)**.
-  - **Solución rápida:**
-    1. Regístrate gratis en [Helius.dev](https://helius.dev).
-    2. Copia tu URL de RPC (ej: `https://mainnet.helius-rpc.com/?api-key=TU_API_KEY`).
-    3. Configura **`SOLANA_RPC_URL`** en Vercel (Producción) y en `.env.local` (Local).
+- **RPC de Solana (Helius) [COMPLETADO ✅]**
+  - Ya se configuró Helius con éxito.
+  - **Lección aprendida:** Usar siempre `api-key` (guion) en lugar de `api_key` (guion bajo).
+  - Configurado en Local (`.env.local`) y listo para aplicar en Vercel Settings.
 
 ---
 
@@ -42,4 +40,4 @@ Este archivo lista tareas pendientes para que el agente (o un desarrollador) sep
 
 ---
 
-*Última actualización: lista inicial de pendientes.*
+*Última actualización: 18 marzo 2026 - RPC solucionado y entorno de desarrollo estabilizado.*

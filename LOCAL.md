@@ -44,9 +44,11 @@ npm run seed
 
 ## 4. Arrancar
 
+Se recomienda usar **pnpm**. Instala **yarn** globalmente primero si es necesario (`npm install -g yarn`).
+
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 Abre **http://localhost:3000** en el navegador.
@@ -61,7 +63,7 @@ Abre **http://localhost:3000** en el navegador.
 - Con **REQUIRE_AUTH=false** no hace falta entrar: abre la web y usa Faucet, HI-LO, Mi cuenta y Admin (todo como albertonava@gmail.com).
 - Si más adelante activas login: Registrarse con correo + contraseña también da **100 puntos de bienvenida** al nuevo usuario.
 
-Depósitos/retiros en BOLIS necesitan `SOLANA_WALLET_PRIVATE_KEY_BASE58`; para solo probar juego y faucet no hace falta.
+Depósitos/retiros en BOLIS necesitan `SOLANA_WALLET_PRIVATE_KEY_BASE58` y un **RPC válido** (Helius recomendado con `api-key` usando guion medio). Para solo probar juego y faucet no hace falta.
 
 ---
 

@@ -53,7 +53,8 @@ En Vercel deben estar configuradas (no en el código):
 - Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - NextAuth: `NEXTAUTH_URL` (en producción: `https://freeboli.vercel.app`), `NEXTAUTH_SECRET`, `ADMIN_EMAILS`
 - **Auth en producción:** `REQUIRE_AUTH=true` y `NEXT_PUBLIC_REQUIRE_AUTH=true` para que la web pida login real, no muestre "Modo local" y el botón **Salir** cierre sesión. Si no se ponen, la app usa modo local (usuario implícito, sin Salir real).
-- Solana: `SOLANA_WALLET_PRIVATE_KEY_BASE58`, `SOLANA_RPC_URL` (recomendado RPC con historial para depósitos)
+- Solana: `SOLANA_WALLET_PRIVATE_KEY_BASE58`, `SOLANA_RPC_URL` (URL completa con `?api-key=...`).
+  - **CRÍTICO:** Asegúrate de usar el guion medio en `api-key`. Helius rechaza `api_key` con error 401.
 - Depósitos por usuario: `DEPOSIT_WALLET_ENCRYPTION_KEY`
 - Opcional cron: `CRON_SECRET` para `POST /api/deposit/process-incoming`
 
