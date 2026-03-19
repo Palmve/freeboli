@@ -9,9 +9,11 @@ import {
 } from "@/lib/solana";
 import { getDepositKeypair } from "@/lib/deposit-wallet";
 import { BOLIS_MINT } from "@/lib/config";
-import { alertDepositDetected, alertWithdrawalRequest } from "@/lib/telegram";
+import { alertDepositDetected, alertWithdrawalRequest, alertWithdrawalCompleted } from "@/lib/telegram";
 import { getSetting } from "@/lib/site-settings";
 import { sendDailySummary, sendTelegramMessage } from "@/lib/telegram";
+import { sendBolisToWallet } from "@/lib/solana";
+import { POINTS_PER_BOLIS } from "@/lib/config";
 
 // --- DEPOSITS ---
 
@@ -267,4 +269,48 @@ Por favor, entra al panel admin para enviarlos.`;
   }
 
   return { ok: true, notified: 0 };
+}
+
+export async function processWithdrawals() {
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  
+  const { data: pendings, error } = await supabase
+    .from("withdrawals")
+    .select("id, user_id, points, wallet_destination, status")
+    .eq("status", "pending");
+
+  if (error) return { ok: false, error: error.message };
+
+  const processed: string[] = [];
+  const errors: string[] = [];
+
+  for (const w of (pendings ?? [])) {
+    try {
+      const amountBolis = Number(w.points) / POINTS_PER_BOLIS;
+      const sig = await sendBolisToWallet(w.wallet_destination, amountBolis);
+      
+      if (!sig) {
+        errors.push(`Withdrawal ${w.id}: Failed to send BOLIS`);
+        continue;
+      }
+
+      await supabase
+        .from("withdrawals")
+        .update({
+          status: "completed",
+          tx_signature: sig,
+          processed_at: new Date().toISOString(),
+        })
+        .eq("id", w.id);
+
+      const { data: u } = await supabase.from("profiles").select("email").eq("id", w.user_id).single();
+      await alertWithdrawalCompleted(u?.email ?? String(w.user_id), Number(w.points), sig);
+      
+      processed.push(w.id);
+    } catch (e) {
+      errors.push(`Withdrawal ${w.id}: ${String(e)}`);
+    }
+  }
+
+  return { ok: true, processed: processed.length, errors: errors.length ? errors : undefined };
 }
