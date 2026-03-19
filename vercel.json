@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/deposit/process-incoming",
-      "schedule": "0 */12 * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/cron/award-prizes",
