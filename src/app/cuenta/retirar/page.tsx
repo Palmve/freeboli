@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
+import { SupportModal } from "@/components/SupportModal";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
@@ -16,6 +17,7 @@ export default function RetirarPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [supportOpen, setSupportOpen] = useState(false);
 
   useEffect(() => {
     if (!REQUIRE_AUTH) {
@@ -123,6 +125,20 @@ export default function RetirarPage() {
       <p className="text-center text-sm text-slate-500">
         <Link href="/cuenta" className="text-amber-400 hover:underline">Volver a Mi cuenta</Link>
       </p>
+
+      <button
+        onClick={() => setSupportOpen(true)}
+        className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal"
+      >
+        ¿Problemas con tu retiro? Reportar incidencia aquí
+      </button>
+
+      <SupportModal
+        isOpen={supportOpen}
+        onClose={() => setSupportOpen(false)}
+        defaultType="delay"
+        userEmail={session?.user?.email ?? ""}
+      />
     </div>
   );
 }

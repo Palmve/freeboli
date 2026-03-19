@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { SupportModal } from "@/components/SupportModal";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
@@ -147,6 +148,7 @@ export default function AfiliadosPage() {
   const [origin, setOrigin] = useState("");
   const [claimingBonus, setClaimingBonus] = useState<string | null>(null);
   const [bonusMsg, setBonusMsg] = useState("");
+  const [supportOpen, setSupportOpen] = useState(false);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -371,6 +373,20 @@ export default function AfiliadosPage() {
         <Link href="/recompensas" className="text-amber-400 hover:underline">Recompensas</Link>
         <Link href="/faucet" className="text-amber-400 hover:underline">Faucet</Link>
       </div>
+
+      <button
+        onClick={() => setSupportOpen(true)}
+        className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal"
+      >
+        ¿Problemas con tus referidos? Reportar incidencia aquí
+      </button>
+
+      <SupportModal
+        isOpen={supportOpen}
+        onClose={() => setSupportOpen(false)}
+        defaultType="other"
+        userEmail={session?.user?.email ?? ""}
+      />
     </div>
   );
 }
