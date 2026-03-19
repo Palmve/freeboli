@@ -66,16 +66,19 @@ export const authOptions: NextAuthOptions = {
         const supabase = await createClient();
         const { data: existing } = await supabase
           .from("profiles")
-          .select("id")
+          .select("id, public_id")
           .eq("email", user.email)
           .single();
         if (!existing) {
+          const publicId = Math.floor(Math.random() * 900000) + 100000;
           const { data: created } = await supabase
             .from("profiles")
             .insert({
               email: user.email,
               name: user.name ?? user.email,
               image: user.image ?? null,
+              public_id: publicId,
+              referral_code: String(publicId),
             })
             .select("id")
             .single();
@@ -93,6 +96,9 @@ export const authOptions: NextAuthOptions = {
               metadata: { source: "bienvenida" },
             });
           }
+        } else if (!existing.public_id) {
+          const publicId = Math.floor(Math.random() * 900000) + 100000;
+          await supabase.from("profiles").update({ public_id: publicId, referral_code: String(publicId) }).eq("id", existing.id);
         }
       } catch (e) {
         console.error("[NextAuth] signIn callback error:", e);

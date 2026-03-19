@@ -30,6 +30,7 @@ interface AffiliateData {
   minBets: number;
   minDays: number;
   userId: string;
+  referralCode?: string | null;
 }
 
 function ShareButtons({ url }: { url: string }) {
@@ -202,9 +203,11 @@ export default function AfiliadosPage() {
     );
   }
 
-  const referralUrl = data?.userId
-    ? `${origin}/auth/registro?ref=${data.userId}`
-    : "";
+  const referralUrl = data?.referralCode
+    ? `${origin}/auth/registro?ref=${encodeURIComponent(data.referralCode)}`
+    : data?.userId
+      ? `${origin}/auth/registro?ref=${data.userId}`
+      : "";
 
   return (
     <div className="mx-auto max-w-2xl space-y-8 py-8">

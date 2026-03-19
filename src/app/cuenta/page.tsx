@@ -10,6 +10,10 @@ const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 export default function CuentaPage() {
   const { data: session, status } = useSession();
   const [localUser, setLocalUser] = useState<{ id?: string } | null>(null);
+  const [me, setMe] = useState<{
+    user?: { id: string; publicId?: number | null; referralCode?: string | null };
+    stats?: { emailVerified?: boolean };
+  } | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [withdrawPoints, setWithdrawPoints] = useState("");
   const [withdrawWallet, setWithdrawWallet] = useState("");
@@ -18,12 +22,38 @@ export default function CuentaPage() {
   const [error, setError] = useState("");
   const [movements, setMovements] = useState<{ id: string; type: string; points: number; reference: string | null; created_at: string }[]>([]);
   const [movementsLoading, setMovementsLoading] = useState(true);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyMsg, setVerifyMsg] = useState("");
+  const [personal, setPersonal] = useState<null | {
+    hiLoBets: number;
+    faucetEarned: number;
+    commissionsEarned: number;
+    rankingPrizes: number;
+    hiLoPrizes: number;
+    rewardsEarned: number;
+    paymentsTotal: number;
+    depositsTotal: number;
+    withdrawalsTotal: number;
+  }>(null);
 
   useEffect(() => {
     if (!REQUIRE_AUTH) {
       fetch("/api/me").then((r) => r.json()).then((d) => setLocalUser(d.user ?? null)).catch(() => setLocalUser(null));
     }
   }, []);
+
+  useEffect(() => {
+    if (REQUIRE_AUTH && !session?.user) return;
+    if (!REQUIRE_AUTH && !session?.user && !localUser) return;
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((d) => setMe(d))
+      .catch(() => setMe(null));
+    fetch("/api/cuenta/personal-stats")
+      .then((r) => r.json())
+      .then((d) => setPersonal(d.stats ?? null))
+      .catch(() => setPersonal(null));
+  }, [session?.user, localUser]);
   useEffect(() => {
     if (REQUIRE_AUTH && !session?.user) return;
     if (!REQUIRE_AUTH && !session?.user && !localUser) return;
@@ -79,10 +109,90 @@ export default function CuentaPage() {
     );
   }
   const userId = (session?.user as { id?: string } | undefined)?.id ?? localUser?.id;
+  const referralCode = me?.user?.referralCode || me?.user?.publicId?.toString() || userId || "";
+  const emailVerified = me?.stats?.emailVerified ?? true;
+
+  async function resendVerification() {
+    setVerifyMsg("");
+    setVerifyLoading(true);
+    const res = await fetch("/api/auth/resend-verification", { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    setVerifyLoading(false);
+    if (!res.ok) {
+      setVerifyMsg(data.error || "No se pudo enviar el correo.");
+      return;
+    }
+    setVerifyMsg(data.alreadyVerified ? "Tu correo ya está verificado." : "Listo. Te enviamos un correo con el enlace de verificación.");
+  }
 
   return (
     <div className="mx-auto max-w-lg space-y-8 py-8">
       <h1 className="text-2xl font-bold text-white">Mi cuenta</h1>
+
+      {/* Email verification */}
+      {!emailVerified && (
+        <div id="verificacion" className="card space-y-3 border border-red-500/30 bg-red-500/10">
+          <h2 className="text-lg font-semibold text-red-300">Verificación de correo</h2>
+          <p className="text-sm text-slate-300">
+            Para reclamar el Faucet y algunos bonus necesitas verificar tu correo.
+          </p>
+          {verifyMsg && (
+            <div className={`rounded p-2 text-sm ${verifyMsg.startsWith("Listo") ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
+              {verifyMsg}
+            </div>
+          )}
+          <button
+            onClick={resendVerification}
+            disabled={verifyLoading}
+            className="btn-primary w-full disabled:opacity-50"
+          >
+            {verifyLoading ? "Enviando..." : "Reenviar verificación"}
+          </button>
+          <p className="text-xs text-slate-400">Revisa spam/promociones. El enlace expira en 1 hora.</p>
+        </div>
+      )}
+
+      {/* Personal stats */}
+      {personal && (
+        <div className="card space-y-4">
+          <h2 className="text-lg font-semibold text-slate-300">Estadísticas personales</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg bg-slate-800 p-3">
+              <div className="text-xs text-slate-400">Tiradas HI-LO</div>
+              <div className="text-xl font-bold text-white">{personal.hiLoBets.toLocaleString()}</div>
+            </div>
+            <div className="rounded-lg bg-slate-800 p-3">
+              <div className="text-xs text-slate-400">Ganancias Faucet</div>
+              <div className="text-xl font-bold text-amber-400">{personal.faucetEarned.toLocaleString()}</div>
+            </div>
+            <div className="rounded-lg bg-slate-800 p-3">
+              <div className="text-xs text-slate-400">Comisiones referidos</div>
+              <div className="text-xl font-bold text-green-400">{personal.commissionsEarned.toLocaleString()}</div>
+            </div>
+            <div className="rounded-lg bg-slate-800 p-3">
+              <div className="text-xs text-slate-400">Premios (ranking)</div>
+              <div className="text-xl font-bold text-purple-400">{personal.rankingPrizes.toLocaleString()}</div>
+            </div>
+            <div className="rounded-lg bg-slate-800 p-3">
+              <div className="text-xs text-slate-400">Premios (HI-LO)</div>
+              <div className="text-xl font-bold text-blue-300">{personal.hiLoPrizes.toLocaleString()}</div>
+            </div>
+            <div className="rounded-lg bg-slate-800 p-3">
+              <div className="text-xs text-slate-400">Bonus / recompensas</div>
+              <div className="text-xl font-bold text-white">{personal.rewardsEarned.toLocaleString()}</div>
+            </div>
+            <div className="rounded-lg bg-slate-800 p-3">
+              <div className="text-xs text-slate-400">Depósitos totales</div>
+              <div className="text-xl font-bold text-white">{personal.depositsTotal.toLocaleString()}</div>
+            </div>
+            <div className="rounded-lg bg-slate-800 p-3">
+              <div className="text-xs text-slate-400">Pagos totales</div>
+              <div className="text-xl font-bold text-white">{personal.paymentsTotal.toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="card">
         <h2 className="text-lg font-semibold text-slate-300">Balance</h2>
         <p className="text-3xl font-bold text-amber-400">
@@ -97,9 +207,9 @@ export default function CuentaPage() {
         <p className="mt-1 text-sm text-slate-400">
           Comparte este enlace: quien se registre con él te dará comisión de por vida.
         </p>
-        {typeof window !== "undefined" && userId && (
+        {typeof window !== "undefined" && referralCode && (
           <p className="mt-2 break-all rounded bg-slate-800 p-2 font-mono text-sm text-amber-400">
-            {window.location.origin}/auth/registro?ref={userId}
+            {window.location.origin}/auth/registro?ref={referralCode}
           </p>
         )}
       </div>

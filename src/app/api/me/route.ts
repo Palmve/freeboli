@@ -12,7 +12,7 @@ export async function GET() {
   const supabase = await createClient();
 
   const [profileRes, faucetRes, betsRes, referralsRes] = await Promise.all([
-    supabase.from("profiles").select("email_verified_at").eq("id", user.id).single(),
+    supabase.from("profiles").select("email_verified_at, public_id, referral_code").eq("id", user.id).single(),
     supabase.from("movements").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("type", "faucet"),
     supabase.from("movements").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("type", "apuesta_hi_lo"),
     supabase.from("referrals").select("id", { count: "exact", head: true }).eq("referrer_id", user.id),
@@ -30,6 +30,8 @@ export async function GET() {
   return NextResponse.json({
     user: {
       id: user.id,
+      publicId: profileRes.data?.public_id ?? null,
+      referralCode: profileRes.data?.referral_code ?? null,
       email: user.email,
       name: user.name,
       isAdmin: user.isAdmin,

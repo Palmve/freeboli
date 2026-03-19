@@ -211,7 +211,7 @@ export default function FaucetPage() {
             <p className="text-xs text-slate-400">
               Revisa tu bandeja de entrada (y spam). Si no lo has recibido, ve a tu cuenta para reenviar la verificación.
             </p>
-            <Link href="/cuenta" className="btn-secondary text-sm inline-block">
+            <Link href="/cuenta#verificacion" className="btn-secondary text-sm inline-block">
               Ir a Mi cuenta
             </Link>
           </div>

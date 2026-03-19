@@ -88,14 +88,39 @@ export async function POST(req: Request) {
   }
   let referrerId: string | null = null;
   if (referrerCode && typeof referrerCode === "string") {
-    const { data: ref } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("id", referrerCode.trim())
-      .single();
-    referrerId = ref?.id ?? null;
+    const code = referrerCode.trim();
+    const isUuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(code);
+    if (isUuidLike) {
+      const { data: ref } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", code)
+        .single();
+      referrerId = ref?.id ?? null;
+    } else {
+      const num = Number(code);
+      if (Number.isInteger(num)) {
+        const { data: ref } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("public_id", num)
+          .single();
+        referrerId = ref?.id ?? null;
+      }
+    }
   }
   const password_hash = hashPassword(password);
+  // Generate unique 6-digit public_id (retry on conflicts)
+  let publicId: number | null = null;
+  for (let i = 0; i < 12; i++) {
+    publicId = Math.floor(Math.random() * 900000) + 100000;
+    const { data: taken } = await supabase.from("profiles").select("id").eq("public_id", publicId).maybeSingle();
+    if (!taken) break;
+    publicId = null;
+  }
+  if (!publicId) {
+    return NextResponse.json({ error: "No se pudo generar ID de usuario. Intenta de nuevo." }, { status: 500 });
+  }
   const { data: inserted, error } = await supabase
     .from("profiles")
     .insert({
@@ -103,6 +128,8 @@ export async function POST(req: Request) {
       name: email.split("@")[0],
       password_hash,
       referrer_id: referrerId,
+      public_id: publicId,
+      referral_code: String(publicId),
       terms_accepted_at: new Date().toISOString(),
     })
     .select("id")

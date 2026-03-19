@@ -15,6 +15,7 @@ export async function GET() {
   if (!userId) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const supabase = await createClient();
+  const { data: me } = await supabase.from("profiles").select("public_id, referral_code").eq("id", userId).single();
 
   const minBets = await getSetting<number>("REFERRAL_MIN_BETS", REFERRAL_MIN_BETS);
   const minDays = await getSetting<number>("REFERRAL_MIN_DAYS", REFERRAL_MIN_DAYS);
@@ -128,6 +129,7 @@ export async function GET() {
     minBets,
     minDays,
     userId,
+    referralCode: me?.referral_code ?? (me?.public_id != null ? String(me.public_id) : null),
   });
 }
 
