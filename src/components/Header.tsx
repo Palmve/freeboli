@@ -94,17 +94,43 @@ export function Header() {
           ))}
           {loggedIn ? (
             <>
-              <Link href="/cuenta/depositar" className="rounded bg-emerald-600 px-3 py-1.5 font-semibold text-white hover:bg-emerald-500 text-xs">
+              <Link
+                href="/cuenta/depositar"
+                className={`rounded px-3 py-1.5 text-xs font-semibold ${
+                  pathname === "/cuenta/depositar"
+                    ? "bg-emerald-600 text-white"
+                    : "text-slate-300 hover:text-white"
+                }`}
+              >
                 Depositar
               </Link>
-              <Link href="/cuenta/retirar" className="text-slate-300 hover:text-white">
+              <Link
+                href="/cuenta/retirar"
+                className={`rounded px-3 py-1.5 text-sm ${
+                  pathname === "/cuenta/retirar"
+                    ? "bg-slate-700 text-white font-semibold"
+                    : "text-slate-300 hover:text-white"
+                }`}
+              >
                 Retiro
               </Link>
-              <Link href="/cuenta" className="text-slate-300 hover:text-white">
+              <Link
+                href="/cuenta"
+                className={`rounded px-3 py-1.5 text-sm ${
+                  pathname === "/cuenta"
+                    ? "bg-slate-700 text-white font-semibold"
+                    : "text-slate-300 hover:text-white"
+                }`}
+              >
                 Mi cuenta
               </Link>
               {showAdmin && (
-                <Link href="/admin" className="text-slate-400 hover:text-amber-400">
+                <Link
+                  href="/admin"
+                  className={`rounded px-3 py-1.5 text-sm ${
+                    pathname?.startsWith("/admin") ? "bg-slate-700 text-amber-400 font-semibold" : "text-slate-400 hover:text-amber-400"
+                  }`}
+                >
                   Admin
                 </Link>
               )}
@@ -173,17 +199,43 @@ export function Header() {
             <div className="border-t border-slate-700 my-2" />
             {loggedIn ? (
               <>
-                <Link href="/cuenta/depositar" className="rounded-lg bg-emerald-600/20 px-3 py-2.5 text-sm text-emerald-400 font-medium">
+                <Link
+                  href="/cuenta/depositar"
+                  className={`rounded-lg px-3 py-2.5 text-sm ${
+                    pathname === "/cuenta/depositar"
+                      ? "bg-emerald-600/30 text-emerald-400 font-semibold"
+                      : "text-slate-300 hover:bg-slate-800"
+                  }`}
+                >
                   Depositar
                 </Link>
-                <Link href="/cuenta/retirar" className="rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-slate-800">
+                <Link
+                  href="/cuenta/retirar"
+                  className={`rounded-lg px-3 py-2.5 text-sm ${
+                    pathname === "/cuenta/retirar"
+                      ? "bg-slate-800 text-white font-semibold"
+                      : "text-slate-300 hover:bg-slate-800"
+                  }`}
+                >
                   Retiro
                 </Link>
-                <Link href="/cuenta" className="rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-slate-800">
+                <Link
+                  href="/cuenta"
+                  className={`rounded-lg px-3 py-2.5 text-sm ${
+                    pathname === "/cuenta"
+                      ? "bg-slate-800 text-white font-semibold"
+                      : "text-slate-300 hover:bg-slate-800"
+                  }`}
+                >
                   Mi cuenta
                 </Link>
                 {showAdmin && (
-                  <Link href="/admin" className="rounded-lg px-3 py-2.5 text-sm text-amber-400 hover:bg-slate-800">
+                  <Link
+                    href="/admin"
+                    className={`rounded-lg px-3 py-2.5 text-sm ${
+                      pathname?.startsWith("/admin") ? "bg-slate-800 text-amber-400 font-semibold" : "text-amber-400 hover:bg-slate-800"
+                    }`}
+                  >
                     Admin
                   </Link>
                 )}
