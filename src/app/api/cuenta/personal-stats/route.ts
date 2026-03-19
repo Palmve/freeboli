@@ -42,6 +42,7 @@ export async function GET() {
       commissionsEarned: sums["comision_afiliado"] ?? 0,
       rankingPrizes: sums["premio_ranking"] ?? 0,
       hiLoPrizes: sums["premio_hi_lo"] ?? 0,
+      predictionPrizes: sums["premio_prediccion"] ?? 0,
       rewardsEarned: sums["recompensa"] ?? 0,
       depositsTotal: sums["deposito_bolis"] ?? 0,
       withdrawalsTotal: totalWithdrawPoints,

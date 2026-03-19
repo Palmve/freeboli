@@ -35,7 +35,7 @@ export async function GET() {
       supabase
         .from("movements")
         .select("id", { count: "exact", head: true })
-        .eq("type", "apuesta_hi_lo")
+        .in("type", ["apuesta_hi_lo", "apuesta_prediccion"])
         .gte("created_at", yesterday.toISOString())
         .lt("created_at", todayStart.toISOString()),
       supabase
@@ -59,13 +59,13 @@ export async function GET() {
       supabase
         .from("movements")
         .select("points")
-        .eq("type", "apuesta_hi_lo")
+        .in("type", ["apuesta_hi_lo", "apuesta_prediccion"])
         .gte("created_at", yesterday.toISOString())
         .lt("created_at", todayStart.toISOString()),
       supabase
         .from("movements")
         .select("points, type")
-        .in("type", ["faucet", "premio_hi_lo", "comision_afiliado", "logro", "recompensa", "bonus_referido_verificado", "premio_ranking"])
+        .in("type", ["faucet", "premio_hi_lo", "premio_prediccion", "comision_afiliado", "logro", "recompensa", "bonus_referido_verificado", "premio_ranking"])
         .gte("created_at", yesterday.toISOString())
         .lt("created_at", todayStart.toISOString()),
     ]);

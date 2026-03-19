@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { SupportModal } from "@/components/SupportModal";
+import { APP_VERSION } from "@/lib/version";
 import RollDisplay from "./RollDisplay";
 import { MAX_BET_POINTS, MAX_WIN_POINTS } from "@/lib/config";
 
@@ -809,7 +810,7 @@ export default function HiLoPage() {
         onClick={() => setSupportOpen(true)}
         className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal"
       >
-        ¿Problemas con el juego? Reportar error o disputa aquí
+        ¿Problemas con el juego? Reportar error o disputa aquí - version {APP_VERSION}
       </button>
 
       <SupportModal

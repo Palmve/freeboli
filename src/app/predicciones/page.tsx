@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { SupportModal } from "@/components/SupportModal";
 import { BetDetailModal } from "@/components/BetDetailModal";
+import { APP_VERSION } from "@/lib/version";
 
 type PredictionData = {
   id: string;
@@ -58,6 +59,7 @@ function PredictionsContent() {
   const [betting, setBetting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [timeLeft, setTimeLeft] = useState<number>(0);
   const [supportOpen, setSupportOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedBet, setSelectedBet] = useState<BetHistory | null>(null);
@@ -92,16 +94,32 @@ function PredictionsContent() {
     } catch (e) {}
   }, []);
 
+  // Sync Data Interval (10s)
   useEffect(() => {
     fetchData();
     fetchHistory();
     fetchBalance();
-    const timer = setInterval(() => {
+    const syncTimer = setInterval(() => {
         fetchData();
         fetchHistory();
     }, 10000); 
-    return () => clearInterval(timer);
+    return () => clearInterval(syncTimer);
   }, [fetchData, fetchHistory, fetchBalance]);
+
+  // Real-time Fluid Timer (1s)
+  useEffect(() => {
+    const clockTimer = setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(clockTimer);
+  }, []);
+
+  // Sync timeLeft when data arrives
+  useEffect(() => {
+    if (data?.time_left_sec !== undefined) {
+      setTimeLeft(data.time_left_sec);
+    }
+  }, [data]);
 
   const handleBet = async (prediction: "up" | "down") => {
     setError("");
@@ -132,8 +150,8 @@ function PredictionsContent() {
   const isUp = data ? data.current_price >= data.opening_price : false;
   const diff = data ? ((data.current_price - data.opening_price) / data.opening_price) * 100 : 0;
   
-  const minutes = data ? Math.floor(data.time_left_sec / 60) : 0;
-  const seconds = data ? data.time_left_sec % 60 : 0;
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -191,12 +209,12 @@ function PredictionsContent() {
                 </div>
                 <div className="h-4 w-full bg-slate-800 rounded-full p-1 border border-slate-700">
                     <div 
-                      className={`h-full rounded-full transition-all duration-1000 ${data && data.time_left_sec < 600 ? "bg-red-500" : "bg-amber-500"}`} 
-                      style={{ width: `${(3600 - (data?.time_left_sec || 0)) / 3600 * 100}%` }}
+                      className={`h-full rounded-full transition-all duration-1000 ${timeLeft < 600 ? "bg-red-500" : "bg-amber-500"}`} 
+                      style={{ width: `${(3600 - timeLeft) / 3600 * 100}%` }}
                     />
                 </div>
                 <div className="flex justify-between text-sm text-slate-400 font-mono">
-                    <span>${data?.opening_price.toLocaleString()}</span>
+                    <span>${data?.opening_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 4 : 2 })}</span>
                     <span>{data ? new Date(data.end_time).toLocaleTimeString() : "--:--"}</span>
                 </div>
             </div>
@@ -307,7 +325,7 @@ function PredictionsContent() {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => handleBet("up")}
-                disabled={betting || !data || data.time_left_sec < 600}
+                disabled={betting || !data || timeLeft < 600}
                 className="group relative flex flex-col items-center justify-center overflow-hidden rounded-xl bg-emerald-600 py-6 text-white transition hover:bg-emerald-500 disabled:opacity-50"
               >
                 <span className="text-xs font-black uppercase tracking-widest mb-1 opacity-70">Sube</span>
@@ -317,7 +335,7 @@ function PredictionsContent() {
 
               <button
                 onClick={() => handleBet("down")}
-                disabled={betting || !data || data.time_left_sec < 600}
+                disabled={betting || !data || timeLeft < 600}
                 className="group relative flex flex-col items-center justify-center overflow-hidden rounded-xl bg-red-600 py-6 text-white transition hover:bg-red-500 disabled:opacity-50"
               >
                 <span className="text-xs font-black uppercase tracking-widest mb-1 opacity-70">Baja</span>
@@ -326,7 +344,7 @@ function PredictionsContent() {
               </button>
             </div>
             
-            {data && data.time_left_sec < 600 && (
+            {data && timeLeft < 600 && (
               <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/30 p-3">
                   <p className="text-center text-[11px] text-red-500 font-bold uppercase leading-tight">
                     Mercado Cerrado: 10 min antes del fin de hora para evitar manipulación.
@@ -377,7 +395,7 @@ function PredictionsContent() {
         onClick={() => setSupportOpen(true)}
         className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal"
       >
-        ¿Problemas con la predicción? Reportar error o disputa aquí
+        ¿Problemas con la predicción? Reportar error o disputa aquí - version {APP_VERSION}
       </button>
 
       <SupportModal

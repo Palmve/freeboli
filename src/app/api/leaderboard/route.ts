@@ -39,12 +39,12 @@ export async function GET(request: Request) {
     dateFilter = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
   }
 
-  const earnTypes = ["faucet", "premio_hi_lo", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado", "premio_ranking"];
+  const rankingTypes = ["faucet", "apuesta_hi_lo", "apuesta_prediccion", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado", "premio_ranking"];
 
   let movQuery = supabase
     .from("movements")
     .select("user_id, points, type")
-    .in("type", earnTypes);
+    .in("type", rankingTypes);
 
   if (dateFilter) {
     movQuery = movQuery.gte("created_at", dateFilter);
@@ -54,7 +54,8 @@ export async function GET(request: Request) {
 
   const earningsByUser: Record<string, number> = {};
   (movements ?? []).forEach((m) => {
-    earningsByUser[m.user_id] = (earningsByUser[m.user_id] ?? 0) + (Number(m.points) || 0);
+    const pts = Math.abs(Number(m.points) || 0);
+    earningsByUser[m.user_id] = (earningsByUser[m.user_id] ?? 0) + pts;
   });
 
   const sorted = Object.entries(earningsByUser)

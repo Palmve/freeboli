@@ -30,8 +30,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `Apuesta fuera de limites (${minBet}-${maxBet}).` }, { status: 400 });
   }
 
-  const roundData = await getActiveRoundWithOdds(asset);
-  if (!roundData) return NextResponse.json({ error: "No hay ronda activa." }, { status: 404 });
+  const roundData: any = await getActiveRoundWithOdds(asset);
+  if (roundData?.error) return NextResponse.json({ error: roundData.error }, { status: 404 });
 
   if (roundData.time_left_sec <= cutoff) {
     return NextResponse.json({ error: "Las apuestas para esta ronda estan cerradas." }, { status: 400 });

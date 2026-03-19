@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { SupportModal } from "@/components/SupportModal";
+import { APP_VERSION } from "@/lib/version";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
@@ -323,7 +324,7 @@ export default function FaucetPage() {
         onClick={() => setSupportOpen(true)}
         className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal"
       >
-        ¿Problemas con el faucet? Reportar error o disputa aquí
+        ¿Problemas con el faucet? Reportar error o disputa aquí - version {APP_VERSION}
       </button>
 
       <SupportModal

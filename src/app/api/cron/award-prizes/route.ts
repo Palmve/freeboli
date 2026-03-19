@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSetting } from "@/lib/site-settings";
 
-const EARN_TYPES = ["faucet", "premio_hi_lo", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado"];
+const RANKING_TYPES = ["faucet", "apuesta_hi_lo", "apuesta_prediccion", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado"];
 
 interface PrizeConfig {
   period: "daily" | "weekly" | "monthly";
@@ -99,14 +99,15 @@ export async function GET() {
     const { data: movements } = await supabase
       .from("movements")
       .select("user_id, points")
-      .in("type", EARN_TYPES)
+      .in("type", RANKING_TYPES)
       .gte("created_at", cfg.dateFrom)
       .lt("created_at", cfg.dateTo)
       .limit(50000);
 
     const earningsByUser: Record<string, number> = {};
     (movements ?? []).forEach((m) => {
-      earningsByUser[m.user_id] = (earningsByUser[m.user_id] ?? 0) + (Number(m.points) || 0);
+      const pts = Math.abs(Number(m.points) || 0);
+      earningsByUser[m.user_id] = (earningsByUser[m.user_id] ?? 0) + pts;
     });
 
     const sorted = Object.entries(earningsByUser).sort((a, b) => b[1] - a[1]);

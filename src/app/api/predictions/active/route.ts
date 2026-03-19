@@ -9,12 +9,12 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Asset no soportado." }, { status: 400 });
   }
 
-  // Sustituye el cron de resolución: liquidar rondas vencidas “bajo demanda”
-  await resolvePendingRounds().catch(() => {});
+  // Sustituye el cron de resolución: liquidar rondas vencidas “bajo demanda” (en segundo plano)
+  resolvePendingRounds().catch((e) => console.error("Lazy resolve error:", e));
 
-  const data = await getActiveRoundWithOdds(asset);
-  if (!data) {
-    return NextResponse.json({ error: "No hay rondas activas." }, { status: 404 });
+  const data: any = await getActiveRoundWithOdds(asset);
+  if (data?.error) {
+    return NextResponse.json({ error: data.error }, { status: 404 });
   }
 
   return NextResponse.json(data);
