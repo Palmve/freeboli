@@ -3,14 +3,14 @@
  * Usa Binance para BTC/SOL y Jupiter para BOLIS.
  */
 
-const BINANCE_TICKER_URL = "https://api.binance.com/api/v3/ticker/price";
+const COINBASE_PRICE_URL = "https://api.coinbase.com/v2/prices";
 const DEXSCREENER_API_URL = "https://api.dexscreener.com/latest/dex/tokens";
 
 type Asset = "BTC" | "SOL" | "BOLIS";
 
 const ASSET_SYMBOLS: Record<Asset, string> = {
-  BTC: "BTCUSDT",
-  SOL: "SOLUSDT",
+  BTC: "BTC-USD",
+  SOL: "SOL-USD",
   BOLIS: "612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha", // Mint address
 };
 
@@ -32,13 +32,13 @@ export async function getCryptoPrice(asset: Asset): Promise<number | null> {
       const price = data.pairs?.[0]?.priceUsd;
       return price ? parseFloat(price) : null;
     } else {
-      // Usar Binance para BTC/SOL
-      const res = await fetch(`${BINANCE_TICKER_URL}?symbol=${symbolOrMint}`, {
+      // Usar Coinbase para BTC/SOL
+      const res = await fetch(`${COINBASE_PRICE_URL}/${symbolOrMint}/spot`, {
         next: { revalidate: 0 },
       });
-      if (!res.ok) throw new Error(`Binance API error: ${res.status}`);
+      if (!res.ok) throw new Error(`Coinbase API error: ${res.status}`);
       const data = await res.json();
-      return parseFloat(data.price);
+      return parseFloat(data.data.amount);
     }
   } catch (error) {
     console.error(`Error fetching price for ${asset}:`, error);
