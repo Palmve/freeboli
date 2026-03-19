@@ -215,6 +215,7 @@ export async function awardPrizes() {
 // --- DAILY SUMMARY ---
 
 export async function runDailySummary() {
+  console.log("CRON: Iniciando runDailySummary...");
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   const now = new Date();
   const yesterday = new Date(now);
@@ -224,6 +225,7 @@ export async function runDailySummary() {
   todayStart.setHours(0, 0, 0, 0);
 
   try {
+    console.log("CRON: Consultando estadísticas del periodo:", yesterday.toISOString(), "al", todayStart.toISOString());
     const [newUsersRes, activeUsersRes, betsRes, faucetRes, withdrawalsRes, depositsRes, revenueRes, costRes] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", yesterday.toISOString()).lt("created_at", todayStart.toISOString()),
       supabase.from("movements").select("user_id").gte("created_at", yesterday.toISOString()).lt("created_at", todayStart.toISOString()),
@@ -235,17 +237,34 @@ export async function runDailySummary() {
       supabase.from("movements").select("points, type").in("type", ["faucet", "premio_hi_lo", "premio_prediccion", "comision_afiliado", "logro", "recompensa", "bonus_referido_verificado", "premio_ranking"]).gte("created_at", yesterday.toISOString()).lt("created_at", todayStart.toISOString()),
     ]);
 
-    const uniqueActiveUsers = new Set((activeUsersRes.data ?? []).map((m) => m.user_id)).size;
+    const errors = [newUsersRes, activeUsersRes, betsRes, faucetRes, withdrawalsRes, depositsRes, revenueRes, costRes].filter(r => r.error);
+    if (errors.length > 0) {
+      console.error("CRON ERROR: Fallo en consultas Supabase", errors[0].error);
+      return { ok: false, error: "Error en consultas de base de datos" };
+    }
+
+    const uniqueActiveUsers = new Set((activeUsersRes.data ?? []).map((m: any) => m.user_id)).size;
     const revenue = (revenueRes.data ?? []).reduce((s, m) => s + Math.abs(Number(m.points) || 0), 0);
     const costs = (costRes.data ?? []).reduce((s, m) => s + (Number(m.points) || 0), 0);
     const platformBalance = revenue - costs;
 
-    await sendDailySummary({ newUsers: newUsersRes.count ?? 0, activeUsers: uniqueActiveUsers, totalBets: betsRes.count ?? 0, totalFaucetClaims: faucetRes.count ?? 0, withdrawalRequests: withdrawalsRes.count ?? 0, depositCount: depositsRes.count ?? 0, platformBalance });
-    return { ok: true };
+    console.log("CRON: Enviando resumen a Telegram...");
+    const sent = await sendDailySummary({ 
+        newUsers: newUsersRes.count ?? 0, 
+        activeUsers: uniqueActiveUsers, 
+        totalBets: betsRes.count ?? 0, 
+        totalFaucetClaims: faucetRes.count ?? 0, 
+        withdrawalRequests: withdrawalsRes.count ?? 0, 
+        depositCount: depositsRes.count ?? 0, 
+        platformBalance 
+    });
+
+    return { ok: sent, message: sent ? "Resumen enviado" : "Fallo al enviar a Telegram" };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
+    console.error("CRON EXCEPTION:", err);
     await sendTelegramMessage(`❌ Error en resumen diario: ${msg}`, "critical");
-    return { error: msg };
+    return { ok: false, error: msg };
   }
 }
 
