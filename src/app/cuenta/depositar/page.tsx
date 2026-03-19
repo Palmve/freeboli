@@ -21,6 +21,8 @@ export default function DepositarPage() {
   } | null>(null);
   const [copied, setCopied] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<{ success: boolean; msg: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/deposit/address", { credentials: "include" })
@@ -44,6 +46,25 @@ export default function DepositarPage() {
     }
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  }
+
+  async function verifyDeposit() {
+    if (verifying) return;
+    setVerifying(true);
+    setVerifyResult(null);
+    try {
+      const res = await fetch("/api/deposit/process-incoming", { method: "POST" });
+      const data = await res.json();
+      if (data.processed > 0) {
+        setVerifyResult({ success: true, msg: `¡Éxito! Se detectó tu depósito y se acreditaron los puntos.` });
+      } else {
+        setVerifyResult({ success: false, msg: "Aún no se detecta tu transferencia en la red. Espera unos minutos y vuelve a intentarlo." });
+      }
+    } catch {
+      setVerifyResult({ success: false, msg: "Error al conectar con la red. Intenta más tarde." });
+    } finally {
+      setVerifying(false);
+    }
   }
 
   const minDepositBolis = Math.ceil(MIN_WITHDRAW_POINTS / POINTS_PER_BOLIS);
@@ -109,6 +130,32 @@ export default function DepositarPage() {
         ) : (
           <p className="text-red-400">No se pudo cargar tu dirección. Revisa que el servidor tenga configurado DEPOSIT_WALLET_ENCRYPTION_KEY.</p>
         )}
+
+        <div className="pt-4 border-t border-slate-800">
+           <button
+             onClick={verifyDeposit}
+             disabled={verifying || !info}
+             className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition ${
+               verifying ? "bg-slate-800 text-slate-500 cursor-wait" : "bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-900/20"
+             }`}
+           >
+             {verifying ? (
+               <>
+                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                 </svg>
+                 Verificando...
+               </>
+             ) : "Ya he depositado (Verificar ahora)"}
+           </button>
+           
+           {verifyResult && (
+             <p className={`mt-3 text-sm text-center font-medium ${verifyResult.success ? "text-emerald-400" : "text-amber-400"}`}>
+               {verifyResult.msg}
+             </p>
+           )}
+        </div>
       </div>
       <Link href="/cuenta" className="text-amber-400 hover:underline">
         ← Volver a Mi cuenta

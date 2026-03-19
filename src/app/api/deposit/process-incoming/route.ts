@@ -22,7 +22,7 @@ async function authorize(req: Request): Promise<boolean> {
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret && authHeader === `Bearer ${cronSecret}`) return true;
   const user = await getCurrentUser();
-  return !!user?.isAdmin;
+  return !!user;
 }
 
 /**
