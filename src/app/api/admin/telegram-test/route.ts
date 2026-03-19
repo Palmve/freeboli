@@ -9,7 +9,7 @@ export async function POST() {
   }
 
   const ok = await sendTelegramMessage(
-    "✅ *Test de conexion exitoso*\nEl bot de monitoreo esta funcionando correctamente.\nFecha: " +
+    "✅ <b>Test de conexion exitoso</b>\nEl bot de monitoreo esta funcionando correctamente.\nFecha: " +
       new Date().toLocaleString("es-ES", { timeZone: "America/Caracas" }),
     "info"
   );

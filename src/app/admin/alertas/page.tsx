@@ -12,7 +12,7 @@ const ALERT_TYPES = [
   { icon: "🚫", label: "Usuario suspendido/bloqueado", trigger: "Cuando un admin cambia el status de un usuario" },
   { icon: "🕵️", label: "Multiples cuentas misma IP", trigger: "Cuando se detectan 4+ cuentas desde la misma IP" },
   { icon: "❌", label: "Error del sistema", trigger: "Cuando ocurre un error critico en un endpoint" },
-  { icon: "📊", label: "Resumen diario", trigger: "Automatico a la 1:00 AM UTC (cron)" },
+  { icon: "📊", label: "Resumen diario", trigger: "Automatico a las 01:00 AM UTC (Master Cron)" },
 ];
 
 export default function AlertasPage() {
@@ -133,19 +133,20 @@ export default function AlertasPage() {
             </thead>
             <tbody>
               <tr className="border-b border-slate-700/50">
-                <td className="p-2 text-white">Procesar depositos</td>
-                <td className="p-2 font-mono text-amber-400">Cada 12h</td>
-                <td className="p-2 text-slate-400">Busca depositos BOLIS entrantes</td>
+                <td className="p-2 text-white font-bold">MASTER CRON (Unificado)</td>
+                <td className="p-2 font-mono text-amber-400">00:00 UTC</td>
+                <td className="p-2 text-slate-400 text-xs">
+                    Ejecuta: Barrido de depósitos, Pago de retiros pendientes, 
+                    Premios de ranking y Resumen diario en un solo lote 
+                    (Optimizado para Vercel Hobby).
+                </td>
               </tr>
               <tr className="border-b border-slate-700/50">
-                <td className="p-2 text-white">Premios ranking</td>
-                <td className="p-2 font-mono text-amber-400">00:05 UTC</td>
-                <td className="p-2 text-slate-400">Otorga premios diarios/semanales/mensuales</td>
-              </tr>
-              <tr className="border-b border-slate-700/50">
-                <td className="p-2 text-white">Resumen diario</td>
-                <td className="p-2 font-mono text-amber-400">01:00 UTC</td>
-                <td className="p-2 text-slate-400">Envia resumen a Telegram</td>
+                <td className="p-2 text-white">Predicciones (Oracle)</td>
+                <td className="p-2 font-mono text-amber-400">Cada 10-15m*</td>
+                <td className="p-2 text-slate-400 text-xs">
+                    *Mantenido por actividad de usuarios y backup del Master Cron cada hora.
+                </td>
               </tr>
             </tbody>
           </table>
