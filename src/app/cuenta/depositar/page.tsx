@@ -17,6 +17,7 @@ export default function DepositarPage() {
     address: string;
     pointsPerBolis: number;
   } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetch("/api/deposit/address", { credentials: "include" })
@@ -24,6 +25,23 @@ export default function DepositarPage() {
       .then((d) => (d.address ? setInfo(d) : setInfo(null)))
       .catch(() => setInfo(null));
   }, []);
+
+  async function copyAddress() {
+    if (!info?.address) return;
+    try {
+      await navigator.clipboard.writeText(info.address);
+    } catch {
+      // Fallback para navegadores sin clipboard API
+      const ta = document.createElement("textarea");
+      ta.value = info.address;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
 
   const minDepositBolis = Math.ceil(MIN_WITHDRAW_POINTS / POINTS_PER_BOLIS);
 
@@ -64,7 +82,25 @@ export default function DepositarPage() {
               />
             </div>
             <div className="rounded-lg bg-slate-800 p-4 font-mono text-sm break-all text-green-400">
-              {info.address}
+              <div className="flex items-start justify-between gap-3">
+                <span className="break-all">{info.address}</span>
+                <button
+                  type="button"
+                  onClick={copyAddress}
+                  className="rounded-md bg-slate-700/60 hover:bg-slate-700 px-2 py-1.5 text-slate-200 transition flex-shrink-0"
+                  aria-label="Copiar dirección"
+                  title="Copiar dirección"
+                >
+                  {copied ? (
+                    <span className="text-xs font-semibold text-emerald-300">Copiado</span>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14h8a2 2 0 002-2V10a2 2 0 00-2-2h-8a2 2 0 00-2 2v2a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         ) : (
