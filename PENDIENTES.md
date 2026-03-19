@@ -11,10 +11,12 @@ Este archivo lista tareas completadas y pendientes. Revisar cuando pregunten "qu
 - **Wallets de depósito por usuario** — Migración `003`, encriptación con `DEPOSIT_WALLET_ENCRYPTION_KEY`.
 - **RPC Solana (Helius)** — Usar `api-key` (guion medio).
 - **Sweep de wallets** — Treasury paga gas. Panel admin → Wallets.
-- **Panel admin reorganizado** — 8 pestañas: Resumen, Wallets, Depósitos, Retiros, Usuarios, Estadísticas, Proyecciones, Configuración.
+- **Panel admin reorganizado** — 11 pestañas: Resumen, Wallets, Depósitos, Retiros, Usuarios, Ranking, Estadísticas, Proyecciones, Alertas, Configuración, Seguridad.
 
 ### Seguridad
-- **Rate limiting** — Login (5/15min), registro (3/15min + 5/día por IP), retiros (5/h).
+- **Rate limiting** — Login (5/15min), registro (3/15min + 5/día por IP), retiros (5/h) y forgot-password (5/15min + 20/24h por IP).
+- **Reset de contraseña por email** — Endpoint + páginas `/auth/forgot-password` y `/auth/reset-password` usando tabla `password_resets`.
+- **Admin → Seguridad** — Pestaña Seguridad y parámetros editables de antibot desde `/admin/configuracion` (grupo Seguridad).
 - **Contraseña mínima** — 8 caracteres.
 - **Headers HTTP** — X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.
 - **Endpoint test-login** — Solo en desarrollo.
@@ -49,11 +51,11 @@ Este archivo lista tareas completadas y pendientes. Revisar cuando pregunten "qu
 
 ## Pendiente / Opcional
 
+- **Monetización: banner de publicidad de criptomonedas en el footer** — Añadir espacio en el footer para un banner de publicidad (afiliados cripto, exchanges, etc.).
 - **(Opcional) Aceptar SOL y convertir a BOLIS** — Depósitos en SOL via DEX (Jupiter).
 - **(Opcional) Sonidos en HI-LO** — Opción "Habilitar sonidos".
-- **(Opcional) Verificación de email** — Implementar flujo de envío de email de verificación (actualmente `email_verified_at` se setea manualmente o via admin). Se requiere un proveedor de email (Resend, SendGrid, etc.).
-- **(Opcional) Más juegos** — Ruleta, dados, slots, etc.
 - **(Opcional) Dashboard de usuario** — Gráficas de ganancias, historial de rachas.
+- **(Opcional) Más juegos** — Ruleta, dados, slots, etc.
 
 ---
 
@@ -62,7 +64,8 @@ Este archivo lista tareas completadas y pendientes. Revisar cuando pregunten "qu
 - Usar `REQUIRE_AUTH=true` y `NEXT_PUBLIC_REQUIRE_AUTH=true`.
 - No commitear `.env.local`.
 - Variables requeridas en Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `ADMIN_EMAILS`, `SOLANA_WALLET_PRIVATE_KEY_BASE58`, `SOLANA_RPC_URL`, `DEPOSIT_WALLET_ENCRYPTION_KEY`, `CRON_SECRET`.
+- Variables también necesarias para emails: `RESEND_API_KEY` (y opcional `RESEND_FROM`).
 
 ---
 
-*Última actualización: 18 marzo 2026 — Sistema de recompensas, afiliados mejorado, anti-bot completo, admin con proyecciones y configuración.*
+*Última actualización: marzo 2026 — Reset contraseña + icono/copia wallet + pestaña Admin Seguridad + parámetros editables (grupo Seguridad). Pendiente: banner publicidad cripto en footer.*

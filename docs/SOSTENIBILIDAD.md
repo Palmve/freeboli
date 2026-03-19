@@ -14,6 +14,10 @@ En **Admin → Proyecciones** tienes:
    - **Meses que dura el saldo**: con el saldo de tesorería indicado (ej. 10.000 BOLIS), cuántos meses aguanta a ese ritmo.
    - **Depósitos mínimos (BOLIS/mes) para equilibrio**: entrada mínima por depósitos para que no se vacíe la tesorería (si no hay suficiente volumen HI-LO).
 
+Además:
+- **Ganancia máxima por usuario (juego mínimo)** ahora tiene un selector de **reclamos por día** (1 a 24) para simular cuánto puede acumular un usuario manteniendo el mínimo de juego.
+- En “Sostenibilidad” hay barras para ajustar en vivo **saldo tesorería (BOLIS)** y un **horizonte (meses)** para ver cuánto BOLIS se requeriría para que dure ese tiempo.
+
 ## Ejemplo: 10.000 BOLIS de saldo
 
 - Con **parámetros por defecto** (100 usuarios, 60% faucet, 8 reclamos/día, premios actuales, 500k puntos/mes en HI-LO):

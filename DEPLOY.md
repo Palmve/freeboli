@@ -45,6 +45,13 @@ Este archivo describe dónde está la web en producción, la base de datos, el r
      - `002_deposit_code.sql` → códigos de depósito
      - `003_deposit_wallet_per_user.sql` → wallets de depósito por usuario
      - `004_rewards_streaks.sql` → streaks faucet, site_settings, reward_templates
+     - `005_user_status.sql` → estados de usuario
+     - `006_leaderboard_prizes.sql` → keys de premios ranking
+     - `007_terms_and_limits.sql` → términos HI-LO y límites
+     - `008_email_verification_and_public_id.sql` → email verification + public_id
+     - `009_movement_type_enum_extend.sql` → tipos extra en movimientos
+     - `010_security_settings.sql` → defaults de seguridad en `site_settings`
+     - `011_password_reset.sql` → tabla `password_resets` (reset por email)
    - Credenciales solo en env (local `.env.local`, producción en Vercel).
 
 ---
@@ -64,10 +71,12 @@ Este archivo describe dónde está la web en producción, la base de datos, el r
 - `SOLANA_RPC_URL` — URL RPC de Solana (Helius recomendado, usar `api-key` con guion medio)
 - `DEPOSIT_WALLET_ENCRYPTION_KEY` — Clave para encriptar wallets de depósito
 - `CRON_SECRET` — Para autorizar el cron job de depósitos
+- `RESEND_API_KEY` — Para enviar emails (verificación + reset de contraseña)
 
 ### Opcionales
 - `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `NEXT_PUBLIC_GOOGLE_ENABLED=true` — Login con Google
 - `CAPTCHA_SECRET` — Clave para CAPTCHA (usa NEXTAUTH_SECRET si no se define)
+- `RESEND_FROM` — Remitente de emails (si no se define, usa fallback)
 - Parámetros del sistema (puntos faucet, comisiones, etc.) se configuran desde `/admin/configuracion` en vez de env vars
 
 ---
@@ -105,6 +114,15 @@ Parametros editables desde `/admin/configuracion` sin redesplegar:
 | `REFERRAL_MIN_DAYS` | 3 | Mín días registrado para bonus |
 | `HOURLY_STREAK_TIERS` | JSON | Tiers multiplicador por horas |
 | `DAILY_STREAK_TIERS` | JSON | Tiers bonus por días |
+| `MAX_SESSIONS_PER_IP` | 3 | Máx sesiones por IP en faucet |
+| `REGISTER_BURST_MAX` | 3 | Registro: intentos por IP (ráfaga) |
+| `REGISTER_BURST_WINDOW_MINUTES` | 15 | Registro: ventana ráfaga en minutos |
+| `REGISTER_DAILY_MAX` | 5 | Registro: máx por IP por día |
+| `REGISTER_DAILY_WINDOW_HOURS` | 24 | Registro: ventana diaria en horas |
+| `REGISTER_MIN_SECONDS` | 3 | Registro: tiempo mínimo en formulario |
+| `ENABLE_DISPOSABLE_BLOCK` | 1 | Bloqueo correos desechables (0/1) |
+| `WITHDRAW_RATE_MAX` | 5 | Retiros: solicitudes máximas |
+| `WITHDRAW_RATE_WINDOW_HOURS` | 1 | Retiros: ventana en horas |
 
 ---
 
@@ -115,7 +133,7 @@ Parametros editables desde `/admin/configuracion` sin redesplegar:
 - **Hosting:** Vercel, proyecto **freeboli**.
 - **Base de datos:** Supabase; credenciales solo en env.
 - **Subir cambios:** `git add . && git commit -m "..." && git push origin main` → Vercel despliega solo.
-- **Migraciones:** 4 archivos SQL en `supabase/migrations/`, ejecutar en orden en Supabase SQL Editor.
+- **Migraciones:** 11 archivos SQL en `supabase/migrations/`, ejecutar en orden en Supabase SQL Editor.
 - **Config en vivo:** Tabla `site_settings` editable desde `/admin/configuracion`.
 
 ---
@@ -128,4 +146,4 @@ Si tras hacer push o redeploy la web no refleja los cambios:
 2. **Variables de entorno:** Asegúrate de que `ADMIN_EMAILS=albertonava@gmail.com` esté en Vercel (Settings → Environment Variables).
 3. **Probar en incógnito** para descartar caché del navegador.
 4. **Forzar sin caché (solo si persiste):** Añade temporalmente `VERCEL_FORCE_NO_BUILD_CACHE=1` en env de Vercel, redeploy, y luego quítala (ralentiza los builds).
-- **Anti-bot:** CAPTCHA, honeypot, timing, emails desechables, rate limiting, engagement, email verificado.
+- **Anti-bot:** CAPTCHA, honeypot, timing, emails desechables, rate limiting (login/registro/retiros/forgot), engagement, email verificado, reset de contraseña por email (token en `password_resets`).

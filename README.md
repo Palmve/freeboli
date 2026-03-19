@@ -17,7 +17,7 @@ Web de juego con puntos internos y BOLIS (token Solana). Faucet con rachas, HI-L
 ```
 src/
 ├── app/
-│   ├── admin/           # Panel admin (tabs: Resumen, Wallets, Depósitos, Retiros, Usuarios, Estadísticas, Proyecciones, Configuración)
+│   ├── admin/           # Panel admin (tabs: Resumen, Wallets, Depósitos, Retiros, Usuarios, Ranking, Estadísticas, Proyecciones, Alertas, Configuración, Seguridad)
 │   ├── afiliados/       # Plan de afiliados (enlace, compartir, tabla referidos, bonus)
 │   ├── api/             # API routes (faucet, hi-lo, rewards, affiliates, admin, auth, deposit, withdraw)
 │   ├── auth/            # Login y registro
@@ -36,7 +36,7 @@ src/
 │   └── ...
 └── components/          # Componentes compartidos (Header, etc.)
 
-supabase/migrations/     # Migraciones SQL (001 a 004)
+supabase/migrations/     # Migraciones SQL (001 a 011)
 ```
 
 ## Configuración
@@ -47,6 +47,13 @@ supabase/migrations/     # Migraciones SQL (001 a 004)
    - `002_deposit_code.sql` → códigos de depósito
    - `003_deposit_wallet_per_user.sql` → wallets de depósito por usuario
    - `004_rewards_streaks.sql` → streaks faucet, site_settings, seed reward_templates
+   - `005_user_status.sql` → estados de usuario (normal/evaluar/suspendido/bloqueado)
+   - `006_leaderboard_prizes.sql` → keys de premios ranking
+   - `007_terms_and_limits.sql` → términos HI-LO y límites
+   - `008_email_verification_and_public_id.sql` → email verification + public_id 6 cifras
+   - `009_movement_type_enum_extend.sql` → tipos extra en movements
+   - `010_security_settings.sql` → defaults de seguridad antibot en `site_settings`
+   - `011_password_reset.sql` → tabla `password_resets` para reset por email
 3. Rellena `.env.local` (ver sección de variables de entorno en `DEPLOY.md`).
 
 ## Equivalencia
@@ -86,21 +93,23 @@ Abre [http://localhost:3000](http://localhost:3000). Ver `LOCAL.md` para configu
 
 ### Anti-bot / Seguridad
 - CAPTCHA matemático periódico con HMAC (posición variable)
-- Rate limiting en login, registro y retiros
+- Rate limiting en login, registro, retiros y `forgot-password`
 - Honeypot en formulario de registro
 - Validación de tiempo de envío (< 3s = bot)
 - Bloqueo de emails desechables (~60 dominios)
 - Tope de 5 registros por IP cada 24h
+- Reset de contraseña por email (token + tabla `password_resets`)
 - Email verificado obligatorio para faucet
 - Engagement obligatorio (HI-LO) para seguir reclamando faucet
 - MAX_SESSIONS_PER_IP para faucet
 - Headers de seguridad HTTP
 
 ### Admin
-- Pestañas: Resumen, Wallets, Depósitos, Retiros, Usuarios, Estadísticas, Proyecciones, Configuración
+- Pestañas: Resumen, Wallets, Depósitos, Retiros, Usuarios, Ranking, Estadísticas, Proyecciones, Alertas, Configuración, Seguridad
 - **Estadísticas**: Balance P&L de la plataforma (ingresos vs costos), desglose por tipo, jugadas HI-LO
 - **Proyecciones**: Simulador client-side de costos mensuales (faucet, afiliados, logros)
 - **Configuración**: Editor en vivo de todos los parámetros del sistema (tabla `site_settings`)
+- **Seguridad**: listado desplegable de todos los sistemas de seguridad y antibot existentes
 - **Reward templates**: Editor de puntos por logro
 
 ## Despliegue

@@ -11,6 +11,13 @@ En local la app puede usarse **sin login** (acceso libre). Un usuario fijo (albe
    - `supabase/migrations/002_deposit_code.sql` → códigos de depósito
    - `supabase/migrations/003_deposit_wallet_per_user.sql` → wallets de depósito por usuario
    - `supabase/migrations/004_rewards_streaks.sql` → streaks faucet, tabla site_settings, seed de reward_templates y configuración
+   - `supabase/migrations/005_user_status.sql` → estados de usuario (normal/evaluar/suspendido/bloqueado)
+   - `supabase/migrations/006_leaderboard_prizes.sql` → claves/config de premios ranking
+   - `supabase/migrations/007_terms_and_limits.sql` → términos HI-LO y límites
+   - `supabase/migrations/008_email_verification_and_public_id.sql` → email verification + public_id 6 cifras
+   - `supabase/migrations/009_movement_type_enum_extend.sql` → tipos extra en movimientos (leaderboard/recompensas)
+   - `supabase/migrations/010_security_settings.sql` → defaults de seguridad antibot en `site_settings`
+   - `supabase/migrations/011_password_reset.sql` → tabla `password_resets` para reset por email
 
 Luego en **Settings → API** copia:
 - **Project URL** → será `NEXT_PUBLIC_SUPABASE_URL`
@@ -82,9 +89,12 @@ Depósitos/retiros en BOLIS necesitan `SOLANA_WALLET_PRIVATE_KEY_BASE58` y un **
 | `/afiliados` | Plan de afiliados (enlace, compartir, tabla referidos, bonus) |
 | `/cuenta` | Mi cuenta (balance, historial, depósitos, retiros) |
 | `/cuenta/depositar` | Dirección de depósito BOLIS |
-| `/admin` | Panel admin (8 pestañas) |
+| `/admin` | Panel admin (11 pestañas) |
 | `/admin/configuracion` | Editor de parámetros del sistema |
 | `/admin/proyecciones` | Simulador de costos mensuales |
+| `/admin/seguridad` | Lista de sistemas de seguridad antibot |
+| `/auth/forgot-password` | Solicitar reset de contraseña por email |
+| `/auth/reset-password` | Formulario para cambiar la contraseña (con token) |
 
 ---
 
