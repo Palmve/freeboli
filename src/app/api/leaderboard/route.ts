@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserId } from "@/lib/current-user";
 import { getUserLevel } from "@/lib/levels";
+import { getSetting } from "@/lib/site-settings";
 
 interface LeaderboardEntry {
   rank: number;
@@ -24,18 +25,21 @@ export async function GET(request: Request) {
 
   let dateFilter: string | null = null;
   const now = new Date();
+  // Use UTC so day/week/month are consistent on Vercel (server in UTC)
   if (period === "day") {
-    dateFilter = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    dateFilter = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
   } else if (period === "week") {
     const d = new Date(now);
-    d.setDate(d.getDate() - d.getDay());
-    d.setHours(0, 0, 0, 0);
+    const day = d.getUTCDay();
+    const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
+    d.setUTCDate(diff);
+    d.setUTCHours(0, 0, 0, 0);
     dateFilter = d.toISOString();
   } else if (period === "month") {
-    dateFilter = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    dateFilter = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
   }
 
-  const earnTypes = ["faucet", "premio_hi_lo", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado"];
+  const earnTypes = ["faucet", "premio_hi_lo", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado", "premio_ranking"];
 
   let movQuery = supabase
     .from("movements")
@@ -72,7 +76,7 @@ export async function GET(request: Request) {
   const allNeededIds = [...new Set([...topIds, ...nearbyIds])];
 
   const [profilesRes, betsRes, faucetRes, referralsRes] = await Promise.all([
-    supabase.from("profiles").select("id, name, email, email_verified_at").in("id", allNeededIds),
+    supabase.from("profiles").select("id, public_id, email_verified_at").in("id", allNeededIds),
     supabase.from("movements").select("user_id").eq("type", "apuesta_hi_lo").in("user_id", allNeededIds),
     supabase.from("movements").select("user_id").eq("type", "faucet").in("user_id", allNeededIds),
     supabase.from("referrals").select("referrer_id").in("referrer_id", allNeededIds),
@@ -80,7 +84,8 @@ export async function GET(request: Request) {
 
   const profileMap: Record<string, { name: string; emailVerified: boolean }> = {};
   (profilesRes.data ?? []).forEach((p) => {
-    const displayName = p.name || (p.email ? p.email.split("@")[0].slice(0, 3) + "***" : "Anon");
+    const publicId = p.public_id != null ? String(p.public_id) : null;
+    const displayName = publicId ? `#${publicId}` : "—";
     profileMap[p.id] = { name: displayName, emailVerified: !!p.email_verified_at };
   });
 
@@ -94,7 +99,7 @@ export async function GET(request: Request) {
   (referralsRes.data ?? []).forEach((r) => { refCountMap[r.referrer_id] = (refCountMap[r.referrer_id] ?? 0) + 1; });
 
   function buildEntry(userId: string, rank: number): LeaderboardEntry {
-    const p = profileMap[userId] ?? { name: "Anon", emailVerified: false };
+    const p = profileMap[userId] ?? { name: "—", emailVerified: false };
     const betCount = betCountMap[userId] ?? 0;
     const faucetClaims = faucetCountMap[userId] ?? 0;
     const referralCount = refCountMap[userId] ?? 0;
@@ -126,11 +131,28 @@ export async function GET(request: Request) {
     }
   }
 
+  const [daily1, daily2, daily3, weekly1, weekly2, weekly3, monthly1, monthly2, monthly3] = await Promise.all([
+    getSetting<number>("PRIZE_DAILY_1", 500),
+    getSetting<number>("PRIZE_DAILY_2", 300),
+    getSetting<number>("PRIZE_DAILY_3", 100),
+    getSetting<number>("PRIZE_WEEKLY_1", 5000),
+    getSetting<number>("PRIZE_WEEKLY_2", 3000),
+    getSetting<number>("PRIZE_WEEKLY_3", 1000),
+    getSetting<number>("PRIZE_MONTHLY_1", 25000),
+    getSetting<number>("PRIZE_MONTHLY_2", 15000),
+    getSetting<number>("PRIZE_MONTHLY_3", 5000),
+  ]);
+
   return NextResponse.json({
     top10,
     userSection,
     totalPlayers: sorted.length,
     currentUserRank: currentUserRank >= 0 ? currentUserRank + 1 : null,
     period,
+    prizes: {
+      daily: [daily1, daily2, daily3],
+      weekly: [weekly1, weekly2, weekly3],
+      monthly: [monthly1, monthly2, monthly3],
+    },
   });
 }

@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
+import { POINTS_PER_BOLIS } from "@/lib/config";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
@@ -15,11 +15,6 @@ export default function CuentaPage() {
     stats?: { emailVerified?: boolean };
   } | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
-  const [withdrawPoints, setWithdrawPoints] = useState("");
-  const [withdrawWallet, setWithdrawWallet] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const [movements, setMovements] = useState<{ id: string; type: string; points: number; reference: string | null; created_at: string }[]>([]);
   const [movementsLoading, setMovementsLoading] = useState(true);
   const [verifyLoading, setVerifyLoading] = useState(false);
@@ -73,31 +68,6 @@ export default function CuentaPage() {
       .catch(() => setMovements([]))
       .finally(() => setMovementsLoading(false));
   }, [session?.user, localUser]);
-
-  async function requestWithdraw(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setMessage("");
-    setLoading(true);
-    const res = await fetch("/api/withdraw", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        points: Number(withdrawPoints),
-        wallet: withdrawWallet.trim(),
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setLoading(false);
-    if (!res.ok) {
-      setError(data.error || "Error al solicitar retiro.");
-      return;
-    }
-    setMessage("Retiro solicitado. Se procesará desde Admin.");
-    setWithdrawPoints("");
-    setWithdrawWallet("");
-    if (data.balance != null) setBalance(data.balance);
-  }
 
   if (REQUIRE_AUTH && status === "loading") return <div className="py-12 text-slate-400">Cargando…</div>;
   if (REQUIRE_AUTH && !session) {
@@ -252,63 +222,6 @@ export default function CuentaPage() {
             </div>
           </div>
         )}
-      </div>
-      <div className="card space-y-4">
-        <h2 className="text-lg font-semibold text-slate-300">Agregar puntos (depósito BOLIS)</h2>
-        <p className="text-slate-400 text-sm">
-          Envía BOLIS a la dirección que se muestra en la sección Depósito. Tras confirmar la
-          transacción en Solana, los puntos se acreditarán.
-        </p>
-        <p className="text-slate-500 text-sm">
-          {String(POINTS_PER_BOLIS)} puntos = 1 BOLIS (retirable cuando alcances el mínimo)
-        </p>
-        <Link href="/cuenta/depositar" className="btn-secondary inline-block">
-          Ver dirección de depósito
-        </Link>
-      </div>
-      <div className="card space-y-4">
-        <h2 className="text-lg font-semibold text-slate-300">Retirar BOLIS</h2>
-        <p className="text-slate-500 text-sm">
-          {String(POINTS_PER_BOLIS)} puntos = 1 BOLIS (retirable cuando alcances el mínimo)
-        </p>
-        {message && (
-          <div className="rounded bg-green-500/20 p-2 text-sm text-green-300">{message}</div>
-        )}
-        {error && (
-          <div className="rounded bg-red-500/20 p-2 text-sm text-red-300">{error}</div>
-        )}
-        <form onSubmit={requestWithdraw}>
-          <div className="space-y-2">
-            <label className="block text-sm text-slate-400">Puntos a retirar</label>
-            <input
-              type="number"
-              min={MIN_WITHDRAW_POINTS}
-              step={POINTS_PER_BOLIS}
-              value={withdrawPoints}
-              onChange={(e) => setWithdrawPoints(e.target.value)}
-              className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white"
-              placeholder={`Mínimo ${String(MIN_WITHDRAW_POINTS)}`}
-            />
-          </div>
-          <div className="mt-2 space-y-2">
-            <label className="block text-sm text-slate-400">Wallet Solana (destino)</label>
-            <input
-              type="text"
-              value={withdrawWallet}
-              onChange={(e) => setWithdrawWallet(e.target.value)}
-              className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 font-mono text-sm text-white"
-              placeholder="Dirección de tu wallet"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading || balance == null || balance < MIN_WITHDRAW_POINTS}
-            className="btn-primary mt-4 w-full disabled:opacity-50"
-          >
-            {loading ? "Enviando…" : "Solicitar retiro"}
-          </button>
-        </form>
       </div>
     </div>
   );

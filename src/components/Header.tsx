@@ -97,6 +97,9 @@ export function Header() {
               <Link href="/cuenta/depositar" className="rounded bg-emerald-600 px-3 py-1.5 font-semibold text-white hover:bg-emerald-500 text-xs">
                 Depositar
               </Link>
+              <Link href="/cuenta/retirar" className="text-slate-300 hover:text-white">
+                Retiro
+              </Link>
               <Link href="/cuenta" className="text-slate-300 hover:text-white">
                 Mi cuenta
               </Link>
@@ -172,6 +175,9 @@ export function Header() {
               <>
                 <Link href="/cuenta/depositar" className="rounded-lg bg-emerald-600/20 px-3 py-2.5 text-sm text-emerald-400 font-medium">
                   Depositar
+                </Link>
+                <Link href="/cuenta/retirar" className="rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-slate-800">
+                  Retiro
                 </Link>
                 <Link href="/cuenta" className="rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-slate-800">
                   Mi cuenta

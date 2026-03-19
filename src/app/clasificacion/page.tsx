@@ -39,6 +39,7 @@ export default function ClasificacionPage() {
   const [userSection, setUserSection] = useState<Entry[] | null>(null);
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [currentRank, setCurrentRank] = useState<number | null>(null);
+  const [prizes, setPrizes] = useState<{ daily: number[]; weekly: number[]; monthly: number[] } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,6 +51,7 @@ export default function ClasificacionPage() {
         setUserSection(d.userSection ?? null);
         setTotalPlayers(d.totalPlayers ?? 0);
         setCurrentRank(d.currentUserRank ?? null);
+        if (d.prizes) setPrizes(d.prizes);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -90,17 +92,29 @@ export default function ClasificacionPage() {
           <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-2">
             <div className="text-lg">🏆</div>
             <div className="text-amber-400 font-bold">1er lugar</div>
-            <div className="text-slate-400">Diario / Semanal / Mensual</div>
+            <div className="text-slate-400 mt-1 space-y-0.5">
+              <div>Diario: {prizes ? prizes.daily[0]?.toLocaleString() : "—"} pts</div>
+              <div>Semanal: {prizes ? prizes.weekly[0]?.toLocaleString() : "—"} pts</div>
+              <div>Mensual: {prizes ? prizes.monthly[0]?.toLocaleString() : "—"} pts</div>
+            </div>
           </div>
           <div className="rounded-lg bg-slate-700/50 border border-slate-600 p-2">
             <div className="text-lg">🥈</div>
             <div className="text-slate-300 font-bold">2do lugar</div>
-            <div className="text-slate-400">Diario / Semanal / Mensual</div>
+            <div className="text-slate-400 mt-1 space-y-0.5">
+              <div>Diario: {prizes ? prizes.daily[1]?.toLocaleString() : "—"} pts</div>
+              <div>Semanal: {prizes ? prizes.weekly[1]?.toLocaleString() : "—"} pts</div>
+              <div>Mensual: {prizes ? prizes.monthly[1]?.toLocaleString() : "—"} pts</div>
+            </div>
           </div>
           <div className="rounded-lg bg-orange-500/10 border border-orange-500/30 p-2">
             <div className="text-lg">🥉</div>
             <div className="text-orange-400 font-bold">3er lugar</div>
-            <div className="text-slate-400">Diario / Semanal / Mensual</div>
+            <div className="text-slate-400 mt-1 space-y-0.5">
+              <div>Diario: {prizes ? prizes.daily[2]?.toLocaleString() : "—"} pts</div>
+              <div>Semanal: {prizes ? prizes.weekly[2]?.toLocaleString() : "—"} pts</div>
+              <div>Mensual: {prizes ? prizes.monthly[2]?.toLocaleString() : "—"} pts</div>
+            </div>
           </div>
         </div>
       </div>
@@ -110,7 +124,12 @@ export default function ClasificacionPage() {
         {loading ? (
           <div className="p-8 text-center text-slate-500">Cargando...</div>
         ) : top10.length === 0 ? (
-          <div className="p-8 text-center text-slate-500">Sin datos para este periodo</div>
+          <div className="p-8 text-center text-slate-500 space-y-2">
+            <p>Sin datos para este periodo.</p>
+            <p className="text-xs">
+              La tabla se llena con puntos ganados en Faucet, HI-LO, logros y recompensas. Prueba con &quot;Todos&quot; o asegurate de tener movimientos en la base de datos.
+            </p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
