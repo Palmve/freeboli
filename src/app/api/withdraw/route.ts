@@ -4,6 +4,7 @@ import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
 import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
 import { rateLimit } from "@/lib/rate-limit";
 import { alertWithdrawalRequest } from "@/lib/telegram";
+import { getSetting } from "@/lib/site-settings";
 
 export async function POST(req: Request) {
   const currentUser = await getCurrentUser();
@@ -13,7 +14,10 @@ export async function POST(req: Request) {
   }
   const userId = currentUser.id;
 
-  const { allowed, retryAfterSeconds } = rateLimit(`withdraw:${userId}`, 5, 60 * 60 * 1000);
+  const withdrawRateMax = await getSetting<number>("WITHDRAW_RATE_MAX", 5);
+  const withdrawWindowHours = await getSetting<number>("WITHDRAW_RATE_WINDOW_HOURS", 1);
+  const windowMs = withdrawWindowHours * 60 * 60 * 1000;
+  const { allowed, retryAfterSeconds } = rateLimit(`withdraw:${userId}`, withdrawRateMax, windowMs);
   if (!allowed) {
     return NextResponse.json(
       { error: `Demasiadas solicitudes de retiro. Espera ${Math.ceil(retryAfterSeconds / 60)} minuto(s).` },

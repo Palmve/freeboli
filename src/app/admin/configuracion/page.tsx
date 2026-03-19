@@ -8,13 +8,15 @@ interface SettingField {
   type: "number" | "json";
   description: string;
   group: string;
+  /** Valor por defecto (se muestra como nota y se usa si no hay valor en BD) */
+  defaultValue?: string;
 }
 
 const FIELDS: SettingField[] = [
-  { key: "FAUCET_POINTS", label: "Puntos base faucet", type: "number", description: "Puntos que se otorgan por cada reclamo base", group: "Faucet" },
-  { key: "FAUCET_COOLDOWN_HOURS", label: "Cooldown (horas)", type: "number", description: "Horas entre cada reclamo del faucet", group: "Faucet" },
-  { key: "CAPTCHA_INTERVAL", label: "CAPTCHA cada N reclamos", type: "number", description: "Cada cuántos reclamos se pide CAPTCHA", group: "Faucet" },
-  { key: "FAUCET_ENGAGEMENT_EVERY", label: "Engagement cada N reclamos", type: "number", description: "Cada cuántos reclamos se exige haber jugado HI-LO en las últimas 24h", group: "Faucet" },
+  { key: "FAUCET_POINTS", label: "Puntos base faucet", type: "number", description: "Puntos que se otorgan por cada reclamo base", group: "Faucet", defaultValue: "100" },
+  { key: "FAUCET_COOLDOWN_HOURS", label: "Cooldown (horas)", type: "number", description: "Horas entre cada reclamo del faucet", group: "Faucet", defaultValue: "1" },
+  { key: "CAPTCHA_INTERVAL", label: "CAPTCHA cada N reclamos", type: "number", description: "Cada cuántos reclamos se pide CAPTCHA", group: "Faucet", defaultValue: "4" },
+  { key: "FAUCET_ENGAGEMENT_EVERY", label: "Engagement cada N reclamos", type: "number", description: "Cada cuántos reclamos se exige haber jugado HI-LO en las últimas 24h", group: "Faucet", defaultValue: "10" },
   { key: "AFFILIATE_COMMISSION_PERCENT", label: "Comisión afiliados (%)", type: "number", description: "Porcentaje de comisión sobre faucet y juegos", group: "Afiliados" },
   { key: "AFFILIATE_ACHIEVEMENT_PERCENT", label: "Comisión logros (%)", type: "number", description: "Porcentaje de comisión sobre logros del referido", group: "Afiliados" },
   { key: "REFERRAL_VERIFIED_BONUS", label: "Bonus referido verificado", type: "number", description: "Puntos que gana el referente cuando el referido cumple los requisitos", group: "Afiliados" },
@@ -34,6 +36,16 @@ const FIELDS: SettingField[] = [
   { key: "MAX_BET_POINTS", label: "Apuesta maxima (pts)", type: "number", description: "Maximo de puntos que un usuario puede apostar en una jugada", group: "Limites de Juego" },
   { key: "MAX_WIN_POINTS", label: "Ganancia maxima/jugada (pts)", type: "number", description: "Maximo de puntos que un usuario puede ganar en una jugada", group: "Limites de Juego" },
   { key: "MAX_DAILY_WIN_POINTS", label: "Ganancia maxima/dia (pts)", type: "number", description: "Maximo de puntos que un usuario puede ganar en un dia", group: "Limites de Juego" },
+  // Seguridad y antibot (todos con valor por defecto y nota)
+  { key: "MAX_SESSIONS_PER_IP", label: "Máx. sesiones por IP", type: "number", description: "Máximo de cuentas distintas que pueden usar la misma IP para reclamar faucet. Más bajo = más estricto.", group: "Seguridad", defaultValue: "3" },
+  { key: "REGISTER_BURST_MAX", label: "Registro: máx. intentos (ráfaga)", type: "number", description: "Máximo de intentos de registro por IP en la ventana de ráfaga.", group: "Seguridad", defaultValue: "3" },
+  { key: "REGISTER_BURST_WINDOW_MINUTES", label: "Registro: ventana ráfaga (min)", type: "number", description: "Duración en minutos de la ventana de ráfaga para registro.", group: "Seguridad", defaultValue: "15" },
+  { key: "REGISTER_DAILY_MAX", label: "Registro: máx. por día por IP", type: "number", description: "Máximo de registros exitosos por IP en 24 h.", group: "Seguridad", defaultValue: "5" },
+  { key: "REGISTER_DAILY_WINDOW_HOURS", label: "Registro: ventana diaria (horas)", type: "number", description: "Ventana en horas para el límite diario de registros (normalmente 24).", group: "Seguridad", defaultValue: "24" },
+  { key: "REGISTER_MIN_SECONDS", label: "Registro: tiempo mín. en formulario (s)", type: "number", description: "Si el formulario se envía en menos de este tiempo, se rechaza (anti-bot).", group: "Seguridad", defaultValue: "3" },
+  { key: "ENABLE_DISPOSABLE_BLOCK", label: "Bloquear correos desechables", type: "number", description: "1 = bloquear dominios tempmail/guerrillamail etc.; 0 = permitir.", group: "Seguridad", defaultValue: "1" },
+  { key: "WITHDRAW_RATE_MAX", label: "Retiros: máx. solicitudes por ventana", type: "number", description: "Máximo de solicitudes de retiro por usuario en la ventana.", group: "Seguridad", defaultValue: "5" },
+  { key: "WITHDRAW_RATE_WINDOW_HOURS", label: "Retiros: ventana (horas)", type: "number", description: "Ventana en horas para el límite de solicitudes de retiro por usuario.", group: "Seguridad", defaultValue: "1" },
 ];
 
 export default function ConfiguracionPage() {
@@ -47,7 +59,16 @@ export default function ConfiguracionPage() {
       .then((r) => r.json())
       .then((d) => {
         const vals: Record<string, string> = {};
+        for (const field of FIELDS) {
+          const raw = (d.settings ?? {})[field.key];
+          if (raw !== undefined && raw !== null) {
+            vals[field.key] = typeof raw === "object" ? JSON.stringify(raw, null, 2) : String(raw);
+          } else if (field.defaultValue !== undefined) {
+            vals[field.key] = field.defaultValue;
+          }
+        }
         for (const [key, val] of Object.entries(d.settings ?? {})) {
+          if (FIELDS.some((f) => f.key === key)) continue;
           vals[key] = typeof val === "object" ? JSON.stringify(val, null, 2) : String(val);
         }
         setValues(vals);
@@ -153,6 +174,9 @@ export default function ConfiguracionPage() {
             <div key={field.key}>
               <label className="block text-sm font-medium text-slate-300">{field.label}</label>
               <p className="text-xs text-slate-500 mb-1">{field.description}</p>
+              {field.defaultValue !== undefined && (
+                <p className="text-xs text-amber-500/80 mb-1">Valor por defecto: {field.defaultValue}</p>
+              )}
               {field.type === "json" ? (
                 <textarea
                   value={values[field.key] ?? ""}

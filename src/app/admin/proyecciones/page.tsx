@@ -3,6 +3,28 @@
 import { useState } from "react";
 
 const POINTS_PER_BOLIS = 1000;
+/** HI-LO: probabilidad jugador 0.49, multiplicador 2 → casa retiene 2% de lo apostado */
+const HILO_HOUSE_EDGE = 0.02;
+
+/** Ganancia máxima por usuario con juego mínimo: faucet N veces/día (sin racha) + logros únicos. Sin referidos ni premios ranking. */
+const USER_MIN_PLAY_DEFAULTS = {
+  baseFaucet: 100,
+  logroEmailVerified: 500,
+  logroFirstBet: 200,
+};
+function calcUsuarioMinimo(reclamosPorDia: number) {
+  const ptsPorMesFaucet = USER_MIN_PLAY_DEFAULTS.baseFaucet * reclamosPorDia * 30;
+  const logrosUnicos = USER_MIN_PLAY_DEFAULTS.logroEmailVerified + USER_MIN_PLAY_DEFAULTS.logroFirstBet;
+  return {
+    logrosUnicos,
+    ptsPorMesFaucet,
+    mes1: logrosUnicos + ptsPorMesFaucet,
+    ano1: logrosUnicos + ptsPorMesFaucet * 12,
+    ano2: logrosUnicos + ptsPorMesFaucet * 24,
+    ano5: logrosUnicos + ptsPorMesFaucet * 60,
+    ptsPorAnoRecurrente: ptsPorMesFaucet * 12,
+  };
+}
 
 const DEFAULT = {
   usuarios: 100,
@@ -27,6 +49,10 @@ const DEFAULT = {
   premioMensual1: 25000,
   premioMensual2: 15000,
   premioMensual3: 5000,
+  /** Saldo de tesorería en BOLIS para simular duración */
+  saldoTesoreriaBolis: 10000,
+  /** Puntos apostados en HI-LO por mes (total volumen); la casa gana ~2% */
+  hiloApuestasPuntosMes: 500000,
 };
 
 function calc(p: typeof DEFAULT) {
@@ -71,6 +97,16 @@ function calc(p: typeof DEFAULT) {
   const totalMes = totalDia * 30 + totalUnico + premiosSemana * 4 + premiosMes;
   const bolisMes = totalMes / POINTS_PER_BOLIS;
 
+  // Sostenibilidad: consumo neto y duración del saldo
+  const hiloGananciaPuntosMes = Math.floor(p.hiloApuestasPuntosMes * HILO_HOUSE_EDGE);
+  const consumoPuntosMes = totalMes;
+  const netoPuntosMes = Math.max(0, consumoPuntosMes - hiloGananciaPuntosMes);
+  const consumoBolisMes = netoPuntosMes / POINTS_PER_BOLIS;
+  const hiloBolisMes = hiloGananciaPuntosMes / POINTS_PER_BOLIS;
+  const saldoBolis = Math.max(0, p.saldoTesoreriaBolis);
+  const mesesQueDura = consumoBolisMes > 0 ? saldoBolis / consumoBolisMes : Infinity;
+  const equilibrioDepositosBolisMes = consumoBolisMes;
+
   return {
     payoutPerClaim,
     hourlyMultAvg,
@@ -85,11 +121,18 @@ function calc(p: typeof DEFAULT) {
     totalUnico,
     totalMes,
     bolisMes,
+    hiloGananciaPuntosMes,
+    hiloBolisMes,
+    consumoBolisMes,
+    mesesQueDura,
+    equilibrioDepositosBolisMes,
   };
 }
 
 export default function ProyeccionesPage() {
   const [params, setParams] = useState(DEFAULT);
+  const [reclamosPorDiaUsuario, setReclamosPorDiaUsuario] = useState(1);
+  const [mesesHorizonte, setMesesHorizonte] = useState(12);
   const r = calc(params);
 
   function set(key: keyof typeof DEFAULT, val: string) {
@@ -119,6 +162,8 @@ export default function ProyeccionesPage() {
     { label: "Premio mensual 1er", key: "premioMensual1" },
     { label: "Premio mensual 2do", key: "premioMensual2" },
     { label: "Premio mensual 3er", key: "premioMensual3" },
+    { label: "Saldo tesorería (BOLIS)", key: "saldoTesoreriaBolis" },
+    { label: "Apuestas HI-LO (puntos/mes)", key: "hiloApuestasPuntosMes" },
   ];
 
   const results: { label: string; value: string; color?: string }[] = [
@@ -136,6 +181,21 @@ export default function ProyeccionesPage() {
     { label: "Total estimado / mes", value: r.totalMes.toLocaleString(), color: "text-white text-lg font-bold" },
     { label: "Equivalente en BOLIS / mes", value: r.bolisMes.toLocaleString(undefined, { maximumFractionDigits: 2 }), color: "text-amber-400 text-lg font-bold" },
   ];
+
+  const sostenibilidad = [
+    { label: "Ganancia HI-LO casa (puntos/mes)", value: r.hiloGananciaPuntosMes.toLocaleString(), color: "text-green-400" },
+    { label: "Ganancia HI-LO (BOLIS/mes)", value: r.hiloBolisMes.toLocaleString(undefined, { maximumFractionDigits: 2 }), color: "text-green-400" },
+    { label: "Consumo neto (BOLIS/mes)", value: r.consumoBolisMes.toLocaleString(undefined, { maximumFractionDigits: 2 }), color: "text-amber-400" },
+    { label: "Meses que dura el saldo", value: r.mesesQueDura === Infinity ? "∞" : r.mesesQueDura.toFixed(1), color: "text-white font-bold" },
+    { label: "Depósitos mínimos (BOLIS/mes) para equilibrio", value: r.equilibrioDepositosBolisMes.toLocaleString(undefined, { maximumFractionDigits: 2 }), color: "text-slate-300" },
+  ];
+  const recomendacion = r.consumoBolisMes <= 0
+    ? "El volumen HI-LO cubre la repartición. Equilibrio sostenible."
+    : r.mesesQueDura < 6
+      ? "Saldo se agota en menos de 6 meses. Recomendación: reducir premios/faucet o aumentar depósitos/HI-LO."
+      : r.mesesQueDura < 24
+        ? "Sostenibilidad limitada. Valorar reducir premios o fomentar depósitos y juego HI-LO."
+        : "Ritmo asumible. Se puede mantener o subir premios si entran depósitos o más volumen HI-LO.";
 
   return (
     <div className="space-y-6">
@@ -175,6 +235,117 @@ export default function ProyeccionesPage() {
           ))}
         </div>
       </div>
+
+      {/* Sostenibilidad */}
+      <div className="card space-y-4">
+        <h3 className="text-lg font-semibold text-amber-400">Sostenibilidad (tesorería y equilibrio)</h3>
+        <p className="text-sm text-slate-400">
+          Con el saldo en BOLIS indicado y asumiendo que todo lo repartido (faucet, premios, recompensas) podría retirarse,
+          la casa compensa con la ganancia de HI-LO (~2% del volumen apostado).
+        </p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">
+              Saldo tesorería (BOLIS): <span className="font-mono text-amber-400">{params.saldoTesoreriaBolis.toLocaleString()}</span>
+            </label>
+            <input
+              type="range"
+              min={1000}
+              max={100000}
+              step={1000}
+              value={params.saldoTesoreriaBolis}
+              onChange={(e) => set("saldoTesoreriaBolis", e.target.value)}
+              className="w-full h-2 rounded-lg appearance-none bg-slate-700 accent-amber-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">
+              Horizonte / tiempo (meses): <span className="font-mono text-amber-400">{mesesHorizonte}</span>
+            </label>
+            <input
+              type="range"
+              min={1}
+              max={60}
+              step={1}
+              value={mesesHorizonte}
+              onChange={(e) => setMesesHorizonte(Number(e.target.value))}
+              className="w-full h-2 rounded-lg appearance-none bg-slate-700 accent-amber-500"
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              Saldo necesario para que dure {mesesHorizonte} meses:{" "}
+              <span className="font-mono text-slate-300">
+                {(r.consumoBolisMes * mesesHorizonte).toLocaleString(undefined, { maximumFractionDigits: 0 })} BOLIS
+              </span>
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {sostenibilidad.map((s) => (
+            <div key={s.label} className="flex items-center justify-between gap-2 rounded-lg bg-slate-800/50 px-3 py-2">
+              <span className="text-sm text-slate-400">{s.label}</span>
+              <span className={`font-mono text-sm ${s.color ?? "text-slate-300"}`}>{s.value}</span>
+            </div>
+          ))}
+        </div>
+        <div className={`rounded-lg border p-3 text-sm ${
+          r.consumoBolisMes <= 0 ? "border-green-500/40 bg-green-500/10 text-green-300" :
+          r.mesesQueDura < 6 ? "border-red-500/40 bg-red-500/10 text-red-300" :
+          "border-amber-500/40 bg-amber-500/10 text-amber-200"
+        }`}>
+          <strong>Recomendación:</strong> {recomendacion}
+        </div>
+      </div>
+
+      {/* Ganancia máxima por usuario (juego mínimo) */}
+      {(() => {
+        const u = calcUsuarioMinimo(reclamosPorDiaUsuario);
+        return (
+          <div className="card space-y-4">
+            <h3 className="text-lg font-semibold text-amber-400">Ganancia máxima por usuario (juego mínimo)</h3>
+            <p className="text-sm text-slate-400">
+              Un solo usuario: reclamos de faucet al día (sin racha = {USER_MIN_PLAY_DEFAULTS.baseFaucet} pts/reclamo),
+              verifica correo y hace 1 apuesta en HI-LO. Sin referidos ni premios de ranking. No hay tope: puede seguir sumando cada mes.
+            </p>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">
+                Reclamos por día: <span className="font-mono text-amber-400">{reclamosPorDiaUsuario}</span>
+              </label>
+              <input
+                type="range"
+                min={1}
+                max={24}
+                step={1}
+                value={reclamosPorDiaUsuario}
+                onChange={(e) => setReclamosPorDiaUsuario(Number(e.target.value))}
+                className="w-full h-2 rounded-lg appearance-none bg-slate-700 accent-amber-500"
+              />
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-slate-700">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-slate-400 border-b border-slate-700">
+                    <th className="p-2">Concepto</th>
+                    <th className="p-2 text-right">Puntos</th>
+                    <th className="p-2 text-right">BOLIS (equiv.)</th>
+                  </tr>
+                </thead>
+                <tbody className="text-slate-300">
+                  <tr className="border-b border-slate-700/50"><td className="p-2">Logros únicos (email + 1ª apuesta)</td><td className="p-2 text-right font-mono">{u.logrosUnicos.toLocaleString()}</td><td className="p-2 text-right font-mono">{(u.logrosUnicos / POINTS_PER_BOLIS).toFixed(2)}</td></tr>
+                  <tr className="border-b border-slate-700/50"><td className="p-2">Faucet recurrente / mes</td><td className="p-2 text-right font-mono">{u.ptsPorMesFaucet.toLocaleString()}</td><td className="p-2 text-right font-mono">{(u.ptsPorMesFaucet / POINTS_PER_BOLIS).toFixed(2)}</td></tr>
+                  <tr className="border-b border-slate-700/50"><td className="p-2">Total mes 1</td><td className="p-2 text-right font-mono text-amber-400">{u.mes1.toLocaleString()}</td><td className="p-2 text-right font-mono text-amber-400">{(u.mes1 / POINTS_PER_BOLIS).toFixed(2)}</td></tr>
+                  <tr className="border-b border-slate-700/50"><td className="p-2">Total año 1</td><td className="p-2 text-right font-mono text-white font-bold">{u.ano1.toLocaleString()}</td><td className="p-2 text-right font-mono text-white font-bold">{(u.ano1 / POINTS_PER_BOLIS).toFixed(2)}</td></tr>
+                  <tr className="border-b border-slate-700/50"><td className="p-2">Total año 2</td><td className="p-2 text-right font-mono">{u.ano2.toLocaleString()}</td><td className="p-2 text-right font-mono">{(u.ano2 / POINTS_PER_BOLIS).toFixed(2)}</td></tr>
+                  <tr className="border-b border-slate-700/50"><td className="p-2">Total año 5</td><td className="p-2 text-right font-mono">{u.ano5.toLocaleString()}</td><td className="p-2 text-right font-mono">{(u.ano5 / POINTS_PER_BOLIS).toFixed(2)}</td></tr>
+                  <tr><td className="p-2">Cada año adicional (solo faucet)</td><td className="p-2 text-right font-mono text-slate-400">+{u.ptsPorAnoRecurrente.toLocaleString()}</td><td className="p-2 text-right font-mono text-slate-400">+{(u.ptsPorAnoRecurrente / POINTS_PER_BOLIS).toFixed(2)}</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-slate-500">
+              Si reclamara cada hora (máx. permitido) con racha mínima, serían hasta 24 × 100 = 2.400 pts/día solo de faucet (~72.000 pts/mes). Con rachas altas el multiplicador sube (hasta ×3) y el total sería mayor.
+            </p>
+          </div>
+        );
+      })()}
     </div>
   );
 }

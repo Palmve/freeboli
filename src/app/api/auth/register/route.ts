@@ -6,6 +6,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { isDisposableEmail } from "@/lib/disposable-emails";
 import { headers } from "next/headers";
 import { alertNewUser } from "@/lib/telegram";
+import { getSetting } from "@/lib/site-settings";
 
 function getIpFromHeaders(h: Headers): string {
   const forwarded = h.get("x-forwarded-for");
@@ -16,8 +17,14 @@ export async function POST(req: Request) {
   const h = await headers();
   const ip = getIpFromHeaders(h);
 
-  // Short-term burst limit: 3 per 15 min
-  const burst = rateLimit(`register:${ip}`, 3, 15 * 60 * 1000);
+  const burstMax = await getSetting<number>("REGISTER_BURST_MAX", 3);
+  const burstWindowMin = await getSetting<number>("REGISTER_BURST_WINDOW_MINUTES", 15);
+  const dailyMax = await getSetting<number>("REGISTER_DAILY_MAX", 5);
+  const dailyWindowHours = await getSetting<number>("REGISTER_DAILY_WINDOW_HOURS", 24);
+  const minSeconds = await getSetting<number>("REGISTER_MIN_SECONDS", 3);
+  const enableDisposableBlock = await getSetting<number>("ENABLE_DISPOSABLE_BLOCK", 1);
+
+  const burst = rateLimit(`register:${ip}`, burstMax, burstWindowMin * 60 * 1000);
   if (!burst.allowed) {
     return NextResponse.json(
       { error: `Demasiados intentos. Espera ${Math.ceil(burst.retryAfterSeconds / 60)} minuto(s).` },
@@ -25,8 +32,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // Daily cap: max 5 registrations per IP per 24h
-  const daily = rateLimit(`register-day:${ip}`, 5, 24 * 60 * 60 * 1000);
+  const daily = rateLimit(`register-day:${ip}`, dailyMax, dailyWindowHours * 60 * 60 * 1000);
   if (!daily.allowed) {
     return NextResponse.json(
       { error: "Límite de registros diarios alcanzado. Intenta mañana." },
@@ -37,15 +43,14 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const { email, password, referrerCode, _hp, _ts } = body;
 
-  // Honeypot: if hidden field is filled, it's a bot
   if (_hp) {
     return NextResponse.json({ ok: true, userId: "ok" });
   }
 
-  // Timing: reject if form was submitted in less than 3 seconds
   if (_ts && typeof _ts === "number") {
     const elapsed = Date.now() - _ts;
-    if (elapsed < 3000) {
+    const minMs = minSeconds * 1000;
+    if (elapsed < minMs) {
       return NextResponse.json(
         { error: "Por favor, completa el formulario con calma." },
         { status: 400 }
@@ -66,8 +71,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // Block disposable email providers
-  if (isDisposableEmail(email)) {
+  if (enableDisposableBlock === 1 && isDisposableEmail(email)) {
     return NextResponse.json(
       { error: "No se permiten correos temporales. Usa un correo real (Gmail, Outlook, etc.)." },
       { status: 400 }

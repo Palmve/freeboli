@@ -28,9 +28,10 @@ async function getConfig() {
   const commission = await getSetting<number>("AFFILIATE_COMMISSION_PERCENT", AFFILIATE_COMMISSION_PERCENT);
   const captchaEvery = await getSetting<number>("CAPTCHA_INTERVAL", CAPTCHA_INTERVAL);
   const engagementEvery = await getSetting<number>("FAUCET_ENGAGEMENT_EVERY", FAUCET_ENGAGEMENT_EVERY);
+  const maxSessionsPerIp = await getSetting<number>("MAX_SESSIONS_PER_IP", MAX_SESSIONS_PER_IP);
   const hourlyTiers = await getSetting("HOURLY_STREAK_TIERS", DEFAULT_HOURLY_TIERS);
   const dailyTiers = await getSetting("DAILY_STREAK_TIERS", DEFAULT_DAILY_TIERS);
-  return { base, cooldown, commission, captchaEvery, engagementEvery, hourlyTiers, dailyTiers };
+  return { base, cooldown, commission, captchaEvery, engagementEvery, maxSessionsPerIp, hourlyTiers, dailyTiers };
 }
 
 export async function POST(request: Request) {
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
     .eq("ip_hash", ipHash);
   const uniqueUsers = new Set(sessionIps?.map((s) => s.user_id) ?? []);
   if (!uniqueUsers.has(userId)) {
-    if (uniqueUsers.size >= MAX_SESSIONS_PER_IP) {
+    if (uniqueUsers.size >= cfg.maxSessionsPerIp) {
       return NextResponse.json(
         { error: "Límite de conexiones por IP alcanzado." },
         { status: 429 }
