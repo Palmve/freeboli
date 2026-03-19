@@ -1,22 +1,17 @@
 import { NextResponse } from "next/server";
-import { awardPrizes } from "../award-prizes/route";
-import { runDailySummary } from "../daily-summary/route";
-import { processDeposits } from "../../deposit/process-incoming/route";
+import { awardPrizes, runDailySummary, processDeposits } from "@/lib/cron-tasks";
 import { resolvePendingRounds, ensureActiveRound } from "@/lib/predictions";
 import { sendTelegramMessage } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
 
 /**
- * MASTER CRON - UNIFICADO (v1.035)
- * Ejecuta todas las tareas según el horario UTC.
- * Configurar en vercel.json cada 5 o 10 minutos.
+ * MASTER CRON - UNIFICADO (v1.038)
  */
 export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
   
-  // Validar permiso
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
@@ -31,12 +26,11 @@ export async function GET(req: Request) {
   };
 
   try {
-    // 1. Procesar Depósitos (Siempre, cada vez que corre el master cron)
-    const depRes = await (await processDeposits()).json();
+    // 1. Depósitos
+    const depRes = await processDeposits();
     report.tasks.push({ name: "process_deposits", result: depRes });
 
-    // 2. Resolver Rondas de Predicción (Cada hora, min 0-10)
-    // Aunque sea on-demand, esto asegura que ninguna se quede colgada
+    // 2. Resolver Rondas (Backup horario)
     if (minute < 15) {
         const resolved = await resolvePendingRounds();
         await ensureActiveRound("BTC");
@@ -45,13 +39,13 @@ export async function GET(req: Request) {
         report.tasks.push({ name: "predictions", resolved });
     }
 
-    // 3. Premios Ranking (Diario, una vez al día a las 00:00 - 00:15 UTC)
+    // 3. Premios (Hora 0)
     if (hour === 0 && minute < 15) {
         const prizeRes = await awardPrizes();
         report.tasks.push({ name: "award_prizes", result: prizeRes });
     }
 
-    // 4. Resumen Diario Telegram (Diario, una vez al día a las 01:00 UTC)
+    // 4. Resumen (Hora 1)
     if (hour === 1 && minute < 15) {
         const summaryRes = await runDailySummary();
         report.tasks.push({ name: "daily_summary", result: summaryRes });
