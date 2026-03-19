@@ -7,7 +7,7 @@ export type PredictionAsset = "BTC" | "SOL" | "BOLIS";
 /**
  * Asegura que exista una ronda activa para el asset dado en la hora actual.
  */
-export async function ensureActiveRound(asset: PredictionAsset) {
+export async function ensureActiveRound(asset: PredictionAsset): Promise<{ data?: any; error?: string }> {
   const supabase = createAdminClient();
   const now = new Date();
   
@@ -25,11 +25,14 @@ export async function ensureActiveRound(asset: PredictionAsset) {
     .eq("start_time", startTime.toISOString())
     .single();
 
-  if (existing) return existing;
+  if (existing) return { data: existing };
 
   // Si no existe, crearla obteniendo el precio actual como precio de apertura
   let openPrice = await getCryptoPrice(asset);
-  if (openPrice === null) return null;
+  if (openPrice === null) {
+      console.error(`[Prediction] Price feed failed for ${asset}`);
+      return { error: `No se pudo obtener el precio de apertura para ${asset}.` };
+  }
 
   // Asegurar 4 decimales para BOLIS al grabar
   if (asset === "BOLIS") {
@@ -49,18 +52,20 @@ export async function ensureActiveRound(asset: PredictionAsset) {
     .single();
 
   if (error) {
-    console.error("Error creating prediction round:", error);
-    return null;
+    console.error(`[Prediction] DB Error creating round for ${asset}:`, error);
+    return { error: `Error de base de datos al crear la ronda: ${error.message}` };
   }
-  return newRound;
+  return { data: newRound };
 }
 
 /**
  * Obtiene la ronda activa y calcula las cuotas actuales.
  */
 export async function getActiveRoundWithOdds(asset: PredictionAsset) {
-  const round = await ensureActiveRound(asset);
-  if (!round) return { error: "No se pudo asegurar o crear una ronda activa." };
+  const { data: round, error: ensureError } = await ensureActiveRound(asset);
+  if (ensureError) return { error: ensureError };
+  if (!round) return { error: "No se encontró ni se pudo crear la ronda." };
+  
   if (round.status !== "open") return { error: `La ronda actual para ${asset} no está abierta (status: ${round.status}).` };
 
   const currentPrice = await getCryptoPrice(asset);
