@@ -29,7 +29,7 @@ async function authorize(req: Request): Promise<boolean> {
  * Escanea la dirección de depósito de cada usuario en busca de BOLIS recibidos,
  * acredita puntos y hace sweep al treasury (treasury paga gas).
  */
-async function processDeposits() {
+export async function processDeposits() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!

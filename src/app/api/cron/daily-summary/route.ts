@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { sendDailySummary, sendTelegramMessage } from "@/lib/telegram";
 
-export async function GET() {
+export async function runDailySummary() {
   const supabase = await createClient();
   const now = new Date();
   const yesterday = new Date(now);
@@ -86,10 +86,16 @@ export async function GET() {
       platformBalance,
     });
 
-    return NextResponse.json({ ok: true });
+    return { ok: true };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     await sendTelegramMessage(`❌ Error en resumen diario: ${msg}`, "critical");
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return { error: msg };
   }
+}
+
+export async function GET() {
+  const res = await runDailySummary();
+  if (res.error) return NextResponse.json(res, { status: 500 });
+  return NextResponse.json(res);
 }

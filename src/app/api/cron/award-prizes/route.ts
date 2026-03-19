@@ -76,13 +76,14 @@ function getPrizeConfigs(now: Date): PrizeConfig[] {
   return configs;
 }
 
-export async function GET() {
+export async function awardPrizes() {
   const supabase = await createClient();
   const now = new Date();
   const configs = getPrizeConfigs(now);
   const results: string[] = [];
 
   for (const cfg of configs) {
+    // ... rest of logic
     // Check if prizes already awarded for this period
     const { count: existing } = await supabase
       .from("prize_awards")
@@ -150,5 +151,10 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({ ok: true, results });
+  return { ok: true, results };
+}
+
+export async function GET() {
+  const res = await awardPrizes();
+  return NextResponse.json(res);
 }
