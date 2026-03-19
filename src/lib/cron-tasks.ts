@@ -260,7 +260,7 @@ export async function notifyPendingWithdrawals() {
   if (error) return { ok: false, error: error.message };
 
   if (count && count > 0) {
-    const text = `⚠️ *Hay ${count} retiros pendientes* de procesar.
+    const text = `⚠️ <b>Hay ${count} retiros pendientes</b> de procesar.
 Por favor, entra al panel admin para enviarlos.`;
     await sendTelegramMessage(text, "warning");
     return { ok: true, notified: count };

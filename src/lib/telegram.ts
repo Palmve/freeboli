@@ -10,10 +10,13 @@ const LEVEL_EMOJI: Record<AlertLevel, string> = {
 };
 
 export async function sendTelegramMessage(text: string, level: AlertLevel = "info"): Promise<boolean> {
-  if (!BOT_TOKEN || !CHAT_ID) return false;
+  if (!BOT_TOKEN || !CHAT_ID) {
+    console.error("TELEGRAM: Falta BOT_TOKEN o CHAT_ID");
+    return false;
+  }
 
   const prefix = LEVEL_EMOJI[level];
-  const fullText = `${prefix} *FreeBoli*\n\n${text}`;
+  const fullText = `<b>${prefix} FreeBoli</b>\n\n${text}`;
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -22,80 +25,85 @@ export async function sendTelegramMessage(text: string, level: AlertLevel = "inf
       body: JSON.stringify({
         chat_id: CHAT_ID,
         text: fullText,
-        parse_mode: "Markdown",
+        parse_mode: "HTML",
         disable_web_page_preview: true,
       }),
     });
+    if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.error("TELEGRAM ERROR:", res.status, errData);
+    }
     return res.ok;
-  } catch {
+  } catch (e) {
+    console.error("TELEGRAM FETCH EXCEPTION:", e);
     return false;
   }
 }
 
 export async function alertNewUser(email: string, hasReferrer: boolean) {
   const ref = hasReferrer ? " (con referido)" : "";
-  await sendTelegramMessage(`👤 *Nuevo usuario registrado*\n${maskEmail(email)}${ref}`, "info");
+  await sendTelegramMessage(`👤 <b>Nuevo usuario registrado</b>\n${maskEmail(email)}${ref}`, "info");
 }
 
 export async function alertWithdrawalRequest(email: string, points: number, wallet: string) {
   await sendTelegramMessage(
-    `💸 *Solicitud de retiro*\nUsuario: ${maskEmail(email)}\nPuntos: ${points.toLocaleString()}\nWallet: \`${wallet.slice(0, 8)}...${wallet.slice(-4)}\``,
+    `💸 <b>Solicitud de retiro</b>\nUsuario: ${maskEmail(email)}\nPuntos: ${points.toLocaleString()}\nWallet: <code>${wallet.slice(0, 8)}...${wallet.slice(-4)}</code>`,
     "warning"
   );
 }
 
 export async function alertWithdrawalCompleted(email: string, points: number, tx: string) {
   await sendTelegramMessage(
-    `✅ *Retiro procesado con éxito*\nUsuario: ${maskEmail(email)}\nPuntos: ${points.toLocaleString()}\nTx: \`${tx.slice(0, 12)}...\``,
+    `✅ <b>Retiro procesado con éxito</b>\nUsuario: ${maskEmail(email)}\nPuntos: ${points.toLocaleString()}\nTx: <code>${tx.slice(0, 12)}...</code>`,
     "info"
   );
 }
 
 export async function alertDepositDetected(email: string, points: number, txSignature: string) {
   await sendTelegramMessage(
-    `💰 *Depósito detectado*\nUsuario: ${maskEmail(email)}\nPuntos: ${points.toLocaleString()}\nTx: \`${txSignature.slice(0, 12)}...\``,
+    `💰 <b>Depósito detectado</b>\nUsuario: ${maskEmail(email)}\nPuntos: ${points.toLocaleString()}\nTx: <code>${txSignature.slice(0, 12)}...</code>`,
     "info"
   );
 }
 
 export async function alertLargeWin(email: string, bet: number, payout: number) {
   await sendTelegramMessage(
-    `🎰 *Gran ganancia HI-LO*\nUsuario: ${maskEmail(email)}\nApuesta: ${bet.toLocaleString()} pts\nGanancia: ${payout.toLocaleString()} pts`,
+    `🎰 <b>Gran ganancia HI-LO</b>\nUsuario: ${maskEmail(email)}\nApuesta: ${bet.toLocaleString()} pts\nGanancia: ${payout.toLocaleString()} pts`,
     "warning"
   );
 }
 
 export async function alertDailyLimitReached(email: string, totalWon: number) {
   await sendTelegramMessage(
-    `🛑 *Límite diario alcanzado*\nUsuario: ${maskEmail(email)}\nGanado hoy: ${totalWon.toLocaleString()} pts`,
+    `🛑 <b>Límite diario alcanzado</b>\nUsuario: ${maskEmail(email)}\nGanado hoy: ${totalWon.toLocaleString()} pts`,
     "warning"
   );
 }
 
 export async function alertSuspiciousActivity(email: string, reason: string) {
   await sendTelegramMessage(
-    `🔍 *Actividad sospechosa*\nUsuario: ${maskEmail(email)}\nRazón: ${reason}`,
+    `🔍 <b>Actividad sospechosa</b>\nUsuario: ${maskEmail(email)}\nRazón: ${reason}`,
     "critical"
   );
 }
 
 export async function alertUserBlocked(email: string, status: string) {
   await sendTelegramMessage(
-    `🚫 *Usuario ${status}*\n${maskEmail(email)}`,
+    `🚫 <b>Usuario ${status}</b>\n${maskEmail(email)}`,
     "critical"
   );
 }
 
 export async function alertMultipleAccountsIP(ip: string, count: number) {
   await sendTelegramMessage(
-    `🕵️ *Múltiples cuentas desde misma IP*\nIP hash: \`${ip.slice(0, 12)}\`\nCuentas: ${count}`,
+    `🕵️ <b>Múltiples cuentas desde misma IP</b>\nIP hash: <code>${ip.slice(0, 12)}</code>\nCuentas: ${count}`,
     "critical"
   );
 }
 
 export async function alertSystemError(endpoint: string, error: string) {
   await sendTelegramMessage(
-    `❌ *Error del sistema*\nEndpoint: ${endpoint}\nError: ${error}`,
+    `❌ <b>Error del sistema</b>\nEndpoint: ${endpoint}\nError: ${error}`,
     "critical"
   );
 }
@@ -109,7 +117,7 @@ export async function sendDailySummary(stats: {
   depositCount: number;
   platformBalance: number;
 }) {
-  const text = `📊 *Resumen diario*
+  const text = `📊 <b>Resumen diario</b>
 
 👤 Usuarios nuevos: ${stats.newUsers}
 🟢 Usuarios activos: ${stats.activeUsers}
@@ -119,7 +127,7 @@ export async function sendDailySummary(stats: {
 💰 Depósitos: ${stats.depositCount}
 📈 Balance plataforma: ${stats.platformBalance.toLocaleString()} pts`;
 
-  return sendTelegramMessage(text, "info");
+  return await sendTelegramMessage(text, "info");
 }
 
 function maskEmail(email: string): string {
