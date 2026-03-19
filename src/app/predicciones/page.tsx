@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { Suspense, useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { SupportModal } from "@/components/SupportModal";
@@ -43,7 +43,7 @@ type Stats = {
   total: number;
 };
 
-export default function PredictionsPage() {
+function PredictionsContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const asset = searchParams.get("asset")?.toUpperCase() || "BTC";
@@ -393,5 +393,13 @@ export default function PredictionsPage() {
         bet={selectedBet}
       />
     </div>
+  );
+}
+
+export default function PredictionsPage() {
+  return (
+    <Suspense fallback={<div className="py-12 text-slate-400">Cargando…</div>}>
+      <PredictionsContent />
+    </Suspense>
   );
 }
