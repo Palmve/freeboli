@@ -6,10 +6,12 @@ import Link from "next/link";
 import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
 import { SupportModal } from "@/components/SupportModal";
 import { APP_VERSION } from "@/lib/version";
+import { useRouter } from "next/navigation";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
 export default function DepositarPage() {
+  const router = useRouter();
   const { data: session, status } = useSession();
   const [localOk, setLocalOk] = useState(false);
   useEffect(() => {
@@ -57,6 +59,10 @@ export default function DepositarPage() {
       const data = await res.json();
       if (data.processed > 0) {
         setVerifyResult({ success: true, msg: `¡Éxito! Se detectó tu depósito y se acreditaron los puntos.` });
+        // Refrescar el saldo
+        setTimeout(() => {
+            router.refresh();
+        }, 1000);
       } else {
         setVerifyResult({ success: false, msg: "Aún no se detecta tu transferencia en la red. Espera unos minutos y vuelve a intentarlo." });
       }
@@ -132,28 +138,30 @@ export default function DepositarPage() {
         )}
 
         <div className="pt-4 border-t border-slate-800">
-           <button
-             onClick={verifyDeposit}
-             disabled={verifying || !info}
-             className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition ${
-               verifying ? "bg-slate-800 text-slate-500 cursor-wait" : "bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-900/20"
-             }`}
-           >
-             {verifying ? (
-               <>
-                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                 </svg>
-                 Verificando...
-               </>
-             ) : "Ya he depositado (Verificar ahora)"}
-           </button>
+           {!verifyResult?.success && (
+             <button
+               onClick={verifyDeposit}
+               disabled={verifying || !info}
+               className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition ${
+                 verifying ? "bg-slate-800 text-slate-500 cursor-wait" : "bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-900/20"
+               }`}
+             >
+               {verifying ? (
+                 <>
+                   <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                   </svg>
+                   Verificando...
+                 </>
+               ) : "Ya he depositado (Verificar ahora)"}
+             </button>
+           )}
            
            {verifyResult && (
-             <p className={`mt-3 text-sm text-center font-medium ${verifyResult.success ? "text-emerald-400" : "text-amber-400"}`}>
+             <div className={`mt-3 p-4 rounded-lg bg-opacity-10 text-center font-medium ${verifyResult.success ? "text-emerald-400 bg-emerald-400" : "text-amber-400 bg-amber-400"}`}>
                {verifyResult.msg}
-             </p>
+             </div>
            )}
         </div>
       </div>

@@ -9,7 +9,7 @@ import {
 } from "@/lib/solana";
 import { getDepositKeypair } from "@/lib/deposit-wallet";
 import { BOLIS_MINT } from "@/lib/config";
-import { alertDepositDetected } from "@/lib/telegram";
+import { alertDepositDetected, alertWithdrawalRequest } from "@/lib/telegram";
 import { getSetting } from "@/lib/site-settings";
 import { sendDailySummary, sendTelegramMessage } from "@/lib/telegram";
 
@@ -245,4 +245,26 @@ export async function runDailySummary() {
     await sendTelegramMessage(`❌ Error en resumen diario: ${msg}`, "critical");
     return { error: msg };
   }
+}
+
+// --- WITHDRAWALS ---
+
+export async function notifyPendingWithdrawals() {
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  
+  const { data, count, error } = await supabase
+    .from("withdrawals")
+    .select("id, points, wallet_destination, profiles(email)", { count: "exact" })
+    .eq("status", "pending");
+
+  if (error) return { ok: false, error: error.message };
+
+  if (count && count > 0) {
+    const text = `⚠️ *Hay ${count} retiros pendientes* de procesar.
+Por favor, entra al panel admin para enviarlos.`;
+    await sendTelegramMessage(text, "warning");
+    return { ok: true, notified: count };
+  }
+
+  return { ok: true, notified: 0 };
 }

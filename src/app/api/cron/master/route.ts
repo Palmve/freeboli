@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { awardPrizes, runDailySummary, processDeposits } from "@/lib/cron-tasks";
+import { awardPrizes, runDailySummary, processDeposits, notifyPendingWithdrawals } from "@/lib/cron-tasks";
 import { resolvePendingRounds, ensureActiveRound } from "@/lib/predictions";
 import { sendTelegramMessage } from "@/lib/telegram";
 
@@ -26,9 +26,13 @@ export async function GET(req: Request) {
   };
 
   try {
-    // 1. Depósitos
+    // 1. Depósitos (Barrido)
     const depRes = await processDeposits();
     report.tasks.push({ name: "process_deposits", result: depRes });
+
+    // 1.b Retiros Pendientes (Notificación)
+    const witRes = await notifyPendingWithdrawals();
+    report.tasks.push({ name: "pending_withdrawals", result: witRes });
 
     // 2. Resolver Rondas (Backup horario)
     if (minute < 15) {
