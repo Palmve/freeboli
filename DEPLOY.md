@@ -25,7 +25,9 @@ Este archivo describe dónde está la web en producción, la base de datos, el r
 
 2. **Subir cambios a GitHub**
    - Repositorio: **Palmve/freeboli**. Rama principal: **main**.
+   - **Antes de push:** verifica que todo esté commiteado (`git status` debe mostrar "nothing to commit, working tree clean").
    ```bash
+   git status                    # Ver cambios pendientes
    git add .
    git commit -m "Descripción del cambio"
    git push origin main
