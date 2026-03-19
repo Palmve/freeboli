@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import { SupportModal } from "@/components/SupportModal";
 import RollDisplay from "./RollDisplay";
 import { MAX_BET_POINTS, MAX_WIN_POINTS } from "@/lib/config";
 
@@ -99,6 +100,7 @@ export default function HiLoPage() {
 
   // History (last 50)
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [supportOpen, setSupportOpen] = useState(false);
   const historyIdRef = useRef(0);
 
   function fetchBalance() {
@@ -802,6 +804,19 @@ export default function HiLoPage() {
           </table>
         </div>
       </div>
+
+      <button
+        onClick={() => setSupportOpen(true)}
+        className="text-[10px] text-slate-600 hover:text-slate-400 transition underline mt-8 block mx-auto uppercase tracking-tighter"
+      >
+        ¿Problemas con el juego? Reportar error o disputa aquí
+      </button>
+
+      <SupportModal
+        isOpen={supportOpen}
+        onClose={() => setSupportOpen(false)}
+        defaultType="error"
+      />
     </div>
   );
 }

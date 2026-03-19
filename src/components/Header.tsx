@@ -47,7 +47,7 @@ export function Header() {
         .then((d) => {
           if (d.level) setUserLevel(d.level);
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [session?.user, localUser]);
 
@@ -66,8 +66,9 @@ export function Header() {
 
   const navLinks = [
     { href: "/", label: "Inicio" },
-    { href: "/faucet", label: "Faucet" },
+    { href: "/predicciones", label: "Predicción" },
     { href: "/hi-lo", label: "HI-LO" },
+    { href: "/faucet", label: "Faucet" },
     { href: "/clasificacion", label: "Ranking" },
     { href: "/afiliados", label: "Afiliados" },
     { href: "/recompensas", label: "Recompensas" },
@@ -96,40 +97,36 @@ export function Header() {
             <>
               <Link
                 href="/cuenta/depositar"
-                className={`rounded px-3 py-1.5 text-xs font-semibold ${
-                  pathname === "/cuenta/depositar"
+                className={`rounded px-3 py-1.5 text-xs font-semibold ${pathname === "/cuenta/depositar"
                     ? "bg-emerald-600 text-white"
                     : "text-slate-300 hover:text-white"
-                }`}
+                  }`}
               >
                 Depositar
               </Link>
               <Link
                 href="/cuenta/retirar"
-                className={`rounded px-3 py-1.5 text-sm ${
-                  pathname === "/cuenta/retirar"
+                className={`rounded px-3 py-1.5 text-sm ${pathname === "/cuenta/retirar"
                     ? "bg-slate-700 text-white font-semibold"
                     : "text-slate-300 hover:text-white"
-                }`}
+                  }`}
               >
                 Retiro
               </Link>
               <Link
                 href="/cuenta"
-                className={`rounded px-3 py-1.5 text-sm ${
-                  pathname === "/cuenta"
+                className={`rounded px-3 py-1.5 text-sm ${pathname === "/cuenta"
                     ? "bg-slate-700 text-white font-semibold"
                     : "text-slate-300 hover:text-white"
-                }`}
+                  }`}
               >
                 Mi cuenta
               </Link>
               {showAdmin && (
                 <Link
                   href="/admin"
-                  className={`rounded px-3 py-1.5 text-sm ${
-                    pathname?.startsWith("/admin") ? "bg-slate-700 text-amber-400 font-semibold" : "text-slate-400 hover:text-amber-400"
-                  }`}
+                  className={`rounded px-3 py-1.5 text-sm ${pathname?.startsWith("/admin") ? "bg-slate-700 text-amber-400 font-semibold" : "text-slate-400 hover:text-amber-400"
+                    }`}
                 >
                   Admin
                 </Link>
@@ -189,9 +186,8 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`rounded-lg px-3 py-2.5 text-sm ${
-                  pathname === link.href ? "bg-slate-800 text-white font-semibold" : "text-slate-300 hover:bg-slate-800"
-                }`}
+                className={`rounded-lg px-3 py-2.5 text-sm ${pathname === link.href ? "bg-slate-800 text-white font-semibold" : "text-slate-300 hover:bg-slate-800"
+                  }`}
               >
                 {link.label}
               </Link>
@@ -201,40 +197,36 @@ export function Header() {
               <>
                 <Link
                   href="/cuenta/depositar"
-                  className={`rounded-lg px-3 py-2.5 text-sm ${
-                    pathname === "/cuenta/depositar"
+                  className={`rounded-lg px-3 py-2.5 text-sm ${pathname === "/cuenta/depositar"
                       ? "bg-emerald-600/30 text-emerald-400 font-semibold"
                       : "text-slate-300 hover:bg-slate-800"
-                  }`}
+                    }`}
                 >
                   Depositar
                 </Link>
                 <Link
                   href="/cuenta/retirar"
-                  className={`rounded-lg px-3 py-2.5 text-sm ${
-                    pathname === "/cuenta/retirar"
+                  className={`rounded-lg px-3 py-2.5 text-sm ${pathname === "/cuenta/retirar"
                       ? "bg-slate-800 text-white font-semibold"
                       : "text-slate-300 hover:bg-slate-800"
-                  }`}
+                    }`}
                 >
                   Retiro
                 </Link>
                 <Link
                   href="/cuenta"
-                  className={`rounded-lg px-3 py-2.5 text-sm ${
-                    pathname === "/cuenta"
+                  className={`rounded-lg px-3 py-2.5 text-sm ${pathname === "/cuenta"
                       ? "bg-slate-800 text-white font-semibold"
                       : "text-slate-300 hover:bg-slate-800"
-                  }`}
+                    }`}
                 >
                   Mi cuenta
                 </Link>
                 {showAdmin && (
                   <Link
                     href="/admin"
-                    className={`rounded-lg px-3 py-2.5 text-sm ${
-                      pathname?.startsWith("/admin") ? "bg-slate-800 text-amber-400 font-semibold" : "text-amber-400 hover:bg-slate-800"
-                    }`}
+                    className={`rounded-lg px-3 py-2.5 text-sm ${pathname?.startsWith("/admin") ? "bg-slate-800 text-amber-400 font-semibold" : "text-amber-400 hover:bg-slate-800"
+                      }`}
                   >
                     Admin
                   </Link>

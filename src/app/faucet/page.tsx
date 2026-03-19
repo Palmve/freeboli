@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { SupportModal } from "@/components/SupportModal";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
@@ -56,6 +57,7 @@ export default function FaucetPage() {
   const [captcha, setCaptcha] = useState<CaptchaInfo | null>(null);
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [captchaError, setCaptchaError] = useState("");
+  const [supportOpen, setSupportOpen] = useState(false);
 
   const fetchFaucet = useCallback(() => {
     fetch("/api/faucet")
@@ -316,6 +318,19 @@ export default function FaucetPage() {
           Ver cuenta y retirar BOLIS
         </Link>
       </p>
+
+      <button
+        onClick={() => setSupportOpen(true)}
+        className="text-[10px] text-slate-600 hover:text-slate-400 transition underline mt-8 block mx-auto uppercase tracking-tighter"
+      >
+        ¿Problemas con el faucet? Reportar error o disputa aquí
+      </button>
+
+      <SupportModal
+        isOpen={supportOpen}
+        onClose={() => setSupportOpen(false)}
+        defaultType="delay"
+      />
     </div>
   );
 }

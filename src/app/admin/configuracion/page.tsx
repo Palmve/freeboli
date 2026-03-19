@@ -46,6 +46,15 @@ const FIELDS: SettingField[] = [
   { key: "ENABLE_DISPOSABLE_BLOCK", label: "Bloquear correos desechables", type: "number", description: "1 = bloquear dominios tempmail/guerrillamail etc.; 0 = permitir.", group: "Seguridad", defaultValue: "1" },
   { key: "WITHDRAW_RATE_MAX", label: "Retiros: máx. solicitudes por ventana", type: "number", description: "Máximo de solicitudes de retiro por usuario en la ventana.", group: "Seguridad", defaultValue: "5" },
   { key: "WITHDRAW_RATE_WINDOW_HOURS", label: "Retiros: ventana (horas)", type: "number", description: "Ventana en horas para el límite de solicitudes de retiro por usuario.", group: "Seguridad", defaultValue: "1" },
+  // Predicciones
+  { key: "BTC_MAX_BET", label: "BTC: Apuesta máxima", type: "number", description: "Límite de puntos para BTC", group: "Predicciones (BTC)", defaultValue: "10000" },
+  { key: "SOL_MAX_BET", label: "SOL: Apuesta máxima", type: "number", description: "Límite de puntos para SOL", group: "Predicciones (SOL)", defaultValue: "10000" },
+  { key: "BOLIS_MAX_BET", label: "BOLIS: Apuesta máxima", type: "number", description: "Límite de puntos para BOLIS", group: "Predicciones (BOLIS)", defaultValue: "10000" },
+  { key: "PREDICTION_HOUSE_EDGE", label: "Comisión Casa (%)", type: "number", description: "Porcentaje de comisión (0.05 = 5%)", group: "Predicciones (General)", defaultValue: "0.05" },
+  { key: "PREDICTION_CUTOFF_SECONDS", label: "Tiempo de Cierre (s)", type: "number", description: "Segundos antes del fin de hora para cerrar (600 = 10 min)", group: "Predicciones (General)", defaultValue: "600" },
+  // Soporte
+  { key: "TELEGRAM_BOT_TOKEN", label: "Telegram Bot Token", type: "text" as any, description: "Token del bot para notificaciones de soporte", group: "Soporte" },
+  { key: "TELEGRAM_CHAT_ID", label: "Telegram Chat ID", type: "text" as any, description: "ID del chat/usuario donde llegarán los avisos", group: "Soporte" },
 ];
 
 export default function ConfiguracionPage() {
@@ -87,6 +96,8 @@ export default function ConfiguracionPage() {
       if (val === undefined || val === "") continue;
       if (field.type === "number") {
         settings[field.key] = Number(val);
+      } else if ((field.type as string) === "text") {
+        settings[field.key] = val; // Se enviará como string, Supabase lo guardará como JSONB string
       } else {
         try {
           settings[field.key] = JSON.parse(val);
@@ -150,87 +161,204 @@ export default function ConfiguracionPage() {
     setTemplateMsg(json.ok ? "Logros actualizados" : "Error al guardar logros");
   }
 
-  const groups = [...new Set(FIELDS.map((f) => f.group))];
+  const groups = [...new Set(FIELDS.filter(f => f.group !== "Soporte").map((f) => f.group)), "Soporte"];
+  const [activeTab, setActiveTab] = useState(groups[0]);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  if (loading) return <p className="text-slate-400">Cargando configuración...</p>;
+  // Tickets
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === "Tickets") {
+      setLoadingTickets(true);
+      fetch("/api/admin/support-tickets")
+        .then(r => r.json())
+        .then(d => setTickets(d.tickets || []))
+        .finally(() => setLoadingTickets(false));
+    }
+  }, [activeTab]);
+
+  if (loading) return <div className="py-20 text-center text-slate-400">Cargando configuración...</div>;
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-bold text-white">Configuración del sistema</h2>
-      <p className="text-sm text-slate-400">
-        Modifica los parámetros del sistema. Los cambios se aplican inmediatamente.
-      </p>
-
-      {message && (
-        <div className={`rounded p-2 text-sm ${message.includes("Error") ? "bg-red-500/20 text-red-300" : "bg-green-500/20 text-green-300"}`}>
-          {message}
+    <div className="min-h-screen bg-slate-950 text-slate-200 lg:flex">
+      {/* Sidebar / Mobile Menu */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-slate-900 border-r border-slate-800 transition-transform lg:relative lg:translate-x-0 ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="p-6">
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Ajustes
+          </h2>
+          <nav className="space-y-1">
+            {groups.map((group) => (
+              <button
+                key={group}
+                onClick={() => { setActiveTab(group); setIsMenuOpen(false); }}
+                className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === group ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
+              >
+                {group}
+              </button>
+            ))}
+            <button
+              onClick={() => { setActiveTab("Logros"); setIsMenuOpen(false); }}
+              className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === "Logros" ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
+            >
+              Valor de Logros
+            </button>
+            <button
+              onClick={() => { setActiveTab("Tickets"); setIsMenuOpen(false); }}
+              className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === "Tickets" ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
+            >
+              Tickets Soporte
+            </button>
+          </nav>
         </div>
-      )}
+      </aside>
 
-      {groups.map((group) => (
-        <div key={group} className="card space-y-3">
-          <h3 className="text-lg font-semibold text-amber-400">{group}</h3>
-          {FIELDS.filter((f) => f.group === group).map((field) => (
-            <div key={field.key}>
-              <label className="block text-sm font-medium text-slate-300">{field.label}</label>
-              <p className="text-xs text-slate-500 mb-1">{field.description}</p>
-              {field.defaultValue !== undefined && (
-                <p className="text-xs text-amber-500/80 mb-1">Valor por defecto: {field.defaultValue}</p>
-              )}
-              {field.type === "json" ? (
-                <textarea
-                  value={values[field.key] ?? ""}
-                  onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
-                  rows={4}
-                  className="w-full rounded border border-slate-600 bg-slate-800 px-3 py-2 font-mono text-xs text-white"
-                />
-              ) : (
-                <input
-                  type="number"
-                  value={values[field.key] ?? ""}
-                  onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
-                  className="w-full rounded border border-slate-600 bg-slate-800 px-3 py-2 text-white"
-                />
-              )}
+      {/* Main Content */}
+      <main className="flex-1 p-6 lg:p-10 max-w-4xl">
+        <header className="mb-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-black text-white">{activeTab}</h1>
+              <p className="text-slate-400 mt-1">Configuración detallada de la sección.</p>
             </div>
-          ))}
-        </div>
-      ))}
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="lg:hidden p-2 rounded-lg bg-slate-800 text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
+        </header>
 
-      <button onClick={handleSave} disabled={saving} className="btn-primary w-full disabled:opacity-50">
-        {saving ? "Guardando..." : "Guardar configuración"}
-      </button>
-
-      {/* Reward templates editor */}
-      <div className="card space-y-3">
-        <h3 className="text-lg font-semibold text-amber-400">Valores de logros</h3>
-        <p className="text-xs text-slate-500">Modifica los puntos que otorga cada logro.</p>
-
-        {templateMsg && (
-          <div className={`rounded p-2 text-sm ${templateMsg.includes("Error") ? "bg-red-500/20 text-red-300" : "bg-green-500/20 text-green-300"}`}>
-            {templateMsg}
+        {message && (
+          <div className={`mb-6 rounded-xl p-4 flex items-center gap-3 border ${message.includes("Error") ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"}`}>
+            <span className="text-xl">{message.includes("Error") ? "❌" : "✅"}</span>
+            <p className="font-medium">{message}</p>
           </div>
         )}
 
-        {templates.map((t) => (
-          <div key={t.id} className="flex items-center justify-between gap-3">
-            <div className="flex-1">
-              <p className="text-sm text-slate-300">{t.name}</p>
-              <p className="text-xs text-slate-500">{t.code}</p>
-            </div>
-            <input
-              type="number"
-              value={templateEdits[t.id] ?? ""}
-              onChange={(e) => setTemplateEdits((v) => ({ ...v, [t.id]: e.target.value }))}
-              className="w-28 rounded border border-slate-600 bg-slate-800 px-2 py-1 text-right text-sm text-white"
-            />
-          </div>
-        ))}
+        <div className="space-y-6">
+          {activeTab === "Logros" ? (
+             <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                    <div className="p-6 space-y-4">
+                        {templates.map((t) => (
+                          <div key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-slate-800/30 border border-slate-700/50">
+                            <div>
+                              <p className="font-bold text-white">{t.name}</p>
+                              <code className="text-[10px] text-amber-500/70 font-mono">{t.code}</code>
+                            </div>
+                            <input
+                              type="number"
+                              value={templateEdits[t.id] ?? ""}
+                              onChange={(e) => setTemplateEdits((v) => ({ ...v, [t.id]: e.target.value }))}
+                              className="w-full sm:w-32 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-right font-mono text-white focus:border-amber-500 focus:outline-none"
+                            />
+                          </div>
+                        ))}
+                    </div>
+                </div>
+                <button onClick={saveTemplates} className="w-full py-4 bg-slate-100 text-slate-900 font-black rounded-2xl hover:bg-white transition shadow-xl">
+                    Sincronizar Logros
+                </button>
+             </section>
+          ) : activeTab === "Tickets" ? (
+            <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                {loadingTickets ? (
+                  <div className="p-10 text-center text-slate-500">Cargando tickets...</div>
+                ) : tickets.length === 0 ? (
+                  <div className="p-10 text-center text-slate-500">No hay tickets pendientes.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-slate-800/50 text-slate-400 text-left">
+                          <th className="px-6 py-4 font-bold uppercase tracking-tighter">Usuario</th>
+                          <th className="px-6 py-4 font-bold uppercase tracking-tighter">Asunto</th>
+                          <th className="px-6 py-4 font-bold uppercase tracking-tighter">Fecha</th>
+                          <th className="px-6 py-4 font-bold uppercase tracking-tighter text-right">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800">
+                        {tickets.map((t: any) => (
+                          <tr key={t.id} className="hover:bg-slate-800/30 transition">
+                            <td className="px-6 py-4">
+                              <p className="text-white font-bold">{t.user_email || "Anónimo"}</p>
+                              <p className="text-[10px] text-slate-500 font-mono">{t.id}</p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter ${
+                                  t.type === 'dispute' ? 'bg-red-500/20 text-red-400' :
+                                  t.type === 'delay' ? 'bg-amber-500/20 text-amber-400' :
+                                  'bg-blue-500/20 text-blue-400'
+                                }`}>
+                                  {t.type}
+                                </span>
+                                <span className="text-slate-200 font-semibold">{t.subject}</span>
+                              </div>
+                              <p className="text-xs text-slate-400 line-clamp-2">{t.message}</p>
+                            </td>
+                            <td className="px-6 py-4 text-slate-500 font-mono text-xs whitespace-nowrap">
+                              {new Date(t.created_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter ${t.status === 'open' ? 'bg-amber-500 text-slate-900' : 'bg-slate-800 text-slate-500'}`}>
+                                {t.status === 'open' ? 'Pendiente' : 'Cerrado'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </section>
+          ) : (
+            <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
+                  {FIELDS.filter((f) => f.group === activeTab).map((field) => (
+                    <div key={field.key} className="space-y-2">
+                      <div className="flex justify-between items-baseline">
+                        <label className="text-sm font-black text-slate-300 uppercase tracking-tighter">{field.label}</label>
+                        {field.defaultValue !== undefined && (
+                          <span className="text-[10px] text-amber-500/60 font-bold uppercase">Por defecto: {field.defaultValue}</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 leading-relaxed">{field.description}</p>
+                      {field.type === "json" ? (
+                        <textarea
+                          value={values[field.key] ?? ""}
+                          onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
+                          rows={6}
+                          className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 font-mono text-sm text-amber-200 focus:border-amber-500 focus:outline-none"
+                        />
+                      ) : (
+                        <input
+                          type={field.key.includes("EDGE") || field.key.includes("PERCENT") ? "text" : "number"}
+                          value={values[field.key] ?? ""}
+                          onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
+                          className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white font-mono focus:border-amber-500 focus:outline-none"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button onClick={handleSave} disabled={saving} className="w-full py-4 bg-amber-500 text-slate-950 font-black rounded-2xl hover:bg-amber-400 transition shadow-xl shadow-amber-500/20 disabled:opacity-50">
+                    {saving ? "Guardando cambios..." : "Guardar Ajustes"}
+                </button>
+            </section>
+          )}
+        </div>
+      </main>
 
-        <button onClick={saveTemplates} className="btn-secondary w-full">
-          Guardar valores de logros
-        </button>
-      </div>
+      {/* Overlay mobile */}
+      {isMenuOpen && <div onClick={() => setIsMenuOpen(false)} className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"></div>}
     </div>
   );
 }
