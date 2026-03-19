@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface SupportModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultType?: string;
+  userEmail?: string;
 }
 
-export function SupportModal({ isOpen, onClose, defaultType = "error" }: SupportModalProps) {
+export function SupportModal({ isOpen, onClose, defaultType = "error", userEmail = "" }: SupportModalProps) {
   const [type, setType] = useState(defaultType);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
@@ -16,6 +17,13 @@ export function SupportModal({ isOpen, onClose, defaultType = "error" }: Support
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+
+  // Sincronizar email de sesión cuando se abre el modal
+  useEffect(() => {
+    if (isOpen && userEmail) {
+      setEmail(userEmail);
+    }
+  }, [isOpen, userEmail]);
 
   if (!isOpen) return null;
 

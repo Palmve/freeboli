@@ -348,6 +348,26 @@ export default function ConfiguracionPage() {
                       )}
                     </div>
                   ))}
+                  {activeTab === "Predicciones (General)" && (
+                    <div className="pt-4 border-t border-slate-800">
+                      <p className="text-xs text-slate-500 mb-4 font-medium italic">
+                        Usa este botón si detectas que las apuestas han terminado pero no se han liquidado automáticamente (ganadores/perdedores).
+                      </p>
+                      <button
+                        onClick={async () => {
+                          setSaving(true);
+                          const res = await fetch("/api/admin/predictions/resolve", { method: "POST" });
+                          const d = await res.json();
+                          setSaving(false);
+                          setMessage(d.success ? `¡Éxito! Se liquidaron ${d.resolved} rondas.` : d.error || "Error al liquidar");
+                        }}
+                        disabled={saving}
+                        className="w-full py-3 bg-slate-800 text-amber-500 font-bold rounded-xl border border-amber-500/30 hover:bg-slate-700 transition"
+                      >
+                        {saving ? "Procesando..." : "↻ Liquidar Rondas Pendientes Ahora"}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <button onClick={handleSave} disabled={saving} className="w-full py-4 bg-amber-500 text-slate-950 font-black rounded-2xl hover:bg-amber-400 transition shadow-xl shadow-amber-500/20 disabled:opacity-50">
                     {saving ? "Guardando cambios..." : "Guardar Ajustes"}

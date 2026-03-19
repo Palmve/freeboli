@@ -360,7 +360,7 @@ export default function PredictionsPage() {
 
       <button
         onClick={() => setSupportOpen(true)}
-        className="text-[10px] text-slate-600 hover:text-slate-400 transition underline mt-8 block mx-auto uppercase tracking-tighter"
+        className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal"
       >
         ¿Problemas con la predicción? Reportar error o disputa aquí
       </button>
@@ -369,6 +369,7 @@ export default function PredictionsPage() {
         isOpen={supportOpen}
         onClose={() => setSupportOpen(false)}
         defaultType="dispute"
+        userEmail={session?.user?.email ?? ""}
       />
     </div>
   );

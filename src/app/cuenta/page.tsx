@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { POINTS_PER_BOLIS } from "@/lib/config";
+import { SupportModal } from "@/components/SupportModal";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
@@ -16,6 +17,7 @@ export default function CuentaPage() {
   } | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [movements, setMovements] = useState<{ id: string; type: string; points: number; reference: string | null; created_at: string }[]>([]);
+  const [supportOpen, setSupportOpen] = useState(false);
   const [movementsLoading, setMovementsLoading] = useState(true);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyMsg, setVerifyMsg] = useState("");
@@ -223,6 +225,20 @@ export default function CuentaPage() {
           </div>
         )}
       </div>
+
+      <button
+        onClick={() => setSupportOpen(true)}
+        className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal"
+      >
+        ¿Problemas con depósitos o retiros? Reportar error o disputa aquí
+      </button>
+
+      <SupportModal
+        isOpen={supportOpen}
+        onClose={() => setSupportOpen(false)}
+        defaultType="delay"
+        userEmail={session?.user?.email ?? ""}
+      />
     </div>
   );
 }

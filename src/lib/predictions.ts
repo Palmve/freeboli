@@ -87,11 +87,12 @@ export async function resolvePendingRounds() {
   const supabase = await createClient();
   const now = new Date();
 
-  // Buscar rondas 'open' o 'closed' cuyo end_time ya pasó
+  // Buscar rondas que no estén resueltas ni canceladas cuyo end_time ya pasó
   const { data: pending } = await supabase
     .from("prediction_rounds")
     .select("*")
-    .eq("status", "open") // O closed
+    .neq("status", "resolved")
+    .neq("status", "cancelled")
     .lt("end_time", now.toISOString());
 
   if (!pending || pending.length === 0) return 0;
@@ -103,14 +104,19 @@ export async function resolvePendingRounds() {
     const isDraw = finalPrice === round.opening_price;
     const result = finalPrice > round.opening_price ? "up" : "down";
 
-    // 1. Actualizar ronda
-    await supabase
+    // 1. Actualizar ronda (marcar como liquidando para evitar doble procesamiento si falla a mitad)
+    const { error: updateError } = await supabase
       .from("prediction_rounds")
       .update({
         closing_price: finalPrice,
         status: "resolved",
       })
       .eq("id", round.id);
+    
+    if (updateError) {
+      console.error(`Error resolving round ${round.id}:`, updateError);
+      continue;
+    }
 
     if (isDraw) {
       // Caso Empate: Devolver a todos

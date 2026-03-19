@@ -8,19 +8,24 @@ export const dynamic = "force-dynamic";
  * Debe llamarse cada hora al minuto 0.
  */
 export async function GET(req: Request) {
-  // Opcional: Validar SECRET para cron
+  // Validar SECRET para cron (query param o header Authorization)
   const { searchParams } = new URL(req.url);
   const secret = searchParams.get("secret");
-  if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+  const authHeader = req.headers.get("authorization");
+  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
+  
+  const expectedSecret = process.env.CRON_SECRET;
+  if (expectedSecret && secret !== expectedSecret && bearerToken !== expectedSecret) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
   try {
     const resolvedCount = await resolvePendingRounds();
     
-    // Asegurar que existan las rondas de la nueva hora
+    // Asegurar que existan las rondas de la nueva hora para todos los activos
     await ensureActiveRound("BTC");
     await ensureActiveRound("SOL");
+    await ensureActiveRound("BOLIS");
 
     return NextResponse.json({ 
       success: true, 
