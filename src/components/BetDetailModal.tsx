@@ -50,19 +50,19 @@ export function BetDetailModal({ isOpen, onClose, bet }: BetDetailModalProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Tu Predicción</p>
+            <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4">
+              <div className="p-3 sm:p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                <p className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Tu Predicción</p>
                 <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded text-xs font-black uppercase ${bet.prediction === "up" ? "bg-emerald-500 text-slate-900" : "bg-red-500 text-white"}`}>
+                  <span className={`px-2 py-1 rounded text-[10px] sm:text-xs font-black uppercase ${bet.prediction === "up" ? "bg-emerald-500 text-slate-900" : "bg-red-500 text-white"}`}>
                     {bet.prediction === "up" ? "Sube ▲" : "Baja ▼"}
                   </span>
-                  <span className="text-slate-400 font-bold">{bet.odds_at_bet}x</span>
+                  <span className="text-slate-400 font-bold text-xs sm:text-sm">{bet.odds_at_bet}x</span>
                 </div>
               </div>
-              <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Monto Apostado</p>
-                <p className="text-lg font-mono font-black text-white">{bet.amount.toLocaleString()} <span className="text-xs text-slate-500">PTS</span></p>
+              <div className="p-3 sm:p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                <p className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Monto Apostado</p>
+                <p className="text-base sm:text-lg font-mono font-black text-white">{bet.amount.toLocaleString()} <span className="text-xs text-slate-500">PTS</span></p>
               </div>
             </div>
 

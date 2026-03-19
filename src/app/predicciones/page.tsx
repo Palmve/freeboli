@@ -158,15 +158,15 @@ function PredictionsContent() {
       {/* Header & Tabs */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Predicción de Precio</h1>
-          <p className="text-slate-400">Pronostica el movimiento de {asset} cada hora.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Predicciones</h1>
+          <p className="text-xs sm:text-sm text-slate-400">Pronostica {asset} cada hora.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
           {["BTC", "SOL", "BOLIS"].map((a) => (
             <Link 
               key={a}
               href={`/predicciones?asset=${a}`} 
-              className={`rounded-lg px-6 py-2.5 text-sm font-bold transition ${asset === a ? "bg-amber-500 text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}
+              className={`rounded-lg px-2 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-bold text-center transition ${asset === a ? "bg-amber-500 text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}
             >
               {a}
             </Link>
@@ -180,22 +180,22 @@ function PredictionsContent() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Panel Izquierdo: Precio y Tiempo */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-2xl border border-slate-700 bg-slate-900 p-8 shadow-xl">
-            <div className="flex justify-between items-start mb-6">
-                <div>
-                   <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Precio Actual {asset}</p>
-                   <div className="mt-1 flex items-baseline gap-3">
-                     <span className="text-5xl font-mono font-bold text-white tracking-tighter">
+          <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 sm:p-8 shadow-xl">
+            <div className="flex flex-col gap-6 sm:flex-row sm:justify-between sm:items-start mb-6">
+                <div className="text-center sm:text-left">
+                   <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest">Precio Actual {asset}</p>
+                   <div className="mt-1 flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
+                     <span className="text-3xl sm:text-5xl font-mono font-bold text-white tracking-tighter">
                        ${data?.current_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 4 : 2 })}
                      </span>
-                     <span className={`text-xl font-bold flex items-center ${isUp ? "text-emerald-400" : "text-red-400"}`}>
+                     <span className={`text-lg sm:text-xl font-bold flex items-center ${isUp ? "text-emerald-400" : "text-red-400"}`}>
                        {isUp ? "▲" : "▼"} {Math.abs(diff).toFixed(3)}%
                      </span>
                    </div>
                 </div>
-                <div className="text-right">
-                   <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Cierre de Ronda</p>
-                   <p className="text-3xl font-mono font-bold text-amber-400 mt-1">
+                <div className="text-center sm:text-right border-t border-slate-800 pt-4 sm:border-0 sm:pt-0">
+                   <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest">Cierre de Ronda</p>
+                   <p className="text-2xl sm:text-3xl font-mono font-bold text-amber-400 mt-1">
                      {minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
                    </p>
                 </div>
@@ -213,9 +213,9 @@ function PredictionsContent() {
                       style={{ width: `${(3600 - timeLeft) / 3600 * 100}%` }}
                     />
                 </div>
-                <div className="flex justify-between text-sm text-slate-400 font-mono">
+                <div className="flex justify-between text-[10px] sm:text-sm text-slate-400 font-mono">
                     <span>${data?.opening_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 4 : 2 })}</span>
-                    <span>{data ? new Date(data.end_time).toLocaleTimeString() : "--:--"}</span>
+                    <span>{data ? new Date(data.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--"}</span>
                 </div>
             </div>
           </div>
@@ -234,12 +234,12 @@ function PredictionsContent() {
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="bg-slate-800/30 text-slate-500 text-left">
-                            <th className="px-6 py-3 font-bold uppercase tracking-wider">ID</th>
-                            <th className="px-6 py-3 font-bold uppercase tracking-wider">Activo</th>
-                            <th className="px-6 py-3 font-bold uppercase tracking-wider">Predicción</th>
-                            <th className="px-6 py-3 font-bold uppercase tracking-wider">Monto</th>
-                            <th className="px-6 py-3 font-bold uppercase tracking-wider">Cuota</th>
-                            <th className="px-6 py-3 font-bold uppercase tracking-wider text-right">G/P</th>
+                            <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">ID</th>
+                            <th className="hidden sm:table-cell px-6 py-3 font-bold uppercase tracking-wider text-[10px]">Activo</th>
+                            <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">Apuesta</th>
+                            <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">Monto</th>
+                            <th className="hidden sm:table-cell px-6 py-3 font-bold uppercase tracking-wider text-[10px]">Cuota</th>
+                            <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-right text-[10px]">G/P</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
@@ -260,19 +260,19 @@ function PredictionsContent() {
                                             setDetailOpen(true);
                                         }}
                                     >
-                                        <td className="px-6 py-4 font-mono text-[10px] font-bold text-amber-500/70 group-hover:text-amber-500">
+                                        <td className="px-3 sm:px-6 py-4 font-mono text-[10px] font-bold text-amber-500/70 group-hover:text-amber-500">
                                             {bet.short_id || bet.id.substring(0, 8).toUpperCase()}
                                         </td>
-                                        <td className="px-6 py-4 font-bold text-slate-300">{bet.round?.asset || asset}</td>
-                                        <td className="px-6 py-4">
+                                        <td className="hidden sm:table-cell px-6 py-4 font-bold text-slate-300">{bet.round?.asset || asset}</td>
+                                        <td className="px-3 sm:px-6 py-4">
                                             <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${bet.prediction === "up" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
-                                                {bet.prediction === "up" ? "Sube ▲" : "Baja ▼"}
+                                                {bet.prediction === "up" ? "▲" : "▼"}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 font-mono text-slate-300">{bet.amount.toLocaleString()}</td>
-                                        <td className="px-6 py-4 font-mono text-slate-400">{bet.odds_at_bet}x</td>
-                                        <td className={`px-6 py-4 text-right font-mono font-bold ${!isResolved ? "text-slate-500" : win ? "text-emerald-400" : "text-red-400"}`}>
-                                            {!isResolved ? "Pendiente" : (win ? `+${(bet.potential_payout - bet.amount).toLocaleString()}` : `-${bet.amount.toLocaleString()}`)}
+                                        <td className="px-3 sm:px-6 py-4 font-mono text-slate-300 text-[10px] sm:text-sm">{bet.amount.toLocaleString()}</td>
+                                        <td className="hidden sm:table-cell px-6 py-4 font-mono text-slate-400">{bet.odds_at_bet}x</td>
+                                        <td className={`px-3 sm:px-6 py-4 text-right font-mono font-bold text-[10px] sm:text-sm ${!isResolved ? "text-slate-500" : win ? "text-emerald-400" : "text-red-400"}`}>
+                                            {!isResolved ? "..." : (win ? `+` : `-`)}{isResolved ? Math.abs(win ? (bet.potential_payout - bet.amount) : bet.amount).toLocaleString() : ""}
                                         </td>
                                     </tr>
                                 )
