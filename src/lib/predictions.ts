@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCryptoPrice, calculateDynamicOdds } from "./price-oracle";
 import { getSetting } from "./site-settings";
 
@@ -8,7 +8,7 @@ export type PredictionAsset = "BTC" | "SOL" | "BOLIS";
  * Asegura que exista una ronda activa para el asset dado en la hora actual.
  */
 export async function ensureActiveRound(asset: PredictionAsset) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const now = new Date();
   
   // Calcular inicio y fin de la hora actual
@@ -90,7 +90,7 @@ export async function getActiveRoundWithOdds(asset: PredictionAsset) {
  * Procesa la resolución de rondas terminadas.
  */
 export async function resolvePendingRounds() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const now = new Date();
 
   // Buscar rondas que no estén resueltas ni canceladas cuyo end_time ya pasó
