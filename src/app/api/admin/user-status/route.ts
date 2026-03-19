@@ -30,7 +30,7 @@ export async function PUT(request: Request) {
 
   if (status === "suspendido" || status === "bloqueado") {
     const { data: profile } = await supabase.from("profiles").select("email").eq("id", userId).single();
-    alertUserBlocked(profile?.email ?? userId, status);
+    await alertUserBlocked(profile?.email ?? userId, status);
   }
 
   return NextResponse.json({ ok: true, status });

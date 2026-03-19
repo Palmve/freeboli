@@ -159,7 +159,7 @@ export async function POST(req: Request) {
     });
   }
 
-  alertNewUser(email, !!referrerId);
+  await alertNewUser(email, !!referrerId);
 
   return NextResponse.json({ ok: true, userId: inserted.id });
 }

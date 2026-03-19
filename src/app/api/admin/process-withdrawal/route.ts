@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdminUser } from "@/lib/current-user";
 import { sendBolisToWallet } from "@/lib/solana";
 import { POINTS_PER_BOLIS } from "@/lib/config";
+import { alertWithdrawalCompleted } from "@/lib/telegram";
 
 export async function POST(req: Request) {
   const user = await getAdminUser();
@@ -45,6 +46,9 @@ export async function POST(req: Request) {
       processed_at: new Date().toISOString(),
     })
     .eq("id", withdrawalId);
+  
+  const { data: u } = await supabase.from("profiles").select("email").eq("id", w.user_id).single();
+  await alertWithdrawalCompleted(u?.email ?? String(w.user_id), Number(w.points), sig);
 
   return NextResponse.json({ ok: true, txSignature: sig });
 }

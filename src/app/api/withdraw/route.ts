@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     metadata: { wallet_destination: wallet, status: "pending" },
   });
 
-  alertWithdrawalRequest(currentUser.email, points, wallet);
+  await alertWithdrawalRequest(currentUser.email, points, wallet);
 
   return NextResponse.json({
     ok: true,

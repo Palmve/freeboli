@@ -130,12 +130,12 @@ export async function POST(req: Request) {
 
     const winAmount = result.payout - result.bet;
     if (winAmount >= maxWin * 0.5) {
-      alertLargeWin(currentUser.email, result.bet, result.payout);
+      await alertLargeWin(currentUser.email, result.bet, result.payout);
     }
 
     const newTotalWon = totalWonToday + result.payout;
     if (newTotalWon >= maxDailyWin * 0.8) {
-      alertDailyLimitReached(currentUser.email, newTotalWon);
+      await alertDailyLimitReached(currentUser.email, newTotalWon);
     }
   }
 
