@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { SupportModal } from "@/components/SupportModal";
+import { BetDetailModal } from "@/components/BetDetailModal";
 
 type PredictionData = {
   id: string;
@@ -19,6 +20,7 @@ type PredictionData = {
 
 type BetHistory = {
   id: string;
+  short_id?: string;
   round_id: string;
   amount: number;
   prediction: "up" | "down";
@@ -57,6 +59,8 @@ export default function PredictionsPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [supportOpen, setSupportOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedBet, setSelectedBet] = useState<BetHistory | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -212,6 +216,7 @@ export default function PredictionsPage() {
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="bg-slate-800/30 text-slate-500 text-left">
+                            <th className="px-6 py-3 font-bold uppercase tracking-wider">ID</th>
                             <th className="px-6 py-3 font-bold uppercase tracking-wider">Activo</th>
                             <th className="px-6 py-3 font-bold uppercase tracking-wider">Predicción</th>
                             <th className="px-6 py-3 font-bold uppercase tracking-wider">Monto</th>
@@ -229,10 +234,20 @@ export default function PredictionsPage() {
                                 const isResolved = bet.round?.status === "resolved";
                                 const win = isResolved && ((bet.round?.closing_price || 0) >= (bet.round?.opening_price || 0) ? "up" : "down") === bet.prediction;
                                 return (
-                                    <tr key={bet.id} className="hover:bg-slate-800/30 transition">
+                                    <tr 
+                                        key={bet.id} 
+                                        className="hover:bg-slate-800/50 transition cursor-pointer group"
+                                        onClick={() => {
+                                            setSelectedBet(bet);
+                                            setDetailOpen(true);
+                                        }}
+                                    >
+                                        <td className="px-6 py-4 font-mono text-[10px] font-bold text-amber-500/70 group-hover:text-amber-500">
+                                            {bet.short_id || bet.id.substring(0, 8).toUpperCase()}
+                                        </td>
                                         <td className="px-6 py-4 font-bold text-slate-300">{bet.round?.asset || asset}</td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${bet.prediction === "up" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
+                                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${bet.prediction === "up" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
                                                 {bet.prediction === "up" ? "Sube ▲" : "Baja ▼"}
                                             </span>
                                         </td>
@@ -370,6 +385,12 @@ export default function PredictionsPage() {
         onClose={() => setSupportOpen(false)}
         defaultType="dispute"
         userEmail={session?.user?.email ?? ""}
+      />
+
+      <BetDetailModal 
+        isOpen={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        bet={selectedBet}
       />
     </div>
   );
