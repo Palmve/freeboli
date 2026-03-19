@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
-import { getActiveRoundWithOdds, PredictionAsset } from "@/lib/predictions";
+import { getActiveRoundWithOdds, PredictionAsset, resolvePendingRounds } from "@/lib/predictions";
 import { getSetting } from "@/lib/site-settings";
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   if (isUserBlocked(user.status)) return NextResponse.json({ error: "Cuenta bloqueada." }, { status: 403 });
+
+  // Sustituye el cron de resolución: antes de apostar, liquida rondas vencidas.
+  await resolvePendingRounds().catch(() => {});
 
   const body = await req.json().catch(() => ({}));
   const asset = (body.asset?.toUpperCase() as PredictionAsset) || "BTC";

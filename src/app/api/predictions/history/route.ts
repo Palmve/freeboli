@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
+import { resolvePendingRounds } from "@/lib/predictions";
 
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+
+  // Sustituye el cron de resolución: liquidar rondas vencidas al consultar historial.
+  await resolvePendingRounds().catch(() => {});
 
   const supabase = await createClient();
 

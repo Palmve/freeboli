@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getActiveRoundWithOdds, PredictionAsset } from "@/lib/predictions";
+import { getActiveRoundWithOdds, PredictionAsset, resolvePendingRounds } from "@/lib/predictions";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -8,6 +8,9 @@ export async function GET(req: Request) {
   if (asset !== "BTC" && asset !== "SOL" && asset !== "BOLIS") {
     return NextResponse.json({ error: "Asset no soportado." }, { status: 400 });
   }
+
+  // Sustituye el cron de resolución: liquidar rondas vencidas “bajo demanda”
+  await resolvePendingRounds().catch(() => {});
 
   const data = await getActiveRoundWithOdds(asset);
   if (!data) {
