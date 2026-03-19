@@ -11,6 +11,7 @@ import {
 import { getDepositKeypair } from "@/lib/deposit-wallet";
 import { BOLIS_MINT } from "@/lib/config";
 import { getCurrentUser } from "@/lib/current-user";
+import { alertDepositDetected } from "@/lib/telegram";
 
 const RPC = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 const SIGS_PER_ADDRESS = 20;
@@ -36,7 +37,7 @@ async function processDeposits() {
 
   const { data: usersData, error: usersError } = await supabase
     .from("profiles")
-    .select("id, deposit_address")
+    .select("id, deposit_address, email")
     .not("deposit_address", "is", null);
 
   if (usersError) {
@@ -47,7 +48,7 @@ async function processDeposits() {
     }, { status: 500 });
   }
 
-  const users: { id: string; deposit_address: string }[] = usersData ?? [];
+  const users: { id: string; deposit_address: string; email: string | null }[] = usersData ?? [];
 
   if (!users.length) {
     return NextResponse.json({
@@ -72,6 +73,9 @@ async function processDeposits() {
       try {
         const sigsData = await conn.getSignaturesForAddress(ata, { limit: SIGS_PER_ADDRESS }, "finalized");
         sigs = sigsData ?? [];
+        if (sigs.length > 0) {
+            console.log(`[Deposit] Found ${sigs.length} sigs for ${depositAddress}`);
+        }
       } catch (e) {
         const raw = e instanceof Error ? e.message : String(e);
         const is401 = raw.includes("401") || raw.includes("missing api key");
@@ -144,6 +148,14 @@ async function processDeposits() {
             amount_bolis: result.amount,
             points_added: pointsToAdd,
           });
+
+          // Enviar alerta a Telegram
+          try {
+              await alertDepositDetected(user.email || user.id, pointsToAdd, signature);
+          } catch (teleErr) {
+              console.error("[Deposit] Telegram alert failed:", teleErr);
+          }
+
           processed.push(signature);
         } catch (e) {
           errors.push(`${signature}: ${e instanceof Error ? e.message : String(e)}`);
