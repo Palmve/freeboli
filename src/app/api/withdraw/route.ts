@@ -63,28 +63,98 @@ export async function POST(req: Request) {
   });
 
   const autoWithdraw = await getSetting<boolean>("WITHDRAWAL_AUTO_APPROVE", false);
+  const bolisAmount = points / POINTS_PER_BOLIS;
+
+  // Límite de 1000 BOLIS para retiros automáticos según requerimiento
+  const isAutoEligible = autoWithdraw && bolisAmount <= 1000;
   let txHash = null;
 
-  if (autoWithdraw) {
+  let autoError = null;
+
+  if (isAutoEligible) {
       try {
-          const { sendBolisToUser } = await import("@/lib/solana-payments");
-          txHash = await sendBolisToUser(wallet, points);
+          console.log(`[AutoWithdraw] Iniciando procesamiento automático para ${bolisAmount} BOLIS (ID: ${withdrawalId})`);
+          const { sendBolisToUser, getOnChainBalances } = await import("@/lib/solana-payments");
           
-          // Actualizar estado a completado si fue exitoso
-          await supabase.from("withdrawals")
-            .update({ status: "completed", processed_at: new Date().toISOString(), tx_hash: txHash })
-            .eq("id", withdrawalId);
+          // Verificar saldo de la Master Wallet antes de intentar el envío
+          const masterSecretKey = process.env.BOT_MASTER_SECRET_KEY || process.env.SOLANA_WALLET_PRIVATE_KEY_BASE58;
+          if (masterSecretKey) {
+              const { Keypair } = await import("@solana/web3.js");
+              const bs58 = (await import("bs58")).default;
+              const masterKp = Keypair.fromSecretKey(bs58.decode(masterSecretKey));
+              const masterBalances = await getOnChainBalances(masterKp.publicKey.toBase58());
+              
+              console.log(`[AutoWithdraw] Wallet: ${masterKp.publicKey.toBase58()}, SOL: ${masterBalances.sol}, BOLIS: ${masterBalances.bolis}`);
+
+              if (masterBalances.bolis >= bolisAmount) {
+                  if (masterBalances.sol < 0.001) {
+                      throw new Error(`Master Wallet sin SOL para fees (${masterBalances.sol} SOL)`);
+                  }
+
+                  const { sendBolisToWallet } = await import("@/lib/solana");
+                  txHash = await sendBolisToWallet(wallet, bolisAmount);
+                  
+                  if (txHash) {
+                      console.log(`[AutoWithdraw] Éxito. TX: ${txHash}`);
+                      // 1. Actualizar estado a completado en la tabla de retiros
+                      const { error: updError } = await supabase.from("withdrawals")
+                        .update({ 
+                            status: "completed", 
+                            processed_at: new Date().toISOString(), 
+                            tx_signature: txHash 
+                        })
+                        .eq("id", withdrawalId);
+                      
+                      if (updError) console.error("[AutoWithdraw] Error actualizando withdrawals:", updError.message);
+
+                      // 2. Actualizar el metadato del movimiento para reflejar el estado completado
+                      const { error: movError } = await supabase.from("movements")
+                        .update({ 
+                            metadata: { 
+                                wallet_destination: wallet, 
+                                status: "completed", 
+                                tx_signature: txHash,
+                                auto_processed: true
+                            } 
+                        })
+                        .eq("reference", withdrawalId)
+                        .eq("type", "retiro_bolis");
+                      
+                      if (movError) console.error("[AutoWithdraw] Error actualizando movements:", movError.message);
+                  }
+              } else {
+                  const errMsg = `Saldo insuficiente en Master Wallet (${masterBalances.bolis} < ${bolisAmount}). Queda como 'pending'.`;
+                  console.warn(`[AutoWithdraw] ${errMsg}`);
+                  autoError = errMsg;
+              }
+          } else {
+              const errMsg = "BOT_MASTER_SECRET_KEY no configurado.";
+              console.error(`[AutoWithdraw] ${errMsg}`);
+              autoError = errMsg;
+          }
       } catch (err: any) {
-          console.error("[AutoWithdraw] Error:", err.message);
-          // Si falla el auto-envío, queda como pending para revisión manual
+          autoError = err.message;
+          console.error("[AutoWithdraw] Error crítico:", err.message);
       }
+  } else if (autoWithdraw && bolisAmount > 1000) {
+      console.log(`[AutoWithdraw] Retiro superior a 1000 BOLIS (${bolisAmount}). Requiere aprobación manual.`);
   }
 
-  await alertWithdrawalRequest(currentUser.email, points, wallet);
+  console.log(`[Withdraw] Finalizado. ID: ${withdrawalId}, Eligible: ${isAutoEligible}, Tx: ${txHash}, Error: ${autoError}`);
+
+  try {
+      await alertWithdrawalRequest(currentUser.email, points, wallet);
+  } catch (e) {
+      console.error("Error al enviar alerta Telegram:", e);
+  }
 
   return NextResponse.json({
     ok: true,
     withdrawalId: withdrawalId,
     balance: newBalance,
+    autoProcessed: !!txHash,
+    isAutoEligible: isAutoEligible,
+    bolisAmount: bolisAmount,
+    autoError: autoError
   });
 }

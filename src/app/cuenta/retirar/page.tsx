@@ -54,7 +54,13 @@ export default function RetirarPage() {
       setError(data.error || "Error al solicitar retiro.");
       return;
     }
-    setMessage("Retiro solicitado. Se procesará desde Admin.");
+    if (data.autoProcessed) {
+        setMessage("¡Éxito! Tu retiro se ha procesado automáticamente y llegará a tu wallet en breve.");
+    } else if (data.autoError) {
+        setMessage(`Solicitud registrada, pero el auto-procesamiento falló: ${data.autoError}. El administrador lo revisará manualmente.`);
+    } else {
+        setMessage("Retiro solicitado correctamente. Se procesará pronto desde el panel de administración.");
+    }
     setWithdrawPoints("");
     setWithdrawWallet("");
     if (data.balance != null) {

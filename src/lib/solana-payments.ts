@@ -9,8 +9,8 @@ const RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.c
  * Realiza una transferencia de BOLIS (SPL Token) desde la Master Wallet al usuario.
  */
 export async function sendBolisToUser(toPublicKeyStr: string, pointsAmount: number) {
-    const masterSecretKey = process.env.BOT_MASTER_SECRET_KEY;
-    if (!masterSecretKey) throw new Error("BOT_MASTER_SECRET_KEY no configurada.");
+    const masterSecretKey = process.env.BOT_MASTER_SECRET_KEY || process.env.SOLANA_WALLET_PRIVATE_KEY_BASE58;
+    if (!masterSecretKey) throw new Error("Llave maestra (BOT_MASTER_SECRET_KEY o SOLANA_WALLET_PRIVATE_KEY_BASE58) no configurada.");
 
     const connection = new Connection(RPC_URL, "confirmed");
     const masterKp = Keypair.fromSecretKey(bs58.decode(masterSecretKey));

@@ -46,6 +46,31 @@ export default function AdminRetirosPage() {
     }
   }
 
+  async function reject(id: string) {
+    if (!confirm("¿Seguro que quieres rechazar este retiro? Los puntos se devolverán al usuario.")) return;
+    setProcessing(id);
+    const res = await fetch("/api/admin/reject-withdrawal", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ withdrawalId: id }),
+    });
+    setProcessing(null);
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setList((prev) =>
+        prev.map((w) =>
+          w.id === id ? { ...w, status: "rejected" } : w
+        )
+      );
+      if (data.newBalance != null) {
+          window.dispatchEvent(new CustomEvent("freeboli-balance-update", { detail: data.newBalance }));
+      }
+    } else {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "Error al rechazar");
+    }
+  }
+
   if (loading) return <div className="text-slate-400">Cargando…</div>;
 
   return (
@@ -79,13 +104,22 @@ export default function AdminRetirosPage() {
                 <td>{w.status}</td>
                 <td>
                   {w.status === "pending" && (
-                    <button
-                      onClick={() => process(w.id)}
-                      disabled={!!processing}
-                      className="btn-primary text-sm"
-                    >
-                      {processing === w.id ? "Enviando…" : "Procesar"}
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                          onClick={() => process(w.id)}
+                          disabled={!!processing}
+                          className="btn-primary text-sm whitespace-nowrap"
+                        >
+                          {processing === w.id ? "..." : "Procesar"}
+                        </button>
+                        <button
+                          onClick={() => reject(w.id)}
+                          disabled={!!processing}
+                          className="bg-red-500/20 hover:bg-red-500/40 text-red-400 px-3 py-1.5 rounded-lg text-sm border border-red-500/50 transition-colors whitespace-nowrap"
+                        >
+                          Rechazar
+                        </button>
+                    </div>
                   )}
                   {w.status === "completed" && w.tx_signature && (
                     <a

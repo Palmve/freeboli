@@ -85,8 +85,8 @@ export async function getActiveRoundWithOdds(asset: PredictionAsset, type: Predi
   const houseEdge = await getSetting<number>("PREDICTION_HOUSE_EDGE", 0.05);
   const totalTimeSec = round.type === "mini" ? 600 : 3600;
 
-  const oddsUp = calculateDynamicOdds("up", round.opening_price, currentPrice, timeLeftSec, totalTimeSec, houseEdge);
-  const oddsDown = calculateDynamicOdds("down", round.opening_price, currentPrice, timeLeftSec, totalTimeSec, houseEdge);
+  const oddsUp = calculateDynamicOdds("up", round.opening_price, currentPrice, timeLeftSec, totalTimeSec, round.asset as any, houseEdge);
+  const oddsDown = calculateDynamicOdds("down", round.opening_price, currentPrice, timeLeftSec, totalTimeSec, round.asset as any, houseEdge);
 
   return {
     ...round,

@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { processDeposits } from "@/lib/cron-tasks";
 import { rateLimit } from "@/lib/rate-limit";
 import { getSetting } from "@/lib/site-settings";
+import { createClient } from "@/lib/supabase/server";
 
 async function authorize(req: Request): Promise<boolean> {
   const authHeader = req.headers.get("authorization");
@@ -40,5 +41,25 @@ export async function POST(req: Request) {
   }
 
   const res = await processDeposits();
+  
+  // Si se procesaron depósitos, obtener el nuevo saldo
+  if (res.ok && (res.processed ?? 0) > 0) {
+    try {
+        const supabase = await createClient();
+        const { data: bal } = await supabase
+            .from("balances")
+            .select("points")
+            .eq("user_id", user.id)
+            .single();
+        
+        return NextResponse.json({ 
+            ...res, 
+            newBalance: bal?.points ?? 0 
+        });
+    } catch (e) {
+        console.error("Error al obtener balance tras depósito:", e);
+    }
+  }
+
   return NextResponse.json(res);
 }

@@ -59,7 +59,13 @@ export default function DepositarPage() {
       const data = await res.json();
       if (data.processed > 0) {
         setVerifyResult({ success: true, msg: `¡Éxito! Se detectó tu depósito y se acreditaron los puntos.` });
-        // Refrescar el saldo
+        
+        // Si la API devolvió el nuevo saldo, notificar al Header
+        if (typeof data.newBalance === "number") {
+            window.dispatchEvent(new CustomEvent("freeboli-balance-update", { detail: data.newBalance }));
+        }
+
+        // Refrescar el saldo (fallback/consistencia)
         setTimeout(() => {
             router.refresh();
         }, 1000);

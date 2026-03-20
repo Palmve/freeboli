@@ -46,8 +46,15 @@ export async function getCryptoPrice(asset: Asset): Promise<number | null> {
   }
 }
 
+const SIGMAS: Record<Asset, number> = {
+  BTC: 0.0065,  // Volatilidad moderada (Bitcoin)
+  SOL: 0.012,   // Volatilidad media (Solana)
+  BOLIS: 0.035, // Alta volatilidad (Token nativo/Memecoin)
+};
+
 /**
- * Calcula la cuota dinámica para una predicción usando decaimiento de volatilidad.
+ * Calcula la cuota dinámica para una predicción usando decaimiento de volatilidad suavizado.
+ * Basado en un modelo de difusión logística optimizado para bajo volumen.
  */
 export function calculateDynamicOdds(
   side: "up" | "down",
@@ -55,23 +62,26 @@ export function calculateDynamicOdds(
   currentPrice: number,
   timeLeftSec: number,
   totalTimeSec: number = 3600,
+  asset: Asset = "BTC",
   houseEdge: number = 0.05
 ): number {
-  if (startPrice <= 0 || currentPrice <= 0) return 2.0;
+  if (startPrice <= 0 || currentPrice <= 0) return 1.90;
 
   const diffPct = (currentPrice - startPrice) / startPrice;
   
-  // Tiempo relativo restante (1.0 al inicio, -> 0 al final)
+  // Tiempo relativo restante (1.0 inicio -> 0 final)
   const tRel = Math.max(0.0001, timeLeftSec / totalTimeSec);
+  
+  // Parámetros de sensibilidad
+  const k = 0.8; // Suavizado para evitar cuotas extremas demasiado rápido
+  const sigma = SIGMAS[asset] || 0.006;
   
   /**
    * Modelo: Probabilidad Sigmoide Escalada
-   * p = 1 / (1 + exp(-k * diffPct / (sigma * sqrt(tRel))))
+   * Agregamos 0.08 al tiempo relativo para mantener incertidumbre "suave" hasta el final.
    */
-  const k = 1.0;
-  const sigma = 0.006; // Volatilidad reducida = Sensibilidad aumentada
-  
-  const exponent = (k * diffPct) / (sigma * Math.sqrt(tRel));
+  const timeFactor = Math.sqrt(tRel + 0.08);
+  const exponent = (k * diffPct) / (sigma * timeFactor);
   const probUp = 1 / (1 + Math.exp(-exponent));
   
   // Limitar probabilidad para evitar odds infinitas
@@ -81,6 +91,7 @@ export function calculateDynamicOdds(
   // Aplicar House Edge y calcular cuota
   const odds = (1 / winProb) * (1 - houseEdge);
 
-  // Cuota mínima 1.05x, máxima 50x
-  return Math.max(1.05, Math.min(50, odds));
+  // Cuota mínima 1.05x para que siempre haya beneficio, Máxima 30x para limitar riesgo en low-volume
+  const maxOdds = tRel < 0.05 ? 20 : 30; // Más conservador al final
+  return parseFloat(Math.max(1.05, Math.min(maxOdds, odds)).toFixed(2));
 }
