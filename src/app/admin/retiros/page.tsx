@@ -81,7 +81,7 @@ export default function AdminRetirosPage() {
 
       <AdminWithdrawSettings />
 
-      <div className="overflow-x-auto bg-slate-800/20 rounded-2xl border border-slate-700/50 p-4">
+      <div className="admin-table-container p-4">
         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Solicitudes Pendientes</h3>
         <table className="w-full text-sm">
           <thead>

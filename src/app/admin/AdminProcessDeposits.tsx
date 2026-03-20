@@ -46,7 +46,7 @@ export default function AdminProcessDeposits() {
   }
 
   return (
-    <div className="card">
+    <div className="card !p-4 sm:!p-6">
       <h2 className="text-lg font-semibold text-slate-300">Procesar depósitos BOLIS</h2>
       <p className="mt-1 text-sm text-slate-400">
         Revisa la dirección exclusiva de cada usuario en busca de BOLIS recibidos y acredita los puntos automáticamente (sin memo).

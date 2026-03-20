@@ -79,7 +79,7 @@ export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
         })}
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="admin-table-container">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-slate-400">

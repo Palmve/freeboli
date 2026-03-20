@@ -44,4 +44,17 @@ body {
   .slot-digit-ani {
     animation: slot-digit-drop 0.45s ease-out forwards;
   }
+  /* Ocultar barra de scroll pero mantener funcionalidad */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Mejora de tablas responsivas */
+  .admin-table-container {
+    @apply overflow-x-auto rounded-xl border border-slate-700 bg-slate-800/50 transition-all;
+  }
 }

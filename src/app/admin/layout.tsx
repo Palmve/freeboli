@@ -12,10 +12,12 @@ export default async function AdminLayout({
   const user = await getAdminUser();
   if (!user) redirect("/auth/login");
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-amber-400">Administración</h1>
+    <div className="space-y-6 sm:space-y-8 pb-10">
+      <h1 className="text-2xl sm:text-3xl font-extrabold text-amber-400 text-center sm:text-left tracking-tight">
+        Administración
+      </h1>
       <AdminNav />
-      <div>{children}</div>
+      <div className="min-h-[60vh]">{children}</div>
     </div>
   );
 }
