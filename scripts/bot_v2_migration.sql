@@ -20,13 +20,21 @@ ADD COLUMN IF NOT EXISTS bolis_balance DECIMAL DEFAULT 0,
 ADD COLUMN IF NOT EXISTS usdt_balance DECIMAL DEFAULT 0,
 ADD COLUMN IF NOT EXISTS avg_buy_price DECIMAL DEFAULT 0;
 
--- Vista para estadísticas globales del bot
-CREATE OR REPLACE VIEW public.bot_stats AS
-SELECT 
-    COUNT(*) as total_trades,
-    SUM(pnl) as total_pnl,
-    SUM(fee) as total_fees,
-    (SELECT SUM(sol_balance) FROM bot_wallets) as total_sol,
-    (SELECT SUM(bolis_balance) FROM bot_wallets) as total_bolis,
-    (SELECT SUM(usdt_balance) FROM bot_wallets) as total_usdt
-FROM public.bot_trades;
+-- Función para obtener estadísticas del bot (RPC)
+CREATE OR REPLACE FUNCTION public.get_bot_stats()
+RETURNS JSON AS $$
+DECLARE
+    result JSON;
+BEGIN
+    SELECT json_build_object(
+        'total_trades', COUNT(*),
+        'total_pnl', COALESCE(SUM(pnl), 0),
+        'total_fees', COALESCE(SUM(fee), 0),
+        'total_sol', (SELECT COALESCE(SUM(sol_balance), 0) FROM bot_wallets),
+        'total_bolis', (SELECT COALESCE(SUM(bolis_balance), 0) FROM bot_wallets),
+        'total_usdt', (SELECT COALESCE(SUM(usdt_balance), 0) FROM bot_wallets)
+    ) INTO result
+    FROM public.bot_trades;
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
