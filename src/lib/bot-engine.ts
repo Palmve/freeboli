@@ -62,14 +62,11 @@ export async function performSwap(walletPk: string, walletSk: string, inputMint:
   const connection = new Connection(RPC_URL, "confirmed");
   const keypair = Keypair.fromSecretKey(bs58.decode(walletSk));
 
-  // 1. Obtener Quote de Jupiter (Limitando a Raydium si se desea, o dejando que Jupiter elija el mejor camino en esos pools)
+  // 1. Obtener Quote de Jupiter
   const quoteRes = await fetch(
     `https://quote-api.jup.ag/v6/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&slippageBps=100`
   );
   const quoteResponse = await quoteRes.json();
-  if (!quoteResponse.data?.[0]) { // Estructura v6 varía, ajustando...
-     // Nota: En v6 es directo quoteResponse.outAmount
-  }
   
   // 2. Obtener Transacción de Swap
   const swapRes = await fetch("https://quote-api.jup.ag/v6/swap", {
@@ -152,12 +149,9 @@ export async function executeBotCycle() {
     if (now < nextRun) return { status: "Esperando próximo intervalo", nextRun };
 
   try {
-    // 1. Obtener precio actual (desde oráculo existente)
     const { getCryptoPrice } = await import("./price-oracle");
-    const currentPrice = await getCryptoPrice("BOLIS") || 0.001; // Fallback
+    const currentPrice = await getCryptoPrice("BOLIS") || 0.001;
 
-    // 2. Decisión de Side (Buy/Sell) basada en inventario y azar
-    // Estrategia: Si el bot tiene muchas wallets con BOLIS, intenta vender.
     const { data: wallets } = await supabase.from("bot_wallets").select("*").eq("is_active", true);
     if (!wallets || wallets.length === 0) return { error: "No hay wallets activas" };
 
@@ -170,13 +164,10 @@ export async function executeBotCycle() {
         wallets[0].bolis_balance = 25000;
     }
 
-    // Filtrar wallets que pueden vender (tienen BOLIS) o comprar (tienen SOL)
     const canSell = wallets.filter(w => w.bolis_balance > 0);
     const canBuy = wallets.filter(w => w.sol_balance > 0.01);
 
     let wallet, side, pair;
-    
-    // Probabilidad: 60% seguir tendencia, 40% rellenar inventario
     if (canSell.length > 0 && (Math.random() > 0.5 || canBuy.length === 0)) {
         wallet = canSell[Math.floor(Math.random() * canSell.length)];
         side = "SELL";
@@ -189,18 +180,15 @@ export async function executeBotCycle() {
         return { error: "Sin fondos suficientes en las wallets para operar" };
     }
 
-    // 3. Cantidad aleatoria
     const min = parseInt(settings.BOT_MIN_AMOUNT || "1000");
     const max = parseInt(settings.BOT_MAX_AMOUNT || "5000");
     const amount = Math.floor(Math.random() * (max - min + 1) + min);
 
-    // 4. Ejecución (Simulada para trazabilidad, activar performSwap cuando esté listo)
     const signature = `local_sim_${Date.now()}`; 
-    const amountOut = side === "BUY" ? amount : (amount * currentPrice * 1e9); // Simplificación
+    const amountOut = side === "BUY" ? amount : (amount * currentPrice * 1e9); 
     
     await recordTrade(wallet, pair, side as any, amount, amountOut, currentPrice, signature);
 
-    // 5. Programar siguiente ejecución
     const minInt = parseInt(settings.BOT_MIN_INTERVAL || "1");
     const maxInt = parseInt(settings.BOT_MAX_INTERVAL || "4");
     const delayMin = Math.random() * (maxInt - minInt) + minInt;
@@ -241,4 +229,14 @@ export async function syncBotBalances() {
             console.error(`Error syncing balance for ${wallet.public_key}:`, e);
         }
     }
+}
+
+// Helper local para evitar dependencias circulares con site-settings
+async function getAllSettings(): Promise<Record<string, unknown>> {
+    const { data } = await createAdminClient().from("site_settings").select("key, value");
+    const result: Record<string, unknown> = {};
+    for (const row of data ?? []) {
+        try { result[row.key] = JSON.parse(row.value); } catch { result[row.key] = row.value; }
+    }
+    return result;
 }
