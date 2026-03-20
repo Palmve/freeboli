@@ -8,14 +8,16 @@ export function AnalyticsTracker() {
   const lastPath = useRef<string>("");
 
   useEffect(() => {
+    // No rastrear páginas de autenticación para evitar bloqueos en el login/registro
+    if (pathname.startsWith("/auth")) return;
     if (pathname === lastPath.current) return;
     lastPath.current = pathname;
 
-    // Pequeño delay para que la navegación se complete
     const timer = setTimeout(() => {
       fetch("/api/analytics/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        keepalive: true, // Asegura que la petición se complete sin bloquear el hilo principal
         body: JSON.stringify({
           type: "page_view",
           path: pathname,

@@ -6,7 +6,14 @@ export async function POST(req: Request) {
   try {
     const { type, path, metadata: clientMetadata } = await req.json();
     const supabase = await createClient();
-    const user = await getCurrentUser();
+    
+    // Obtener usuario de forma segura y rápida
+    let user = null;
+    try {
+      user = await getCurrentUser();
+    } catch {
+      // Ignorar si hay problemas de sesión
+    }
 
     // Extraer ubicación de headers (Vercel/Standard headers)
     const city = req.headers.get("x-vercel-ip-city") || "Localhost";
