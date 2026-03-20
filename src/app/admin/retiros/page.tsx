@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AdminWithdrawSettings from "../AdminWithdrawSettings";
 
-type Withdrawal = {
+// ... (types)
   id: string;
   user_id: string;
   points: number;
@@ -48,9 +49,15 @@ export default function AdminRetirosPage() {
   if (loading) return <div className="text-slate-400">Cargando…</div>;
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold text-white">Retiros</h2>
-      <div className="overflow-x-auto">
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h2 className="text-xl font-semibold text-white">Gestión de Retiros</h2>
+      </div>
+
+      <AdminWithdrawSettings />
+
+      <div className="overflow-x-auto bg-slate-800/20 rounded-2xl border border-slate-700/50 p-4">
+        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Solicitudes Pendientes</h3>
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-slate-400">
