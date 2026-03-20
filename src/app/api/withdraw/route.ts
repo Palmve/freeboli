@@ -62,6 +62,24 @@ export async function POST(req: Request) {
     metadata: { wallet_destination: wallet, status: "pending" },
   });
 
+  const autoWithdraw = await getSetting<boolean>("WITHDRAWAL_AUTO_APPROVE", false);
+  let txHash = null;
+
+  if (autoWithdraw) {
+      try {
+          const { sendBolisToUser } = await import("@/lib/solana-payments");
+          txHash = await sendBolisToUser(wallet, points);
+          
+          // Actualizar estado a completado si fue exitoso
+          await supabase.from("withdrawals")
+            .update({ status: "completed", processed_at: new Date().toISOString(), tx_hash: txHash })
+            .eq("id", withdrawalId);
+      } catch (err: any) {
+          console.error("[AutoWithdraw] Error:", err.message);
+          // Si falla el auto-envío, queda como pending para revisión manual
+      }
+  }
+
   await alertWithdrawalRequest(currentUser.email, points, wallet);
 
   return NextResponse.json({

@@ -8,6 +8,11 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const supabase = createAdminClient();
+  
+  // Sincronizar balances con la blockchain antes de mostrar
+  const { syncBotBalances } = await import("@/lib/bot-engine");
+  await syncBotBalances().catch(e => console.error("Sync error:", e));
+
   const [settings, { data: wallets }, { data: stats }] = await Promise.all([
     getAllSettings(),
     supabase.from("bot_wallets").select("*").order("created_at", { ascending: false }),

@@ -220,12 +220,25 @@ export async function executeBotCycle() {
   }
 }
 
-// Helper para obtener todos los settings (necesario si no está exportado)
-async function getAllSettings(): Promise<Record<string, unknown>> {
-    const { data } = await createAdminClient().from("site_settings").select("key, value");
-    const result: Record<string, unknown> = {};
-    for (const row of data ?? []) {
-        try { result[row.key] = JSON.parse(row.value); } catch { result[row.key] = row.value; }
+/**
+ * Sincroniza los balances de las wallets activas con la blockchain de Solana.
+ */
+export async function syncBotBalances() {
+    const supabase = createAdminClient();
+    const { data: wallets } = await supabase.from("bot_wallets").select("*").eq("is_active", true);
+    if (!wallets) return;
+
+    const { getOnChainBalances } = await import("./solana-payments");
+
+    for (const wallet of wallets) {
+        try {
+            const balances = await getOnChainBalances(wallet.public_key);
+            await supabase.from("bot_wallets").update({
+                sol_balance: balances.sol,
+                bolis_balance: balances.bolis
+            }).eq("id", wallet.id);
+        } catch (e) {
+            console.error(`Error syncing balance for ${wallet.public_key}:`, e);
+        }
     }
-    return result;
 }
