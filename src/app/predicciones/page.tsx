@@ -7,6 +7,7 @@ import Link from "next/link";
 import { SupportModal } from "@/components/SupportModal";
 import { BetDetailModal } from "@/components/BetDetailModal";
 import { APP_VERSION } from "@/lib/version";
+import { useLang } from "@/context/LangContext";
 
 type PredictionData = {
   id: string;
@@ -47,6 +48,7 @@ type Stats = {
 function PredictionsContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
+  const { lang, t } = useLang();
   const asset = searchParams.get("asset")?.toUpperCase() || "BTC";
 
   const [data, setData] = useState<PredictionData | null>(null);
@@ -72,9 +74,9 @@ function PredictionsContent() {
       if (res.ok) setData(d);
       else setError(d.error);
     } catch (e) {
-      setError("Error al conectar con la API.");
+      setError(t("predictions.error_api"));
     }
-  }, [asset, type]);
+  }, [asset, type, t]);
 
   const fetchHistory = useCallback(async () => {
     try {
@@ -95,7 +97,6 @@ function PredictionsContent() {
     } catch (e) {}
   }, []);
 
-  // Sync Data Interval (10s)
   useEffect(() => {
     fetchData();
     fetchHistory();
@@ -107,7 +108,6 @@ function PredictionsContent() {
     return () => clearInterval(syncTimer);
   }, [fetchData, fetchHistory, fetchBalance]);
 
-  // Real-time Fluid Timer (1s)
   useEffect(() => {
     const clockTimer = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
@@ -115,7 +115,6 @@ function PredictionsContent() {
     return () => clearInterval(clockTimer);
   }, []);
 
-  // Sync timeLeft when data arrives
   useEffect(() => {
     if (data?.time_left_sec !== undefined) {
       setTimeLeft(data.time_left_sec);
@@ -134,7 +133,7 @@ function PredictionsContent() {
       });
       const resData = await res.json();
       if (res.ok) {
-        setSuccess(`¡Apuesta de ${amount} pts a ${prediction.toUpperCase()} realizada!`);
+        setSuccess(t("predictions.success_bet").replace("{0}", amount).replace("{1}", prediction.toUpperCase()));
         setBalance(resData.newBalance);
         fetchHistory();
         window.dispatchEvent(new CustomEvent("freeboli-balance-update", { detail: resData.newBalance }));
@@ -142,7 +141,7 @@ function PredictionsContent() {
         setError(resData.error);
       }
     } catch (e) {
-      setError("Error de red.");
+      setError(t("predictions.error_network"));
     } finally {
       setBetting(false);
     }
@@ -154,26 +153,30 @@ function PredictionsContent() {
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
+  const modeName = type === "mini" ? t("predictions.mode_mini") : t("predictions.mode_normal");
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       {/* Header & Tabs */}
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-left">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Predicciones</h1>
-          <p className="text-xs sm:text-sm text-slate-400">Pronostica {asset} en modo {type === "mini" ? "Mini (10m)" : "Normal (1h)"}.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">{t("predictions.title")}</h1>
+          <p className="text-xs sm:text-sm text-slate-400">
+            {t("predictions.subtitle").replace("{0}", asset).replace("{1}", modeName)}
+          </p>
         </div>
         <div className="flex bg-slate-800 p-1 rounded-xl items-center">
             <button 
               onClick={() => setType("hourly")}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition ${type === "hourly" ? "bg-amber-500 text-slate-900" : "text-slate-400 hover:text-white"}`}
             >
-              NORMAL
+              {t("predictions.tab_normal")}
             </button>
             <button 
               onClick={() => setType("mini")}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition ${type === "mini" ? "bg-amber-500 text-slate-900" : "text-slate-400 hover:text-white"}`}
             >
-              MINI 🔥
+              {t("predictions.tab_mini")}
             </button>
         </div>
         <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
@@ -198,7 +201,9 @@ function PredictionsContent() {
           <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 sm:p-8 shadow-xl">
             <div className="flex flex-col gap-6 sm:flex-row sm:justify-between sm:items-start mb-6">
                 <div className="text-center sm:text-left">
-                   <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest">Precio Actual {asset}</p>
+                   <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest">
+                     {t("predictions.price_current").replace("{0}", asset)}
+                   </p>
                    <div className="mt-1 flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
                      <span className="text-3xl sm:text-5xl font-mono font-bold text-white tracking-tighter">
                        ${data?.current_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 5 : asset === "SOL" ? 3 : 2, maximumFractionDigits: asset === "BOLIS" ? 5 : asset === "SOL" ? 3 : 2 })}
@@ -209,7 +214,7 @@ function PredictionsContent() {
                    </div>
                 </div>
                 <div className="text-center sm:text-right border-t border-slate-800 pt-4 sm:border-0 sm:pt-0">
-                   <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest">Cierre de Ronda</p>
+                   <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest">{t("predictions.round_closing")}</p>
                    <p className="text-2xl sm:text-3xl font-mono font-bold text-amber-400 mt-1">
                      {minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
                    </p>
@@ -218,9 +223,9 @@ function PredictionsContent() {
 
             <div className="space-y-4">
                 <div className="flex justify-between text-xs font-bold text-slate-500 uppercase">
-                    <span>Apertura de hora</span>
-                    <span>Progreso de ronda</span>
-                    <span>Cierre</span>
+                    <span>{t("predictions.opening_label")}</span>
+                    <span>{t("predictions.progress_label")}</span>
+                    <span>{t("predictions.closing_label")}</span>
                 </div>
                 <div className="h-4 w-full bg-slate-800 rounded-full p-1 border border-slate-700">
                     <div 
@@ -230,37 +235,37 @@ function PredictionsContent() {
                 </div>
                 <div className="flex justify-between text-[10px] sm:text-sm text-slate-400 font-mono">
                     <span>${data?.opening_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 5 : asset === "SOL" ? 3 : 2, maximumFractionDigits: asset === "BOLIS" ? 5 : asset === "SOL" ? 3 : 2 })}</span>
-                    <span>{data ? new Date(data.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--"}</span>
+                    <span>{data ? new Date(data.end_time).toLocaleTimeString(lang === "es" ? "es-ES" : "en-US", { hour: '2-digit', minute: '2-digit', hour12: false }) : "--:--"}</span>
                 </div>
             </div>
           </div>
 
           {/* Historial de Apuestas */}
-          <div className="rounded-2xl border border-slate-700 bg-slate-900 overflow-hidden shadow-xl">
+          <div className="rounded-2xl border border-slate-700 bg-slate-900 overflow-hidden shadow-xl text-left">
             <div className="border-b border-slate-700 bg-slate-800/50 px-6 py-4">
                 <h3 className="font-bold text-white flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                     </svg>
-                    Historial de Apuestas
+                    {t("predictions.history_title")}
                 </h3>
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="bg-slate-800/30 text-slate-500 text-left">
-                            <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">Fecha</th>
-                            <th className="hidden sm:table-cell px-6 py-3 font-bold uppercase tracking-wider text-[10px]">Activo</th>
-                            <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">Apuesta</th>
-                            <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">Monto</th>
-                            <th className="hidden sm:table-cell px-6 py-3 font-bold uppercase tracking-wider text-[10px]">Cuota</th>
-                            <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-right text-[10px]">G/P</th>
+                            <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">{t("predictions.history_th_date")}</th>
+                            <th className="hidden sm:table-cell px-6 py-3 font-bold uppercase tracking-wider text-[10px]">{t("predictions.history_th_asset")}</th>
+                            <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">{t("predictions.history_th_bet")}</th>
+                            <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">{t("predictions.history_th_amount")}</th>
+                            <th className="hidden sm:table-cell px-6 py-3 font-bold uppercase tracking-wider text-[10px]">{t("predictions.history_th_odds")}</th>
+                            <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-right text-[10px]">{t("predictions.history_th_result")}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
                         {history.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="px-6 py-10 text-center text-slate-500">No has realizado apuestas aún.</td>
+                                <td colSpan={6} className="px-6 py-10 text-center text-slate-500">{t("predictions.history_empty")}</td>
                             </tr>
                         ) : (
                             history.map(bet => {
@@ -276,7 +281,7 @@ function PredictionsContent() {
                                         }}
                                     >
                                         <td className="px-3 sm:px-6 py-4 font-mono text-[10px] font-bold text-slate-400">
-                                            {new Date(bet.created_at).toLocaleDateString([], { day: '2-digit', month: '2-digit' })} {new Date(bet.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                            {new Date(bet.created_at).toLocaleDateString(lang === "es" ? "es-ES" : "en-US", { day: '2-digit', month: '2-digit' })} {new Date(bet.created_at).toLocaleTimeString(lang === "es" ? "es-ES" : "en-US", { hour: '2-digit', minute: '2-digit', hour12: false })}
                                         </td>
                                         <td className="hidden sm:table-cell px-6 py-4 font-bold text-slate-300">{bet.round?.asset || asset}</td>
                                         <td className="px-3 sm:px-6 py-4">
@@ -300,7 +305,7 @@ function PredictionsContent() {
         </div>
 
         {/* Panel Derecho: Apuesta y Stats */}
-        <div className="space-y-6">
+        <div className="space-y-6 text-left">
           <div className="rounded-2xl border border-amber-500/30 bg-slate-900 p-6 shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 p-3 opacity-10">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20" viewBox="0 0 20 20" fill="currentColor">
@@ -309,12 +314,12 @@ function PredictionsContent() {
             </div>
             
             <div className="mb-6">
-                <p className="text-sm font-bold text-slate-400 uppercase">Balance Disponible</p>
+                <p className="text-sm font-bold text-slate-400 uppercase">{t("predictions.balance_title")}</p>
                 <p className="text-3xl font-mono font-bold text-amber-400">{balance?.toLocaleString() || "0"} pts</p>
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-bold text-slate-300 mb-2 uppercase tracking-wide">Monto de Apuesta</label>
+              <label className="block text-sm font-bold text-slate-300 mb-2 uppercase tracking-wide">{t("predictions.bet_amount_label")}</label>
               <div className="relative">
                   <input
                     type="number"
@@ -333,7 +338,7 @@ function PredictionsContent() {
                  ))}
               </div>
               <p className="mt-2 text-[10px] text-slate-500 text-center font-bold uppercase tracking-tighter">
-                LÍMITE MÁXIMO: 10,000 PUNTOS -- Comisión de 5% (incluida en la cuota)
+                {t("predictions.bet_limit_hint")}
               </p>
             </div>
 
@@ -343,7 +348,7 @@ function PredictionsContent() {
                 disabled={betting || !data || timeLeft < (type === "mini" ? 120 : 600) || (asset === "BOLIS" && type === "mini")}
                 className="group relative flex flex-col items-center justify-center overflow-hidden rounded-xl bg-emerald-600 py-6 text-white transition hover:bg-emerald-500 disabled:opacity-50"
               >
-                <span className="text-xs font-black uppercase tracking-widest mb-1 opacity-70">Sube</span>
+                <span className="text-xs font-black uppercase tracking-widest mb-1 opacity-70">{t("predictions.btn_up")}</span>
                 <span className="text-3xl font-black">{data?.odds.up}x</span>
                 <div className="absolute inset-x-0 bottom-0 h-1.5 bg-emerald-400/50"></div>
               </button>
@@ -353,7 +358,7 @@ function PredictionsContent() {
                 disabled={betting || !data || timeLeft < (type === "mini" ? 120 : 600) || (asset === "BOLIS" && type === "mini")}
                 className="group relative flex flex-col items-center justify-center overflow-hidden rounded-xl bg-red-600 py-6 text-white transition hover:bg-red-500 disabled:opacity-50"
               >
-                <span className="text-xs font-black uppercase tracking-widest mb-1 opacity-70">Baja</span>
+                <span className="text-xs font-black uppercase tracking-widest mb-1 opacity-70">{t("predictions.btn_down")}</span>
                 <span className="text-3xl font-black">{data?.odds.down}x</span>
                 <div className="absolute inset-x-0 bottom-0 h-1.5 bg-red-400/50"></div>
               </button>
@@ -362,7 +367,7 @@ function PredictionsContent() {
             {asset === "BOLIS" && type === "mini" && (
                 <div className="mt-4 rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
                     <p className="text-center text-[11px] text-amber-500 font-bold uppercase leading-tight">
-                        Mercado MINI BOLIS bloqueado temporalmente por administración.
+                        {t("predictions.market_locked_admin")}
                     </p>
                 </div>
             )}
@@ -370,7 +375,7 @@ function PredictionsContent() {
             {data && timeLeft < (type === "mini" ? 120 : 600) && !(asset === "BOLIS" && type === "mini") && (
               <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/30 p-3">
                   <p className="text-center text-[11px] text-red-500 font-bold uppercase leading-tight">
-                    Mercado Cerrado: {type === "mini" ? "2 min" : "10 min"} antes del fin de ronda.
+                    {t("predictions.market_locked_time").replace("{0}", type === "mini" ? "2" : "10")}
                   </p>
               </div>
             )}
@@ -382,29 +387,29 @@ function PredictionsContent() {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-emerald-500" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                 </svg>
-                Resumen de Ganancias
+                {t("predictions.stats_title")}
              </h3>
              <div className="space-y-3">
                 <div className="flex justify-between items-center p-3 rounded-xl bg-slate-800/50">
-                    <span className="text-sm text-slate-400 font-bold">HOY</span>
+                    <span className="text-sm text-slate-400 font-bold">{t("predictions.stats_today")}</span>
                     <span className={`font-mono font-bold ${stats.day >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                         {stats.day >= 0 ? "+" : ""}{stats.day.toLocaleString()}
                     </span>
                 </div>
                 <div className="flex justify-between items-center p-3 rounded-xl bg-slate-800/50">
-                    <span className="text-sm text-slate-400 font-bold">ESTA SEMANA</span>
+                    <span className="text-sm text-slate-400 font-bold">{t("predictions.stats_week")}</span>
                     <span className={`font-mono font-bold ${stats.week >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                         {stats.week >= 0 ? "+" : ""}{stats.week.toLocaleString()}
                     </span>
                 </div>
                 <div className="flex justify-between items-center p-3 rounded-xl bg-slate-800/50">
-                    <span className="text-sm text-slate-400 font-bold">ESTE MES</span>
+                    <span className="text-sm text-slate-400 font-bold">{t("predictions.stats_month")}</span>
                     <span className={`font-mono font-bold ${stats.month >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                         {stats.month >= 0 ? "+" : ""}{stats.month.toLocaleString()}
                     </span>
                 </div>
                 <div className="flex justify-between items-center p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
-                    <span className="text-sm text-amber-500 font-black uppercase">TOTAL ACUMULADO</span>
+                    <span className="text-sm text-amber-500 font-black uppercase">{t("predictions.stats_total")}</span>
                     <span className={`text-xl font-mono font-black ${stats.total >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                         {stats.total >= 0 ? "+" : ""}{stats.total.toLocaleString()}
                     </span>
@@ -418,7 +423,7 @@ function PredictionsContent() {
         onClick={() => setSupportOpen(true)}
         className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal"
       >
-        ¿Problemas con la predicción? Reportar error o disputa aquí - v{APP_VERSION}
+        {t("predictions.support_hint")} - v{APP_VERSION}
       </button>
 
       <SupportModal
@@ -438,8 +443,9 @@ function PredictionsContent() {
 }
 
 export default function PredictionsPage() {
+  const { t } = useLang();
   return (
-    <Suspense fallback={<div className="py-12 text-slate-400">Cargando…</div>}>
+    <Suspense fallback={<div className="py-12 text-slate-400 uppercase font-bold">{t("predictions.loading")}</div>}>
       <PredictionsContent />
     </Suspense>
   );

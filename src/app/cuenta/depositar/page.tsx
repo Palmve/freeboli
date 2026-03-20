@@ -7,16 +7,20 @@ import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
 import { SupportModal } from "@/components/SupportModal";
 import { APP_VERSION } from "@/lib/version";
 import { useRouter } from "next/navigation";
+import { useLang } from "@/context/LangContext";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
 export default function DepositarPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const { t } = useLang();
   const [localOk, setLocalOk] = useState(false);
+
   useEffect(() => {
     if (!REQUIRE_AUTH) fetch("/api/me", { credentials: "include" }).then((r) => r.json()).then((d) => setLocalOk(!!d.user)).catch(() => setLocalOk(false));
   }, []);
+
   const [info, setInfo] = useState<{
     address: string;
     pointsPerBolis: number;
@@ -38,7 +42,6 @@ export default function DepositarPage() {
     try {
       await navigator.clipboard.writeText(info.address);
     } catch {
-      // Fallback para navegadores sin clipboard API
       const ta = document.createElement("textarea");
       ta.value = info.address;
       document.body.appendChild(ta);
@@ -58,22 +61,16 @@ export default function DepositarPage() {
       const res = await fetch("/api/deposit/process-incoming", { method: "POST" });
       const data = await res.json();
       if (data.processed > 0) {
-        setVerifyResult({ success: true, msg: `¡Éxito! Se detectó tu depósito y se acreditaron los puntos.` });
-        
-        // Si la API devolvió el nuevo saldo, notificar al Header
+        setVerifyResult({ success: true, msg: t("deposit.success_process") });
         if (typeof data.newBalance === "number") {
             window.dispatchEvent(new CustomEvent("freeboli-balance-update", { detail: data.newBalance }));
         }
-
-        // Refrescar el saldo (fallback/consistencia)
-        setTimeout(() => {
-            router.refresh();
-        }, 1000);
+        setTimeout(() => { router.refresh(); }, 1000);
       } else {
-        setVerifyResult({ success: false, msg: "Aún no se detecta tu transferencia en la red. Espera unos minutos y vuelve a intentarlo." });
+        setVerifyResult({ success: false, msg: t("deposit.no_deposit_found") });
       }
     } catch {
-      setVerifyResult({ success: false, msg: "Error al conectar con la red. Intenta más tarde." });
+      setVerifyResult({ success: false, msg: t("deposit.error_network") });
     } finally {
       setVerifying(false);
     }
@@ -81,37 +78,34 @@ export default function DepositarPage() {
 
   const minDepositBolis = Math.ceil(MIN_WITHDRAW_POINTS / POINTS_PER_BOLIS);
 
-  if (REQUIRE_AUTH && status === "loading") return <div className="py-12 text-slate-400">Cargando…</div>;
+  if (REQUIRE_AUTH && status === "loading") return <div className="py-12 text-slate-400">{t("deposit.loading")}</div>;
   if (REQUIRE_AUTH && !session) {
     return (
       <div className="card max-w-md mx-auto text-center">
-        <p className="text-slate-300">Entra para depositar.</p>
-        <Link href="/auth/login" className="btn-primary mt-4 inline-block">Entrar</Link>
+        <p className="text-slate-300">{t("deposit.login_hint")}</p>
+        <Link href="/auth/login" className="btn-primary mt-4 inline-block">{t("deposit.btn_login")}</Link>
       </div>
     );
   }
-  if (!REQUIRE_AUTH && !localOk && !session) return <div className="py-12 text-slate-400">Cargando…</div>;
+  if (!REQUIRE_AUTH && !localOk && !session) return <div className="py-12 text-slate-400">{t("deposit.loading")}</div>;
 
   return (
-    <div className="mx-auto max-w-lg space-y-6 py-8">
-      <h1 className="text-2xl font-bold text-white">Depositar BOLIS</h1>
+    <div className="mx-auto max-w-lg space-y-6 py-8 px-4 text-left">
+      <h1 className="text-2xl font-bold text-white">{t("deposit.title")}</h1>
       <div className="card space-y-4">
-        <p className="text-slate-300">
-          Tienes una <strong>dirección exclusiva</strong> para tus depósitos. Envía BOLIS (token en Solana) a esta dirección desde Phantom o cualquier wallet; los puntos se acreditarán automáticamente. No hace falta memo ni verificar firma.
+        <p className="text-slate-300" dangerouslySetInnerHTML={{ __html: t("deposit.desc") }} />
+        <p className="text-sm text-amber-400 font-bold">
+          {info?.pointsPerBolis != null && t("deposit.rate").replace("{0}", info.pointsPerBolis.toLocaleString())}
         </p>
-        <p className="text-sm text-amber-400">
-          {info?.pointsPerBolis != null && `${info.pointsPerBolis.toLocaleString()} puntos = 1 BOLIS`}
-        </p>
-        <p className="text-sm text-slate-400">
-          Para poder retirar, deposita al menos <strong>{String(minDepositBolis)} BOLIS</strong> (equivale a {String(MIN_WITHDRAW_POINTS)} puntos).
-        </p>
+        <p className="text-sm text-slate-400" dangerouslySetInnerHTML={{ __html: t("deposit.min_deposit_hint").replace("{0}", String(minDepositBolis)).replace("{1}", String(MIN_WITHDRAW_POINTS.toLocaleString())) }} />
+        
         {info?.address ? (
           <div className="space-y-4">
-            <p className="text-sm text-slate-400">Tu dirección de depósito (escanea el QR o copia la dirección):</p>
+            <p className="text-sm text-slate-400">{t("deposit.address_label")}</p>
             <div className="inline-block rounded-lg bg-white p-2">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(info.address)}`}
-                alt="QR dirección de depósito"
+                alt={t("deposit.qr_alt")}
                 width={200}
                 height={200}
                 className="rounded"
@@ -124,11 +118,10 @@ export default function DepositarPage() {
                   type="button"
                   onClick={copyAddress}
                   className="rounded-md bg-slate-700/60 hover:bg-slate-700 px-2 py-1.5 text-slate-200 transition flex-shrink-0"
-                  aria-label="Copiar dirección"
-                  title="Copiar dirección"
+                  title={t("deposit.copy_btn")}
                 >
                   {copied ? (
-                    <span className="text-xs font-semibold text-emerald-300">Copiado</span>
+                    <span className="text-xs font-semibold text-emerald-300">{t("deposit.copied")}</span>
                   ) : (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2" />
@@ -140,7 +133,7 @@ export default function DepositarPage() {
             </div>
           </div>
         ) : (
-          <p className="text-red-400">No se pudo cargar tu dirección. Revisa que el servidor tenga configurado DEPOSIT_WALLET_ENCRYPTION_KEY.</p>
+          <p className="text-red-400 text-sm font-bold">{t("deposit.error_load_address")}</p>
         )}
 
         <div className="pt-4 border-t border-slate-800">
@@ -148,7 +141,7 @@ export default function DepositarPage() {
              <button
                onClick={verifyDeposit}
                disabled={verifying || !info}
-               className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition ${
+               className={`w-full py-4 rounded-xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition ${
                  verifying ? "bg-slate-800 text-slate-500 cursor-wait" : "bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-900/20"
                }`}
              >
@@ -158,28 +151,28 @@ export default function DepositarPage() {
                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                    </svg>
-                   Verificando...
+                   {t("deposit.verifying")}
                  </>
-               ) : "Ya he depositado (Verificar ahora)"}
+               ) : t("deposit.btn_verify")}
              </button>
            )}
            
            {verifyResult && (
-             <div className={`mt-3 p-4 rounded-lg bg-opacity-10 text-center font-medium ${verifyResult.success ? "text-emerald-400 bg-emerald-400" : "text-amber-400 bg-amber-400"}`}>
+             <div className={`mt-3 p-4 rounded-lg bg-opacity-10 text-center font-bold ${verifyResult.success ? "text-emerald-400 bg-emerald-400/10" : "text-amber-400 bg-amber-400/10"}`}>
                {verifyResult.msg}
              </div>
            )}
         </div>
       </div>
-      <Link href="/cuenta" className="text-amber-400 hover:underline">
-        ← Volver a Mi cuenta
+      <Link href="/cuenta" className="text-amber-400 hover:underline inline-block font-bold">
+        {t("deposit.back_account")}
       </Link>
 
       <button
         onClick={() => setSupportOpen(true)}
-        className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal"
+        className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal font-medium"
       >
-        ¿Problemas con tu depósito? Reportar incidencia aquí - version {APP_VERSION}
+        {t("deposit.support_hint")} - v{APP_VERSION}
       </button>
 
       <SupportModal

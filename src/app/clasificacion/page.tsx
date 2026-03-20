@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { LEVELS } from "@/lib/levels";
+import { useLang } from "@/context/LangContext";
 
 interface Entry {
   rank: number;
@@ -13,13 +14,6 @@ interface Entry {
 }
 
 type Period = "day" | "week" | "month" | "all";
-
-const PERIOD_LABELS: { value: Period; label: string }[] = [
-  { value: "day", label: "Hoy" },
-  { value: "week", label: "Semana" },
-  { value: "month", label: "Mes" },
-  { value: "all", label: "Todos" },
-];
 
 const RANK_STYLE: Record<number, string> = {
   1: "text-amber-400 font-bold text-lg",
@@ -34,6 +28,7 @@ const RANK_MEDAL: Record<number, string> = {
 };
 
 export default function ClasificacionPage() {
+  const { lang, t } = useLang();
   const [period, setPeriod] = useState<Period>("all");
   const [top10, setTop10] = useState<Entry[]>([]);
   const [userSection, setUserSection] = useState<Entry[] | null>(null);
@@ -41,6 +36,13 @@ export default function ClasificacionPage() {
   const [currentRank, setCurrentRank] = useState<number | null>(null);
   const [prizes, setPrizes] = useState<{ daily: number[]; weekly: number[]; monthly: number[] } | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const PERIOD_LABELS: { value: Period; label: string }[] = [
+    { value: "day", label: t("ranking.tab_day") },
+    { value: "week", label: t("ranking.tab_week") },
+    { value: "month", label: t("ranking.tab_month") },
+    { value: "all", label: t("ranking.tab_all") },
+  ];
 
   useEffect(() => {
     setLoading(true);
@@ -58,12 +60,12 @@ export default function ClasificacionPage() {
   }, [period]);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 py-8">
+    <div className="mx-auto max-w-2xl space-y-6 py-8 text-left">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Tabla de Clasificacion</h1>
+        <h1 className="text-2xl font-bold text-white">{t("ranking.title")}</h1>
         {currentRank && (
           <span className="rounded bg-slate-800 px-3 py-1.5 text-sm text-amber-400 font-mono">
-            Tu posicion: #{currentRank}
+            {t("ranking.user_position").replace("{0}", currentRank.toString())}
           </span>
         )}
       </div>
@@ -87,33 +89,33 @@ export default function ClasificacionPage() {
 
       {/* Prize info */}
       <div className="card p-4">
-        <h3 className="text-sm font-semibold text-amber-400 mb-2">Premios para los Top 3</h3>
+        <h3 className="text-sm font-semibold text-amber-400 mb-2">{t("ranking.prizes_title")}</h3>
         <div className="grid grid-cols-3 gap-3 text-center text-xs">
           <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-2">
             <div className="text-lg">🏆</div>
-            <div className="text-amber-400 font-bold">1er lugar</div>
+            <div className="text-amber-400 font-bold">{t("ranking.prize_1st")}</div>
             <div className="text-slate-400 mt-1 space-y-0.5">
-              <div>Diario: {prizes ? prizes.daily[0]?.toLocaleString() : "—"} pts</div>
-              <div>Semanal: {prizes ? prizes.weekly[0]?.toLocaleString() : "—"} pts</div>
-              <div>Mensual: {prizes ? prizes.monthly[0]?.toLocaleString() : "—"} pts</div>
+              <div>{t("ranking.prize_daily")}: {prizes ? prizes.daily[0]?.toLocaleString() : "—"} pts</div>
+              <div>{t("ranking.prize_weekly")}: {prizes ? prizes.weekly[0]?.toLocaleString() : "—"} pts</div>
+              <div>{t("ranking.prize_monthly")}: {prizes ? prizes.monthly[0]?.toLocaleString() : "—"} pts</div>
             </div>
           </div>
           <div className="rounded-lg bg-slate-700/50 border border-slate-600 p-2">
             <div className="text-lg">🥈</div>
-            <div className="text-slate-300 font-bold">2do lugar</div>
+            <div className="text-slate-300 font-bold">{t("ranking.prize_2nd")}</div>
             <div className="text-slate-400 mt-1 space-y-0.5">
-              <div>Diario: {prizes ? prizes.daily[1]?.toLocaleString() : "—"} pts</div>
-              <div>Semanal: {prizes ? prizes.weekly[1]?.toLocaleString() : "—"} pts</div>
-              <div>Mensual: {prizes ? prizes.monthly[1]?.toLocaleString() : "—"} pts</div>
+              <div>{t("ranking.prize_daily")}: {prizes ? prizes.daily[1]?.toLocaleString() : "—"} pts</div>
+              <div>{t("ranking.prize_weekly")}: {prizes ? prizes.weekly[1]?.toLocaleString() : "—"} pts</div>
+              <div>{t("ranking.prize_monthly")}: {prizes ? prizes.monthly[1]?.toLocaleString() : "—"} pts</div>
             </div>
           </div>
           <div className="rounded-lg bg-orange-500/10 border border-orange-500/30 p-2">
             <div className="text-lg">🥉</div>
-            <div className="text-orange-400 font-bold">3er lugar</div>
+            <div className="text-orange-400 font-bold">{t("ranking.prize_3rd")}</div>
             <div className="text-slate-400 mt-1 space-y-0.5">
-              <div>Diario: {prizes ? prizes.daily[2]?.toLocaleString() : "—"} pts</div>
-              <div>Semanal: {prizes ? prizes.weekly[2]?.toLocaleString() : "—"} pts</div>
-              <div>Mensual: {prizes ? prizes.monthly[2]?.toLocaleString() : "—"} pts</div>
+              <div>{t("ranking.prize_daily")}: {prizes ? prizes.daily[2]?.toLocaleString() : "—"} pts</div>
+              <div>{t("ranking.prize_weekly")}: {prizes ? prizes.weekly[2]?.toLocaleString() : "—"} pts</div>
+              <div>{t("ranking.prize_monthly")}: {prizes ? prizes.monthly[2]?.toLocaleString() : "—"} pts</div>
             </div>
           </div>
         </div>
@@ -122,12 +124,12 @@ export default function ClasificacionPage() {
       {/* Leaderboard table */}
       <div className="card p-0 overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-slate-500">Cargando...</div>
+          <div className="p-8 text-center text-slate-500 font-bold uppercase">{t("ranking.loading")}</div>
         ) : top10.length === 0 ? (
           <div className="p-8 text-center text-slate-500 space-y-2">
-            <p>Sin datos para este periodo.</p>
+            <p className="font-bold">{t("ranking.no_data")}</p>
             <p className="text-xs">
-              La tabla se llena con puntos ganados en Faucet, HI-LO, logros y recompensas. Prueba con &quot;Todos&quot; o asegurate de tener movimientos en la base de datos.
+              {t("ranking.no_data_hint")}
             </p>
           </div>
         ) : (
@@ -135,10 +137,10 @@ export default function ClasificacionPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-700 text-left text-slate-400">
-                  <th className="p-3 w-12">#</th>
-                  <th className="p-3">Jugador</th>
-                  <th className="p-3 text-center">Nivel</th>
-                  <th className="p-3 text-right">Puntos ganados</th>
+                  <th className="p-3 w-12">{t("ranking.th_rank")}</th>
+                  <th className="p-3">{t("ranking.th_player")}</th>
+                  <th className="p-3 text-center">{t("ranking.th_level")}</th>
+                  <th className="p-3 text-right">{t("ranking.th_points")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -157,7 +159,7 @@ export default function ClasificacionPage() {
                         {e.name}
                       </span>
                       {e.isCurrentUser && (
-                        <span className="ml-1.5 text-[10px] uppercase tracking-wider text-amber-400/70">(Tu)</span>
+                        <span className="ml-1.5 text-[10px] uppercase tracking-wider text-amber-400/70">{t("ranking.user_tag")}</span>
                       )}
                     </td>
                     <td className="p-3 text-center">
@@ -176,8 +178,8 @@ export default function ClasificacionPage() {
             {/* User section if beyond top 10 */}
             {userSection && (
               <>
-                <div className="px-3 py-2 text-center text-xs text-slate-500">
-                  ··· {totalPlayers - 10} jugadores mas ···
+                <div className="px-3 py-2 text-center text-xs text-slate-500 bg-slate-800/20">
+                  {t("ranking.more_players").replace("{0}", (totalPlayers - 10).toString())}
                 </div>
                 <table className="w-full text-sm">
                   <tbody>
@@ -185,7 +187,7 @@ export default function ClasificacionPage() {
                       <tr
                         key={e.userId}
                         className={`border-b border-slate-700/50 ${
-                          e.isCurrentUser ? "bg-amber-500/10" : ""
+                          e.isCurrentUser ? "bg-amber-500/10" : "hover:bg-slate-800/50 transition"
                         }`}
                       >
                         <td className="p-3 w-12 text-slate-400">#{e.rank}</td>
@@ -194,7 +196,7 @@ export default function ClasificacionPage() {
                             {e.name}
                           </span>
                           {e.isCurrentUser && (
-                            <span className="ml-1.5 text-[10px] uppercase tracking-wider text-amber-400/70">(Tu)</span>
+                            <span className="ml-1.5 text-[10px] uppercase tracking-wider text-amber-400/70">{t("ranking.user_tag")}</span>
                           )}
                         </td>
                         <td className="p-3 text-center">
@@ -215,37 +217,37 @@ export default function ClasificacionPage() {
         )}
       </div>
 
-      <p className="text-xs text-center text-slate-500">
-        {totalPlayers} jugadores en total
+      <p className="text-xs text-center text-slate-500 font-semibold uppercase tracking-widest">
+        {t("ranking.total_players").replace("{0}", totalPlayers.toLocaleString())}
       </p>
 
       {/* Levels info */}
       <div className="card space-y-3">
-        <h2 className="text-lg font-semibold text-amber-400">Niveles de usuario</h2>
-        <p className="text-xs text-slate-400">Sube de nivel cumpliendo los requisitos:</p>
+        <h2 className="text-lg font-semibold text-amber-400">{t("ranking.levels_title")}</h2>
+        <p className="text-xs text-slate-400">{t("ranking.levels_subtitle")}</p>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-slate-400 border-b border-slate-700">
-                <th className="p-2 text-left">Nivel</th>
-                <th className="p-2 text-center">Apuestas</th>
-                <th className="p-2 text-center">Faucet</th>
-                <th className="p-2 text-center">Referidos</th>
-                <th className="p-2 text-center">Email</th>
+              <tr className="text-slate-400 border-b border-slate-700 text-left">
+                <th className="p-2">{t("ranking.th_lvl_name")}</th>
+                <th className="p-2 text-center">{t("ranking.th_lvl_bets")}</th>
+                <th className="p-2 text-center">{t("ranking.th_lvl_faucet")}</th>
+                <th className="p-2 text-center">{t("ranking.th_lvl_refs")}</th>
+                <th className="p-2 text-center">{t("ranking.th_lvl_email")}</th>
               </tr>
             </thead>
             <tbody>
               {LEVELS.map((l) => (
-                <tr key={l.level} className="border-b border-slate-700/50">
-                  <td className="p-2">
-                    <span className={`${l.color} font-medium`}>
+                <tr key={l.level} className="border-b border-slate-700/50 hover:bg-slate-800/30 transition">
+                  <td className="p-2 text-left">
+                    <span className={`${l.color} font-bold`}>
                       {l.icon} {l.name}
                     </span>
                   </td>
-                  <td className="p-2 text-center text-slate-300">{l.minBets > 0 ? l.minBets.toLocaleString() : "-"}</td>
-                  <td className="p-2 text-center text-slate-300">{l.minFaucet > 0 ? l.minFaucet.toLocaleString() : "-"}</td>
-                  <td className="p-2 text-center text-slate-300">{l.minReferrals > 0 ? l.minReferrals : "-"}</td>
-                  <td className="p-2 text-center">{l.requiresEmail ? "Si" : "-"}</td>
+                  <td className="p-2 text-center text-slate-300 font-mono">{l.minBets > 0 ? l.minBets.toLocaleString() : "-"}</td>
+                  <td className="p-2 text-center text-slate-300 font-mono">{l.minFaucet > 0 ? l.minFaucet.toLocaleString() : "-"}</td>
+                  <td className="p-2 text-center text-slate-300 font-mono">{l.minReferrals > 0 ? l.minReferrals : "-"}</td>
+                  <td className="p-2 text-center text-slate-400 font-bold">{l.requiresEmail ? t("ranking.yes") : "-"}</td>
                 </tr>
               ))}
             </tbody>

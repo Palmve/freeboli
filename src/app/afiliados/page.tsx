@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { SupportModal } from "@/components/SupportModal";
 import { APP_VERSION } from "@/lib/version";
+import { useLang } from "@/context/LangContext";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
@@ -36,8 +37,9 @@ interface AffiliateData {
 }
 
 function ShareButtons({ url }: { url: string }) {
+  const { t } = useLang();
   const [copied, setCopied] = useState(false);
-  const text = `Gana puntos y BOLIS gratis en FreeBoli! Regístrate con mi enlace: ${url}`;
+  const text = t("affiliates.share_text").replace("{0}", url);
   const encodedText = encodeURIComponent(text);
   const encodedUrl = encodeURIComponent(url);
 
@@ -50,7 +52,7 @@ function ShareButtons({ url }: { url: string }) {
 
   const buttons = [
     {
-      name: "WhatsApp",
+      name: t("affiliates.share_whatsapp"),
       href: `https://wa.me/?text=${encodedText}`,
       color: "bg-green-600 hover:bg-green-700",
       icon: (
@@ -60,7 +62,7 @@ function ShareButtons({ url }: { url: string }) {
       ),
     },
     {
-      name: "X / Twitter",
+      name: t("affiliates.share_x"),
       href: `https://twitter.com/intent/tweet?text=${encodedText}`,
       color: "bg-slate-700 hover:bg-slate-600",
       icon: (
@@ -70,7 +72,7 @@ function ShareButtons({ url }: { url: string }) {
       ),
     },
     {
-      name: "Facebook",
+      name: t("affiliates.share_facebook"),
       href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
       color: "bg-blue-600 hover:bg-blue-700",
       icon: (
@@ -80,7 +82,7 @@ function ShareButtons({ url }: { url: string }) {
       ),
     },
     {
-      name: "TikTok",
+      name: t("affiliates.share_tiktok"),
       href: "#",
       color: "bg-pink-600 hover:bg-pink-700",
       icon: (
@@ -90,12 +92,12 @@ function ShareButtons({ url }: { url: string }) {
       ),
       onClick: () => {
         navigator.clipboard.writeText(url);
-        alert("Enlace copiado. Pégalo en TikTok para compartir.");
+        alert(t("affiliates.copy_alert_tiktok"));
       },
     },
     {
-      name: "Correo",
-      href: `mailto:?subject=${encodeURIComponent("Gana puntos y BOLIS gratis en FreeBoli!")}&body=${encodedText}`,
+      name: t("affiliates.share_email"),
+      href: `mailto:?subject=${encodeURIComponent(t("affiliates.share_email_subject"))}&body=${encodedText}`,
       color: "bg-slate-600 hover:bg-slate-500",
       icon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -104,7 +106,7 @@ function ShareButtons({ url }: { url: string }) {
       ),
     },
     {
-      name: copied ? "Copiado!" : "Copiar",
+      name: copied ? t("affiliates.share_copied") : t("affiliates.share_copy"),
       href: "#",
       color: copied ? "bg-green-600" : "bg-amber-700 hover:bg-amber-600",
       icon: (
@@ -144,6 +146,7 @@ function ShareButtons({ url }: { url: string }) {
 
 export default function AfiliadosPage() {
   const { data: session, status } = useSession();
+  const { lang, t } = useLang();
   const [data, setData] = useState<AffiliateData | null>(null);
   const [loading, setLoading] = useState(true);
   const [origin, setOrigin] = useState("");
@@ -177,10 +180,10 @@ export default function AfiliadosPage() {
     const json = await res.json().catch(() => ({}));
     setClaimingBonus(null);
     if (!res.ok) {
-      setBonusMsg(json.error || "Error al reclamar bonus");
+      setBonusMsg(json.error || t("affiliates.error_claim"));
       return;
     }
-    setBonusMsg(`+${json.points.toLocaleString()} puntos reclamados!`);
+    setBonusMsg(t("affiliates.success_claim").replace("{0}", json.points.toLocaleString()));
     setData((d) =>
       d
         ? {
@@ -195,13 +198,13 @@ export default function AfiliadosPage() {
   }
 
   if (REQUIRE_AUTH && status === "loading") {
-    return <div className="py-12 text-center text-slate-400">Cargando...</div>;
+    return <div className="py-12 text-center text-slate-400 font-bold uppercase">{t("affiliates.loading")}</div>;
   }
   if (REQUIRE_AUTH && !session) {
     return (
       <div className="card max-w-md mx-auto text-center">
-        <p className="text-slate-300">Inicia sesión para ver tu plan de afiliados.</p>
-        <Link href="/auth/login" className="btn-primary mt-4 inline-block">Entrar</Link>
+        <p className="text-slate-300">{t("affiliates.login_hint")}</p>
+        <Link href="/auth/login" className="btn-primary mt-4 inline-block">{t("affiliates.btn_login")}</Link>
       </div>
     );
   }
@@ -213,74 +216,68 @@ export default function AfiliadosPage() {
       : "";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8 py-8">
-      <h1 className="text-2xl font-bold text-white">Plan de afiliados</h1>
+    <div className="mx-auto max-w-2xl space-y-8 py-8 text-left">
+      <h1 className="text-2xl font-bold text-white">{t("affiliates.title")}</h1>
 
       {/* Benefits */}
       <div className="card space-y-4">
-        <h2 className="text-xl font-semibold text-amber-400">Gana invitando amigos</h2>
+        <h2 className="text-xl font-semibold text-amber-400">{t("affiliates.benefits_title")}</h2>
         <ul className="space-y-2 text-sm text-slate-300">
           <li className="flex items-start gap-2">
             <span className="text-green-400 mt-0.5">&#10003;</span>
-            <span>
-              <strong>{data?.commissionPercent ?? 50}%</strong> de comisión permanente sobre los puntos que tus referidos ganen
-              en el faucet y juegos.
-            </span>
+            <span dangerouslySetInnerHTML={{ __html: t("affiliates.benefit_commission").replace("{0}", (data?.commissionPercent ?? 50).toString()) }} />
           </li>
           <li className="flex items-start gap-2">
             <span className="text-green-400 mt-0.5">&#10003;</span>
-            <span>
-              <strong>{(data?.verifiedBonus ?? 10000).toLocaleString()} puntos</strong> de bonus por cada referido que:
-              verifique su correo, juegue al menos <strong>{data?.minBets ?? 20}</strong> partidas de HI-LO,
-              y lleve al menos <strong>{data?.minDays ?? 3}</strong> días registrado.
-            </span>
+            <span dangerouslySetInnerHTML={{ __html: t("affiliates.benefit_bonus")
+                .replace("{0}", (data?.verifiedBonus ?? 10000).toLocaleString())
+                .replace("{1}", (data?.minBets ?? 20).toString())
+                .replace("{2}", (data?.minDays ?? 3).toString()) }} />
           </li>
           <li className="flex items-start gap-2">
             <span className="text-green-400 mt-0.5">&#10003;</span>
-            <span>
-              <strong>{data?.achievementPercent ?? 10}%</strong> de los logros que tus referidos reclamen.
-            </span>
+            <span dangerouslySetInnerHTML={{ __html: t("affiliates.benefit_achievements").replace("{0}", (data?.achievementPercent ?? 10).toString()) }} />
           </li>
         </ul>
       </div>
 
       {/* Referral link + share */}
       {loading ? (
-        <div className="card text-center text-slate-400">Cargando...</div>
+        <div className="card text-center text-slate-400 font-bold uppercase">{t("affiliates.loading")}</div>
       ) : referralUrl ? (
         <div className="card space-y-4">
-          <h2 className="text-lg font-semibold text-slate-300">Tu enlace de referido</h2>
+          <h2 className="text-lg font-semibold text-slate-300">{t("affiliates.referral_link_title")}</h2>
           <div className="break-all rounded-lg bg-slate-800 p-3 font-mono text-sm text-amber-400 border border-slate-700">
             {referralUrl}
           </div>
 
-          <h3 className="text-sm font-medium text-slate-300">Compartir</h3>
+          <h3 className="text-sm font-medium text-slate-300">{t("affiliates.share_title")}</h3>
           <ShareButtons url={referralUrl} />
         </div>
       ) : (
         <div className="card">
-          <p className="text-slate-400 text-sm">Inicia sesión para ver tu enlace de referido.</p>
+          <p className="text-slate-400 text-sm">{t("affiliates.login_hint")}</p>
         </div>
       )}
 
       {/* Stats */}
       {data && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="card text-center p-3">
+          <div className="card text-center p-3 border-emerald-500/20">
             <p className="text-2xl font-bold text-white">{data.totalReferrals}</p>
-            <p className="text-xs text-slate-400">Referidos</p>
+            <p className="text-xs text-slate-400 font-bold uppercase">{t("affiliates.stat_referrals")}</p>
           </div>
-          <div className="card text-center p-3">
+          <div className="card text-center p-3 border-emerald-500/20">
             <p className="text-2xl font-bold text-green-400">{data.totalVerified}</p>
-            <p className="text-xs text-slate-400">Verificados</p>
+            <p className="text-xs text-slate-400 font-bold uppercase">{t("affiliates.stat_verified")}</p>
           </div>
-          <div className="card text-center p-3">
+          <div className="card text-center p-3 border-emerald-500/20">
             <p className="text-2xl font-bold text-amber-400">{data.totalCommissions.toLocaleString()}</p>
-            <p className="text-xs text-slate-400">Comisiones</p>
+            <p className="text-xs text-slate-400 font-bold uppercase">{t("affiliates.stat_commissions")}</p>
           </div>
-          <div className="card text-center p-3">
+          <div className="card text-center p-3 border-emerald-500/20">
             <p className="text-2xl font-bold text-purple-400">{data.totalBonusPoints.toLocaleString()}</p>
-            <p className="text-xs text-slate-400">Bonus verif.</p>
+            <p className="text-xs text-slate-400 font-bold uppercase">{t("affiliates.stat_bonus")}</p>
           </div>
         </div>
       )}
@@ -288,10 +285,10 @@ export default function AfiliadosPage() {
       {/* Referral list */}
       {data && data.referrals.length > 0 && (
         <div className="card space-y-3">
-          <h2 className="text-lg font-semibold text-slate-300">Tus referidos</h2>
+          <h2 className="text-lg font-semibold text-slate-300">{t("affiliates.list_title")}</h2>
 
           {bonusMsg && (
-            <div className={`rounded p-2 text-sm ${bonusMsg.startsWith("+") ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
+            <div className={`rounded p-2 text-sm font-bold ${bonusMsg.startsWith("+") ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
               {bonusMsg}
             </div>
           )}
@@ -300,31 +297,31 @@ export default function AfiliadosPage() {
             <div className="max-h-[400px] overflow-y-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-slate-400 border-b border-slate-700">
-                    <th className="p-2">Email</th>
-                    <th className="p-2">Fecha</th>
-                    <th className="p-2 text-center">Verif.</th>
-                    <th className="p-2 text-center">Jugadas</th>
-                    <th className="p-2 text-right">Comisión</th>
-                    <th className="p-2 text-center">Bonus</th>
+                  <tr className="text-left text-slate-400 border-b border-slate-700 bg-slate-800/50">
+                    <th className="p-2">{t("affiliates.th_email")}</th>
+                    <th className="p-2">{t("affiliates.th_date")}</th>
+                    <th className="p-2 text-center">{t("affiliates.th_verified")}</th>
+                    <th className="p-2 text-center">{t("affiliates.th_plays")}</th>
+                    <th className="p-2 text-right">{t("affiliates.th_commission")}</th>
+                    <th className="p-2 text-center">{t("affiliates.th_bonus")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.referrals.map((r) => (
-                    <tr key={r.referredId} className="border-b border-slate-700/50">
+                    <tr key={r.referredId} className="border-b border-slate-700/50 hover:bg-slate-800/30 transition">
                       <td className="p-2 text-slate-300 font-mono text-xs">{r.email}</td>
                       <td className="p-2 text-slate-400 text-xs">
-                        {new Date(r.date).toLocaleDateString()}
+                        {new Date(r.date).toLocaleDateString(lang === "es" ? "es-ES" : "en-US")}
                       </td>
                       <td className="p-2 text-center">
                         {r.verified ? (
-                          <span className="text-green-400 text-xs">Si</span>
+                          <span className="text-green-400 text-xs font-bold">{t("affiliates.status_verified_yes")}</span>
                         ) : (
-                          <span className="text-slate-500 text-xs">No</span>
+                          <span className="text-slate-500 text-xs font-bold">{t("affiliates.status_verified_no")}</span>
                         )}
                       </td>
                       <td className="p-2 text-center text-xs">
-                        <span className={r.bets >= (data.minBets) ? "text-green-400" : "text-slate-400"}>
+                        <span className={r.bets >= (data.minBets) ? "text-green-400 font-bold" : "text-slate-400"}>
                           {r.bets}/{data.minBets}
                         </span>
                       </td>
@@ -333,26 +330,26 @@ export default function AfiliadosPage() {
                       </td>
                       <td className="p-2 text-center">
                         {r.bonusClaimed ? (
-                          <span className="text-green-400 text-xs">Cobrado</span>
+                          <span className="text-green-400 text-xs font-bold">{t("affiliates.status_claimed")}</span>
                         ) : r.bonusEligible ? (
                           <button
                             onClick={() => claimBonus(r.referredId)}
                             disabled={claimingBonus === r.referredId}
-                            className="rounded bg-amber-600 hover:bg-amber-500 px-2 py-0.5 text-xs text-white disabled:opacity-50"
+                            className="rounded bg-amber-600 hover:bg-amber-500 px-2 py-0.5 text-xs text-white disabled:opacity-50 font-bold transition"
                           >
-                            {claimingBonus === r.referredId ? "..." : "Reclamar"}
+                            {claimingBonus === r.referredId ? "..." : t("affiliates.btn_claim")}
                           </button>
                         ) : (
-                          <span className="text-slate-500 text-xs" title={
+                          <span className="text-slate-500 text-xs font-bold" title={
                             !r.verified
-                              ? "Falta verificar email"
+                              ? t("affiliates.pending_email")
                               : r.bets < (data.minBets)
-                                ? `Faltan ${(data.minBets) - r.bets} jugadas`
+                                ? t("affiliates.pending_plays").replace("{0}", (data.minBets - r.bets).toString())
                                 : r.daysRegistered < (data.minDays)
-                                  ? `Faltan ${(data.minDays) - r.daysRegistered} días`
-                                  : "No elegible"
+                                  ? t("affiliates.pending_days").replace("{0}", (data.minDays - r.daysRegistered).toString())
+                                  : t("affiliates.pending_generic")
                           }>
-                            Pendiente
+                            {t("affiliates.status_pending")}
                           </span>
                         )}
                       </td>
@@ -363,23 +360,25 @@ export default function AfiliadosPage() {
             </div>
           </div>
 
-          <p className="text-xs text-slate-500">
-            El bonus de {data.verifiedBonus.toLocaleString()} pts se otorga cuando el referido verifica email,
-            juega al menos {data.minBets} partidas y lleva {data.minDays}+ días registrado.
+          <p className="text-xs text-slate-500 font-medium">
+            {t("affiliates.bonus_disclaimer")
+              .replace("{0}", data.verifiedBonus.toLocaleString())
+              .replace("{1}", data.minBets.toString())
+              .replace("{2}", data.minDays.toString())}
           </p>
         </div>
       )}
 
-      <div className="flex justify-center gap-4 text-sm">
-        <Link href="/recompensas" className="text-amber-400 hover:underline">Recompensas</Link>
-        <Link href="/faucet" className="text-amber-400 hover:underline">Faucet</Link>
+      <div className="flex justify-center gap-6 text-sm">
+        <Link href="/recompensas" className="text-amber-400 hover:underline font-bold uppercase tracking-wider">Recompensas</Link>
+        <Link href="/faucet" className="text-amber-400 hover:underline font-bold uppercase tracking-wider">Faucet</Link>
       </div>
 
       <button
         onClick={() => setSupportOpen(true)}
         className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal"
       >
-        ¿Problemas con tus referidos? Reportar incidencia aquí - version {APP_VERSION}
+        {t("affiliates.support_hint")} - version {APP_VERSION}
       </button>
 
       <SupportModal

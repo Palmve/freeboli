@@ -5,6 +5,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { HelpModal } from "./HelpModal";
+import { useLang } from "@/context/LangContext";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
@@ -22,6 +23,7 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userLevel, setUserLevel] = useState<{ level: number; name: string; icon: string; color: string } | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const { t } = useLang();
 
   useEffect(() => {
     if (REQUIRE_AUTH || session?.user) return;
@@ -67,13 +69,13 @@ export function Header() {
   const showAdmin = (session?.user as { isAdmin?: boolean } | undefined)?.isAdmin ?? localUser?.isAdmin ?? false;
 
   const navLinks = [
-    { href: "/", label: "Inicio" },
-    { href: "/predicciones", label: "Predicción" },
-    { href: "/hi-lo", label: "HI-LO" },
-    { href: "/faucet", label: "Faucet" },
-    { href: "/clasificacion", label: "Ranking" },
-    { href: "/afiliados", label: "Afiliados" },
-    { href: "/recompensas", label: "Recompensas" },
+    { href: "/", label: t("nav.home") },
+    { href: "/predicciones", label: t("nav.prediction") },
+    { href: "/hi-lo", label: t("nav.hilo") },
+    { href: "/faucet", label: t("nav.faucet") },
+    { href: "/clasificacion", label: t("nav.ranking") },
+    { href: "/afiliados", label: t("nav.affiliates") },
+    { href: "/recompensas", label: t("nav.rewards") },
   ];
 
   return (
@@ -105,7 +107,7 @@ export function Header() {
                     : "text-slate-300 hover:text-white"
                   }`}
               >
-                Depositar
+                {t("nav.deposit")}
               </Link>
               <Link
                 href="/cuenta/retirar"
@@ -114,7 +116,7 @@ export function Header() {
                     : "text-slate-300 hover:text-white"
                   }`}
               >
-                Retiro
+                {t("nav.withdraw")}
               </Link>
               <Link
                 href="/cuenta"
@@ -123,7 +125,7 @@ export function Header() {
                     : "text-slate-300 hover:text-white"
                   }`}
               >
-                Mi cuenta
+                {t("nav.my_account")}
               </Link>
               {showAdmin && (
                 <Link
@@ -135,13 +137,13 @@ export function Header() {
                 </Link>
               )}
               <button type="button" onClick={() => signOut({ callbackUrl: "/" })} className="btn-primary text-sm">
-                Salir
+                {t("nav.logout")}
               </button>
             </>
           ) : (
             <>
-              <Link href="/auth/login" className="text-slate-300 hover:text-white">Entrar</Link>
-              <Link href="/auth/registro" className="btn-primary text-sm">Registrarse</Link>
+              <Link href="/auth/login" className="text-slate-300 hover:text-white">{t("nav.login")}</Link>
+              <Link href="/auth/registro" className="btn-primary text-sm">{t("nav.register")}</Link>
             </>
           )}
         </nav>
@@ -164,7 +166,7 @@ export function Header() {
             <button
               onClick={() => setHelpOpen(true)}
               className="bg-slate-800 p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-amber-400 transition ml-0.5"
-              title="Ayuda / Tutorial"
+              title={t("header.help_title")}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -216,7 +218,7 @@ export function Header() {
                       : "text-slate-300 hover:bg-slate-800"
                     }`}
                 >
-                  Depositar
+                  {t("nav.deposit")}
                 </Link>
                 <Link
                   href="/cuenta/retirar"
@@ -225,7 +227,7 @@ export function Header() {
                       : "text-slate-300 hover:bg-slate-800"
                     }`}
                 >
-                  Retiro
+                  {t("nav.withdraw")}
                 </Link>
                 <Link
                   href="/cuenta"
@@ -234,7 +236,7 @@ export function Header() {
                       : "text-slate-300 hover:bg-slate-800"
                     }`}
                 >
-                  Mi cuenta
+                  {t("nav.my_account")}
                 </Link>
                 {showAdmin && (
                   <Link
@@ -250,16 +252,16 @@ export function Header() {
                   onClick={() => signOut({ callbackUrl: "/" })}
                   className="rounded-lg px-3 py-2.5 text-sm text-left text-red-400 hover:bg-slate-800"
                 >
-                  Salir
+                  {t("nav.logout")}
                 </button>
               </>
             ) : (
               <>
                 <Link href="/auth/login" className="rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-slate-800">
-                  Entrar
+                  {t("nav.login")}
                 </Link>
                 <Link href="/auth/registro" className="rounded-lg bg-amber-500/20 px-3 py-2.5 text-sm text-amber-400 font-medium">
-                  Registrarse
+                  {t("nav.register")}
                 </Link>
               </>
             )}

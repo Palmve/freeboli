@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { SupportModal } from "@/components/SupportModal";
 import { APP_VERSION } from "@/lib/version";
+import { useLang } from "@/context/LangContext";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
@@ -52,6 +53,7 @@ const DAILY_TABLE = [
 
 export default function FaucetPage() {
   const { data: session, status } = useSession();
+  const { lang, t } = useLang();
   const [data, setData] = useState<FaucetData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -69,20 +71,20 @@ export default function FaucetPage() {
 
   useEffect(() => {
     if (session?.user || !REQUIRE_AUTH) fetchFaucet();
-    const t = setInterval(fetchFaucet, 10000);
-    return () => clearInterval(t);
+    const timerArr = setInterval(fetchFaucet, 10000);
+    return () => clearInterval(timerArr);
   }, [session?.user, fetchFaucet]);
 
   useEffect(() => {
     if (!data?.nextClaimIn) return;
-    const t = setInterval(() => {
+    const timerSec = setInterval(() => {
       setData((d) =>
         d && d.nextClaimIn != null && d.nextClaimIn > 0
           ? { ...d, nextClaimIn: d.nextClaimIn - 1 }
           : d
       );
     }, 1000);
-    return () => clearInterval(t);
+    return () => clearInterval(timerSec);
   }, [data?.nextClaimIn]);
 
   async function claim() {
@@ -105,7 +107,7 @@ export default function FaucetPage() {
     setLoading(false);
 
     if (json.requireEmailVerification) {
-      setError(json.error || "Verifica tu correo para reclamar.");
+      setError(json.error ? t("faucet.error_verify_email") : t("faucet.error_verify_email"));
       fetchFaucet();
       return;
     }
@@ -118,12 +120,12 @@ export default function FaucetPage() {
     }
 
     if (json.requireEngagement) {
-      setError(json.error || "Juega al menos 1 partida de HI-LO para seguir reclamando.");
+      setError(t("faucet.error_engagement"));
       return;
     }
 
     if (!res.ok) {
-      setError(json.error || "Error al reclamar.");
+      setError(json.error || t("faucet.error_generic"));
       if (json.waitSeconds) setData((d) => (d ? { ...d, nextClaimIn: json.waitSeconds } : null));
       return;
     }
@@ -134,15 +136,15 @@ export default function FaucetPage() {
   }
 
   if (REQUIRE_AUTH && status === "loading") {
-    return <div className="py-12 text-center text-slate-400">Cargando...</div>;
+    return <div className="py-12 text-center text-slate-400">{t("faucet.loading")}</div>;
   }
   if (REQUIRE_AUTH && !session) {
     return (
       <div className="card max-w-md mx-auto text-center">
-        <p className="text-slate-300">Entra o regístrate para usar el faucet.</p>
+        <p className="text-slate-300">{t("faucet.login_hint")}</p>
         <div className="mt-4 flex justify-center gap-4">
-          <Link href="/auth/login" className="btn-primary">Entrar</Link>
-          <Link href="/auth/registro" className="btn-secondary">Registrarse</Link>
+          <Link href="/auth/login" className="btn-primary">{t("faucet.btn_login")}</Link>
+          <Link href="/auth/registro" className="btn-secondary">{t("faucet.btn_register")}</Link>
         </div>
       </div>
     );
@@ -157,7 +159,7 @@ export default function FaucetPage() {
 
   const captchaUI = captcha && (
     <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 space-y-3">
-      <p className="text-sm font-medium text-amber-400">Resuelve para continuar:</p>
+      <p className="text-sm font-medium text-amber-400">{t("faucet.captcha_title")}</p>
       <p className="text-2xl font-bold text-white text-center">{captcha.question}</p>
       {captchaError && (
         <p className="text-sm text-red-400">{captchaError}</p>
@@ -166,7 +168,7 @@ export default function FaucetPage() {
         type="number"
         value={captchaAnswer}
         onChange={(e) => setCaptchaAnswer(e.target.value)}
-        placeholder="Tu respuesta"
+        placeholder={t("faucet.captcha_placeholder")}
         className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white text-center text-lg"
         onKeyDown={(e) => e.key === "Enter" && claim()}
       />
@@ -174,31 +176,31 @@ export default function FaucetPage() {
   );
 
   return (
-    <div className="mx-auto max-w-md space-y-6 py-8">
-      <h1 className="text-2xl font-bold text-white">Faucet</h1>
+    <div className="mx-auto max-w-md space-y-6 py-8 px-4">
+      <h1 className="text-2xl font-bold text-white">{t("faucet.title")}</h1>
 
-      <div className="card space-y-4">
+      <div className="card space-y-4 text-left">
         <p className="text-slate-300">
-          Reclama hasta <strong className="text-amber-400">{data?.nextPayout ?? data?.faucetPoints ?? 0} puntos</strong>{" "}
-          cada {data?.cooldownHours ?? 1} hora(s).
+          {t("faucet.claim_limit")} <strong className="text-amber-400">{data?.nextPayout ?? data?.faucetPoints ?? 0} {t("account.balance_pts")}</strong>{" "}
+          {t("faucet.claim_every")} {data?.cooldownHours ?? 1} {t("faucet.hours")}.
         </p>
         <p className="text-2xl font-bold text-white">
-          Balance: {(data?.points ?? 0).toLocaleString()} puntos
+          {t("faucet.balance")}: {(data?.points ?? 0).toLocaleString()} {t("account.balance_pts")}
         </p>
         <p className="text-sm text-slate-500">
-          {data?.pointsPerBolis != null && `${String(data.pointsPerBolis)} puntos = 1 BOLIS`}
+          {data?.pointsPerBolis != null && `${String(data.pointsPerBolis)} ${t("faucet.rate_suffix")}`}
         </p>
 
         {/* Streak indicators */}
         {data && (data.hourlyStreak > 0 || data.dailyStreak > 0) && (
           <div className="flex gap-4 text-sm">
             <div className="flex-1 rounded-lg bg-slate-800 p-3 text-center">
-              <p className="text-slate-400">Racha horas</p>
+              <p className="text-slate-400">{t("faucet.streak_hours")}</p>
               <p className="text-xl font-bold text-amber-400">{data.hourlyStreak}</p>
               <p className="text-xs text-slate-500">x{data.hourlyMultiplier}</p>
             </div>
             <div className="flex-1 rounded-lg bg-slate-800 p-3 text-center">
-              <p className="text-slate-400">Racha días</p>
+              <p className="text-slate-400">{t("faucet.streak_days")}</p>
               <p className="text-xl font-bold text-green-400">{data.dailyStreak}</p>
               <p className="text-xs text-slate-500">+{Math.round(data.dailyBonus * 100)}%</p>
             </div>
@@ -209,13 +211,13 @@ export default function FaucetPage() {
         {data && data.emailVerified === false && (
           <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 space-y-2">
             <p className="text-sm font-medium text-red-400">
-              Verifica tu correo electrónico para poder reclamar
+              {t("faucet.verify_email_alert")}
             </p>
             <p className="text-xs text-slate-400">
-              Revisa tu bandeja de entrada (y spam). Si no lo has recibido, ve a tu cuenta para reenviar la verificación.
+              {t("faucet.verify_email_desc")}
             </p>
             <Link href="/cuenta#verificacion" className="btn-secondary text-sm inline-block">
-              Ir a Mi cuenta
+              {t("faucet.go_to_account")}
             </Link>
           </div>
         )}
@@ -224,13 +226,13 @@ export default function FaucetPage() {
         {data?.needsEngagement && (
           <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 space-y-2">
             <p className="text-sm font-medium text-orange-400">
-              Juega al menos 1 partida de HI-LO para seguir reclamando
+              {t("faucet.engagement_alert")}
             </p>
             <p className="text-xs text-slate-400">
-              Cada {data.engagementEvery} reclamos se requiere actividad en los juegos (últimas 24h).
+              {t("faucet.engagement_desc").replace("{0}", data.engagementEvery.toString())}
             </p>
             <Link href="/hi-lo" className="btn-secondary text-sm inline-block">
-              Ir a HI-LO
+              {t("faucet.go_to_hilo")}
             </Link>
           </div>
         )}
@@ -247,33 +249,33 @@ export default function FaucetPage() {
           className="btn-primary w-full disabled:opacity-50"
         >
           {loading
-            ? "Reclamando..."
+            ? t("faucet.btn_claiming")
             : captcha
-              ? "Enviar respuesta y reclamar"
+              ? t("faucet.btn_submit_captcha")
               : canClaim
-                ? "Reclamar ahora"
-                : `Espera ${formatWait(data?.nextClaimIn ?? 0)}`}
+                ? t("faucet.btn_claim_now")
+                : `${t("faucet.btn_wait")} ${formatWait(data?.nextClaimIn ?? 0)}`}
         </button>
 
         {captcha?.position === "bottom" && captchaUI}
       </div>
 
       {/* Streak tables */}
-      <div className="card space-y-4">
-        <h2 className="text-lg font-semibold text-amber-400">Bonificación por rachas</h2>
+      <div className="card space-y-4 text-left">
+        <h2 className="text-lg font-semibold text-amber-400">{t("faucet.streaks_title")}</h2>
         <p className="text-sm text-slate-400">
-          Reclama sin interrupciones para ganar más puntos.
+          {t("faucet.streaks_desc")}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <h3 className="text-sm font-medium text-slate-300 mb-2">Reclamos consecutivos (horas)</h3>
+            <h3 className="text-sm font-medium text-slate-300 mb-2">{t("faucet.table_hourly_title")}</h3>
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-slate-400 border-b border-slate-700">
-                  <th className="py-1 text-left">Reclamos</th>
-                  <th className="py-1 text-center">Mult.</th>
-                  <th className="py-1 text-right">Puntos</th>
+                  <th className="py-1 text-left">{t("faucet.table_th_claims")}</th>
+                  <th className="py-1 text-center">{t("faucet.table_th_mult")}</th>
+                  <th className="py-1 text-right">{t("faucet.table_th_points")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -289,12 +291,12 @@ export default function FaucetPage() {
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-slate-300 mb-2">Días seguidos</h3>
+            <h3 className="text-sm font-medium text-slate-300 mb-2">{t("faucet.table_daily_title")}</h3>
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-slate-400 border-b border-slate-700">
-                  <th className="py-1 text-left">Días</th>
-                  <th className="py-1 text-right">Bonus</th>
+                  <th className="py-1 text-left">{t("faucet.table_th_days")}</th>
+                  <th className="py-1 text-right">{t("faucet.table_th_bonus")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -310,13 +312,13 @@ export default function FaucetPage() {
         </div>
 
         <p className="text-xs text-slate-500">
-          Fórmula: base x multiplicador hora x (1 + bonus día). Ejemplo: racha 25h + día 15 = 100 x 3.0 x 1.75 = 525 pts
+          {t("faucet.formula_desc")}
         </p>
       </div>
 
       <p className="text-center text-slate-500 text-sm">
         <Link href="/cuenta" className="text-amber-400 hover:underline">
-          Ver cuenta y retirar BOLIS
+          {t("faucet.footer_view_account")}
         </Link>
       </p>
 
@@ -324,7 +326,7 @@ export default function FaucetPage() {
         onClick={() => setSupportOpen(true)}
         className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal"
       >
-        ¿Problemas con el faucet? Reportar error o disputa aquí - version {APP_VERSION}
+        {t("faucet.support_hint")} - version {APP_VERSION}
       </button>
 
       <SupportModal

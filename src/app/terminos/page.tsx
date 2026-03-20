@@ -5,9 +5,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MAX_BET_POINTS, MAX_WIN_POINTS, MAX_DAILY_WIN_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
 import Link from "next/link";
+import { useLang } from "@/context/LangContext";
 
 export default function TerminosPage() {
   const { data: session } = useSession();
+  const { t } = useLang();
   const router = useRouter();
   const [accepting, setAccepting] = useState(false);
   const [accepted, setAccepted] = useState(false);
@@ -22,10 +24,10 @@ export default function TerminosPage() {
       if (res.ok) {
         setAccepted(true);
       } else {
-        setError(data.error || "Error al aceptar");
+        setError(data.error || t("terms.error_accept"));
       }
     } catch {
-      setError("Error de conexion");
+      setError(t("terms.error_conn"));
     } finally {
       setAccepting(false);
     }
@@ -36,138 +38,124 @@ export default function TerminosPage() {
   const maxDailyBolis = (MAX_DAILY_WIN_POINTS / POINTS_PER_BOLIS).toLocaleString();
 
   return (
-    <div className="relative mx-auto max-w-3xl space-y-6 py-8 px-4">
+    <div className="relative mx-auto max-w-3xl space-y-6 py-8 px-4 text-left">
       {/* Botón de cierre superior */}
       <button 
         onClick={() => router.back()}
         className="absolute right-4 top-8 rounded-full bg-slate-800 p-2 text-slate-400 hover:bg-slate-700 hover:text-white transition"
-        title="Cerrar"
+        title={t("terms.close")}
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
 
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-white pr-10">Terminos y Condiciones de Juego</h1>
-        <p className="text-sm text-slate-400">Ultima actualizacion: Marzo 2026</p>
+      <div className="flex flex-col gap-1 pr-12">
+        <h1 className="text-2xl font-bold text-white">{t("terms.title")}</h1>
+        <p className="text-sm text-slate-400 font-medium">{t("terms.updated")}</p>
       </div>
 
-      <div className="card space-y-4 text-sm text-slate-300 leading-relaxed">
-        <h2 className="text-lg font-semibold text-amber-400">1. Naturaleza del servicio</h2>
-        <p>
-          FreeBoli es una plataforma de entretenimiento basada en puntos virtuales. Los puntos no tienen valor monetario
-          intrinseco. Los BOLIS (token SPL en Solana) pueden depositarse y retirarse segun la equivalencia vigente
-          ({String(POINTS_PER_BOLIS)} puntos = 1 BOLIS). El usuario acepta que juega bajo su propia responsabilidad.
-        </p>
+      <div className="card space-y-5 text-sm text-slate-300 leading-relaxed border-slate-700/50">
+        <div>
+          <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.nature_title")}</h2>
+          <p>
+            {t("terms.nature_text").replace("{0}", String(POINTS_PER_BOLIS))}
+          </p>
+        </div>
 
-        <h2 className="text-lg font-semibold text-amber-400">2. Limites de juego</h2>
-        <ul className="list-disc list-inside space-y-1">
-          <li>Apuesta maxima por jugada: <span className="text-white font-mono">{MAX_BET_POINTS.toLocaleString()} puntos</span> ({maxBetBolis} BOLIS)</li>
-          <li>Ganancia maxima por jugada: <span className="text-white font-mono">{MAX_WIN_POINTS.toLocaleString()} puntos</span> ({maxWinBolis} BOLIS)</li>
-          <li>Ganancia maxima diaria: <span className="text-white font-mono">{MAX_DAILY_WIN_POINTS.toLocaleString()} puntos</span> ({maxDailyBolis} BOLIS)</li>
-          <li>Los limites pueden ser ajustados por la administracion en cualquier momento</li>
-        </ul>
+        <div>
+          <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.limits_title")}</h2>
+          <ul className="list-disc list-inside space-y-2 ml-1">
+            <li dangerouslySetInnerHTML={{ __html: t("terms.limit_max_bet").replace("{0}", MAX_BET_POINTS.toLocaleString()).replace("{1}", maxBetBolis) }} />
+            <li dangerouslySetInnerHTML={{ __html: t("terms.limit_max_win").replace("{0}", MAX_WIN_POINTS.toLocaleString()).replace("{1}", maxWinBolis) }} />
+            <li dangerouslySetInnerHTML={{ __html: t("terms.limit_max_daily").replace("{0}", MAX_DAILY_WIN_POINTS.toLocaleString()).replace("{1}", maxDailyBolis) }} />
+            <li className="text-slate-500 font-medium italic">{t("terms.limit_adjust_hint")}</li>
+          </ul>
+        </div>
 
-        <h2 className="text-lg font-semibold text-amber-400">3. Juego justo (Provably Fair)</h2>
-        <p>
-          El juego HI-LO utiliza un sistema provably fair verificable. Cada tirada genera un server_seed, client_seed y
-          nonce que el usuario puede verificar de forma independiente. La casa tiene una ventaja del 2% (49% jugador / 51% casa
-          en cuota x2).
-        </p>
+        <div>
+          <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.fair_title")}</h2>
+          <p>{t("terms.fair_text")}</p>
+        </div>
 
-        <h2 className="text-lg font-semibold text-amber-400">4. Conducta prohibida</h2>
-        <ul className="list-disc list-inside space-y-1">
-          <li>Uso de bots, scripts automatizados o software de terceros para manipular el juego</li>
-          <li>Creacion de multiples cuentas para evadir limites o abusar del sistema de referidos</li>
-          <li>Explotacion de errores, bugs o vulnerabilidades del sistema</li>
-          <li>Intentos de acceso no autorizado a cuentas de otros usuarios</li>
-          <li>Lavado de puntos entre cuentas</li>
-          <li>Manipulacion o interferencia con el generador de numeros aleatorios</li>
-          <li>Uso de VPN o proxies para evadir restricciones de IP</li>
-          <li>Cualquier actividad que la administracion considere fraudulenta o abusiva</li>
-        </ul>
+        <div>
+          <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.conduct_title")}</h2>
+          <ul className="list-disc list-inside space-y-1.5 ml-1">
+            {(t("terms.conduct_list") as unknown as string[]).map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
+        </div>
 
-        <h2 className="text-lg font-semibold text-amber-400">5. Sanciones</h2>
-        <p>
-          La administracion se reserva el derecho de suspender o bloquear permanentemente cualquier cuenta que viole estos
-          terminos, sin previo aviso y sin obligacion de devolucion de puntos o BOLIS. Las cuentas marcadas como "A Evaluar",
-          "Suspendido" o "Bloqueado" tendran restricciones parciales o totales en el uso de la plataforma.
-        </p>
+        <div>
+          <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.sanctions_title")}</h2>
+          <p>{t("terms.sanctions_text")}</p>
+        </div>
 
-        <h2 className="text-lg font-semibold text-amber-400">6. Depositos y retiros</h2>
-        <ul className="list-disc list-inside space-y-1">
-          <li>Los depositos se procesan automaticamente al verificar la transaccion en Solana</li>
-          <li>Los retiros estan sujetos a revision y pueden demorar hasta 24 horas</li>
-          <li>Se aplica un minimo de retiro configurable por la administracion</li>
-          <li>La plataforma no es responsable por transacciones enviadas a direcciones incorrectas</li>
-          <li>En caso de error tecnico, la administracion puede revertir operaciones</li>
-        </ul>
+        <div>
+          <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.transac_title")}</h2>
+          <ul className="list-disc list-inside space-y-1.5 ml-1">
+            {(t("terms.transac_list") as unknown as string[]).map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
+        </div>
 
-        <h2 className="text-lg font-semibold text-amber-400">7. Faucet y recompensas</h2>
-        <p>
-          El faucet y los sistemas de recompensas son beneficios opcionales que la plataforma ofrece a discrecion.
-          Los montos, frecuencias y condiciones pueden cambiar sin previo aviso. El abuso sistematico del faucet
-          (farming con bots, cuentas multiples) resultara en suspension inmediata.
-        </p>
+        <div>
+          <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.faucet_title")}</h2>
+          <p>{t("terms.faucet_text")}</p>
+        </div>
 
-        <h2 className="text-lg font-semibold text-amber-400">8. Programa de afiliados</h2>
-        <p>
-          Las comisiones de afiliados se calculan automaticamente. La plataforma se reserva el derecho de revocar
-          comisiones obtenidas mediante referidos fraudulentos o auto-referidos. Los bonos por referidos verificados
-          requieren que el referido cumpla requisitos minimos de actividad.
-        </p>
+        <div>
+          <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.aff_title")}</h2>
+          <p>{t("terms.aff_text")}</p>
+        </div>
 
-        <h2 className="text-lg font-semibold text-amber-400">9. Responsabilidad limitada</h2>
-        <p>
-          FreeBoli no garantiza disponibilidad ininterrumpida del servicio. No somos responsables por perdidas
-          causadas por fallos tecnicos, de red, o de la blockchain de Solana. El usuario acepta que juega con
-          fondos que puede permitirse perder.
-        </p>
+        <div>
+          <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.resp_title")}</h2>
+          <p>{t("terms.resp_text")}</p>
+        </div>
 
-        <h2 className="text-lg font-semibold text-amber-400">10. Modificaciones</h2>
-        <p>
-          Estos terminos pueden ser modificados en cualquier momento. El uso continuado de la plataforma despues
-          de una modificacion implica la aceptacion de los nuevos terminos. Se notificara a los usuarios de
-          cambios significativos.
-        </p>
+        <div>
+          <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.mods_title")}</h2>
+          <p>{t("terms.mods_text")}</p>
+        </div>
 
-        <h2 className="text-lg font-semibold text-amber-400">11. Edad minima</h2>
-        <p>
-          El usuario declara ser mayor de 18 anos (o la edad legal en su jurisdiccion) y asume la responsabilidad
-          de verificar que el uso de esta plataforma es legal en su pais de residencia.
-        </p>
+        <div>
+          <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.age_title")}</h2>
+          <p>{t("terms.age_text")}</p>
+        </div>
       </div>
 
       {session?.user && !accepted && (
-        <div className="card text-center space-y-3">
-          {error && <p className="text-red-400 text-sm">{error}</p>}
-          <p className="text-slate-300">
-            Al hacer clic en "Acepto", confirmas que has leido y aceptas todos los terminos y condiciones.
+        <div className="card text-center space-y-4 border-amber-500/30 bg-amber-500/5 shadow-xl shadow-amber-500/5">
+          {error && <p className="text-red-400 text-sm font-bold">{error}</p>}
+          <p className="text-slate-300 font-medium">
+            {t("terms.accept_confirm")}
           </p>
           <button
             onClick={handleAccept}
             disabled={accepting}
-            className="btn-primary w-full max-w-xs mx-auto disabled:opacity-50"
+            className="btn-primary w-full max-w-xs mx-auto disabled:opacity-50 font-black uppercase tracking-widest py-3 text-sm transition shadow-lg shadow-amber-500/20"
           >
-            {accepting ? "Procesando..." : "Acepto los Terminos y Condiciones"}
+            {accepting ? t("terms.processing") : t("terms.btn_accept")}
           </button>
         </div>
       )}
 
       {accepted && (
-        <div className="card text-center space-y-4">
-          <p className="text-green-400 font-semibold">Terminos aceptados correctamente. Ya puedes jugar.</p>
-          <Link href="/hi-lo" className="btn-primary inline-block">
-            Volver al Juego
+        <div className="card text-center space-y-5 border-green-500/30 bg-green-500/5">
+          <p className="text-green-400 font-black uppercase tracking-tight">{t("terms.status_accepted")}</p>
+          <Link href="/hi-lo" className="btn-primary inline-block px-8 py-2.5 font-black uppercase tracking-widest text-sm shadow-lg shadow-amber-500/10">
+            {t("terms.btn_back_game")}
           </Link>
         </div>
       )}
 
       {!accepted && (
-        <div className="text-center pb-8">
-          <button onClick={() => router.back()} className="text-slate-500 hover:text-slate-300 transition text-sm">
-            ← Volver anterior
+        <div className="text-center pb-8 pt-4">
+          <button onClick={() => router.back()} className="text-slate-500 hover:text-white transition text-xs font-black uppercase tracking-widest">
+            {t("terms.btn_back_prev")}
           </button>
         </div>
       )}
