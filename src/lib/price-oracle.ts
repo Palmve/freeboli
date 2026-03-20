@@ -47,26 +47,40 @@ export async function getCryptoPrice(asset: Asset): Promise<number | null> {
 }
 
 /**
- * Calcula la cuota dinámica para una predicción.
+ * Calcula la cuota dinámica para una predicción usando decaimiento de volatilidad.
  */
 export function calculateDynamicOdds(
   side: "up" | "down",
   startPrice: number,
   currentPrice: number,
   timeLeftSec: number,
+  totalTimeSec: number = 3600,
   houseEdge: number = 0.05
 ): number {
-  let probability = 0.5;
+  if (startPrice <= 0 || currentPrice <= 0) return 2.0;
+
   const diffPct = (currentPrice - startPrice) / startPrice;
   
-  // Factor de sensibilidad: aumenta a medida que el tiempo se acaba.
-  const timeFactor = 1 + (3600 - timeLeftSec) / 600; 
+  // Tiempo relativo restante (1.0 al inicio, -> 0 al final)
+  const tRel = Math.max(0.0001, timeLeftSec / totalTimeSec);
   
-  probability += diffPct * 10 * timeFactor; 
-
-  probability = Math.max(0.01, Math.min(0.99, probability));
-  const winProb = side === "up" ? probability : 1 - probability;
+  /**
+   * Modelo: Probabilidad Sigmoide Escalada
+   * p = 1 / (1 + exp(-k * diffPct / (sigma * sqrt(tRel))))
+   */
+  const k = 1.0;
+  const sigma = 0.015; // 1.5% de volatilidad esperada por bloque de tiempo
+  
+  const exponent = (k * diffPct) / (sigma * Math.sqrt(tRel));
+  const probUp = 1 / (1 + Math.exp(-exponent));
+  
+  // Limitar probabilidad para evitar odds infinitas
+  const finalProbUp = Math.max(0.01, Math.min(0.99, probUp));
+  const winProb = side === "up" ? finalProbUp : 1 - finalProbUp;
+  
+  // Aplicar House Edge y calcular cuota
   const odds = (1 / winProb) * (1 - houseEdge);
 
-  return Math.max(1.01, Math.min(50, odds));
+  // Cuota mínima 1.05x, máxima 50x
+  return Math.max(1.05, Math.min(50, odds));
 }
