@@ -356,38 +356,44 @@ export default function AdminVisitasPage() {
                     {processedUsers
                       .sort((a,b) => userSort === "items" ? b.itemsCount - a.itemsCount : b.lastActive - a.lastActive)
                       .map(u => (
-                      <div 
-                        key={u.userId} 
-                        onClick={() => setSelectedUser(u)}
-                        className={`p-4 border-b border-slate-800 hover:bg-slate-800 cursor-pointer transition flex flex-col gap-1 ${selectedUser?.userId === u.userId ? "bg-slate-800/50 border-r-2 border-r-amber-500" : ""}`}
-                      >
-                         <div className="flex justify-between items-center">
-                            <span className="font-bold text-amber-400 text-xs">Usuario ...{u.userId.slice(-6)}</span>
-                            <span className="text-[10px] text-slate-500">{new Date(u.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                         </div>
-                         <div className="flex justify-between items-center">
-                            <span className="text-[10px] text-slate-400 truncate max-w-[120px]">
-                                {u.location.city ? decodeURIComponent(u.location.city) : "Desconocido"}
-                            </span>
-                            <span className="text-[10px] bg-slate-950 px-2 py-0.5 rounded text-amber-500 font-bold border border-amber-500/20">
-                                {u.itemsCount} {u.itemsCount === 1 ? 'visita' : 'visitas'}
-                            </span>
-                         </div>
-                      </div>
-                    ))}
-                 </div>
-              </div>
-              
-              <div className="lg:col-span-2 card min-h-[400px] flex flex-col relative overflow-hidden">
-                {selectedUser ? (
-                  <div className="p-4 space-y-6">
-                     <div className="flex justify-between border-b border-slate-800 pb-4">
-                       <div>
-                         <h3 className="font-bold text-xl text-white">Detalle de Sesión</h3>
-                         <p className="text-xs text-slate-400 mt-1">
-                            {decodeURIComponent(selectedUser.location.city || "")}, {selectedUser.location.country}
-                         </p>
-                       </div>
+                        <div 
+                          key={u.userId} 
+                          onClick={() => setSelectedUser(u)}
+                          className={`p-4 border-b border-slate-800 hover:bg-slate-800 cursor-pointer transition flex flex-col gap-1 ${selectedUser?.userId === u.userId ? "bg-slate-800/50 border-r-2 border-r-amber-500" : ""}`}
+                        >
+                           <div className="flex justify-between items-center">
+                              <span className={`font-bold text-xs ${u.userId.startsWith('anon-') ? 'text-slate-400' : 'text-amber-400'}`}>
+                                 {u.userId.startsWith('anon-') 
+                                   ? `Visitante #${u.userId.slice(5, 9)}` 
+                                   : `Usuario ...${u.userId.slice(-6)}`}
+                              </span>
+                              <span className="text-[10px] text-slate-500">{new Date(u.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                           </div>
+                           <div className="flex justify-between items-center">
+                              <span className="text-[10px] text-slate-400 truncate max-w-[120px]">
+                                  {u.location.city ? decodeURIComponent(u.location.city) : "Desconocido"}
+                              </span>
+                              <span className="text-[10px] bg-slate-950 px-2 py-0.5 rounded text-amber-500 font-bold border border-amber-500/20">
+                                  {u.itemsCount} {u.itemsCount === 1 ? 'visita' : 'visitas'}
+                              </span>
+                           </div>
+                        </div>
+                      ))}
+                     </div>
+                  </div>
+                  
+                  <div className="lg:col-span-2 card min-h-[400px] flex flex-col relative overflow-hidden">
+                    {selectedUser ? (
+                      <div className="p-4 space-y-6">
+                         <div className="flex justify-between border-b border-slate-800 pb-4">
+                           <div>
+                             <h3 className="font-bold text-xl text-white">
+                                {selectedUser.userId.startsWith('anon-') ? 'Sesión de Visitante' : 'Sesión de Usuario'}
+                             </h3>
+                             <p className="text-xs text-slate-400 mt-1">
+                                {selectedUser.location.city ? decodeURIComponent(selectedUser.location.city) : "Desconocido"}, {selectedUser.location.country}
+                             </p>
+                           </div>
                        <div className="text-right">
                           <p className="text-lg font-bold text-amber-500">{selectedUser.totalTime}m</p>
                           <p className="text-[10px] text-slate-600 uppercase">Tiempo total</p>
