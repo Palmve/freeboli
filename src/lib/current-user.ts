@@ -3,7 +3,8 @@ import { authOptions } from "@/lib/auth-options";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/auth";
 
-const REQUIRE_AUTH = process.env.REQUIRE_AUTH === "true";
+const IS_VERCEL = process.env.VERCEL === "1";
+const REQUIRE_AUTH = process.env.REQUIRE_AUTH === "true" || IS_VERCEL;
 const LOCAL_USER_EMAIL = (process.env.LOCAL_USER_EMAIL || "albertonava@gmail.com").trim().toLowerCase();
 
 export type UserStatus = "normal" | "evaluar" | "suspendido" | "bloqueado";
