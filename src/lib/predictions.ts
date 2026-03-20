@@ -109,9 +109,7 @@ export async function resolvePendingRounds() {
   const { data: pending } = await supabase
     .from("prediction_rounds")
     .select("*")
-    .neq("status", "resolved")
-    .neq("status", "cancelled")
-    .neq("status", "closed")
+    .in("status", ["open", "closed"])
     .lt("end_time", now.toISOString());
 
   if (!pending || pending.length === 0) return 0;
