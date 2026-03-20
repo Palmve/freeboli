@@ -364,8 +364,8 @@ export default function AdminVisitasPage() {
                            <div className="flex justify-between items-center">
                               <span className={`font-bold text-xs ${u.userId.startsWith('anon-') ? 'text-slate-400' : 'text-amber-400'}`}>
                                  {u.userId.startsWith('anon-') 
-                                   ? `Visitante #${u.userId.slice(5, 9)}` 
-                                   : `Usuario ...${u.userId.slice(-6)}`}
+                                   ? `#${u.userId.slice(5, 9)}` 
+                                   : `...${u.userId.slice(-6)}`}
                               </span>
                               <span className="text-[10px] text-slate-500">{new Date(u.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                            </div>
@@ -387,9 +387,7 @@ export default function AdminVisitasPage() {
                       <div className="p-4 space-y-6">
                          <div className="flex justify-between border-b border-slate-800 pb-4">
                            <div>
-                             <h3 className="font-bold text-xl text-white">
-                                {selectedUser.userId.startsWith('anon-') ? 'Sesión de Visitante' : 'Sesión de Usuario'}
-                             </h3>
+                             <h3 className="font-bold text-xl text-white">Detalle de Sesión</h3>
                              <p className="text-xs text-slate-400 mt-1">
                                 {selectedUser.location.city ? decodeURIComponent(selectedUser.location.city) : "Desconocido"}, {selectedUser.location.country}
                              </p>
