@@ -1,9 +1,16 @@
 import { createClient } from "@supabase/supabase-js";
 
 // Guard contra ejecución durante el build de Next.js
-const IS_BUILD = process.env.NEXT_PHASE === 'phase-production-build';
-if (IS_BUILD) {
-    console.log("CRON: Fase de build detectada, desactivando tareas automáticas.");
+// NEXT_PHASE solo está disponible en next.config.mjs, por lo que usamos otros indicios
+const IS_BUILD = process.env.NODE_ENV === 'production' && !process.env.VERCEL;
+const IS_VERCEL_BUILD = process.env.CI === 'true' && !process.env.VERCEL_ENV; // Vercel pone VERCEL_ENV en runtime
+
+const SHOULD_SKIP_CRON = IS_BUILD || IS_VERCEL_BUILD;
+
+if (SHOULD_SKIP_CRON) {
+    if (typeof process !== 'undefined') {
+        // console.log("CRON: Fase de build detectada, desactivando tareas automáticas.");
+    }
 }
 import { Connection, PublicKey } from "@solana/web3.js";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
@@ -27,6 +34,7 @@ const RPC = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 const SIGS_PER_ADDRESS = 20;
 
 export async function processDeposits() {
+  if (SHOULD_SKIP_CRON) return { ok: true, skipped: true };
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -186,7 +194,7 @@ function getPrizeConfigs(now: Date): PrizeConfig[] {
 }
 
 export async function awardPrizes() {
-  if (IS_BUILD) return { ok: true };
+  if (SHOULD_SKIP_CRON) return { ok: true };
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   const now = new Date();
   const configs = getPrizeConfigs(now);
@@ -222,7 +230,7 @@ export async function awardPrizes() {
 // --- DAILY SUMMARY ---
 
 export async function runDailySummary() {
-  if (IS_BUILD) return { ok: true, message: "Skipped in build" };
+  if (SHOULD_SKIP_CRON) return { ok: true, message: "Skipped in build" };
   console.log("CRON: Iniciando runDailySummary...");
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   const now = new Date();

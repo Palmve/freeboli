@@ -13,14 +13,6 @@ async function authorize(req: Request): Promise<boolean> {
   return !!user;
 }
 
-/** GET — Vercel Cron llama esta ruta una vez al día (Master Cron). */
-export async function GET(req: Request) {
-  if (!(await authorize(req))) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
-  }
-  const res = await processDeposits();
-  return NextResponse.json(res);
-}
 
 /** POST — Botón "Verificar ahora" del panel admin o de usuario. */
 export async function POST(req: Request) {
