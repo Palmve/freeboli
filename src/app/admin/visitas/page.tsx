@@ -360,7 +360,7 @@ export default function AdminVisitasPage() {
                       onClick={() => setSelectedUser(u)}
                       className={`p-4 border-b border-slate-800 hover:bg-slate-800 cursor-pointer transition flex flex-col gap-1 ${selectedUser?.userId === u.userId ? "bg-slate-800/50 border-r-2 border-r-amber-500" : ""}`}
                     >
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between items-center gap-2">
                         <span className={`font-bold text-xs ${u.userId.startsWith('anon-') ? 'text-slate-500' : 'text-amber-400'}`}>
                           {u.userId.startsWith('anon-') 
                             ? `#${u.userId.slice(-4)}` 
