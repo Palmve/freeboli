@@ -124,7 +124,53 @@ export async function resolvePendingRounds() {
       const closePrice = round.asset === "BOLIS" ? Number(closePriceRaw.toFixed(5)) : closePriceRaw;
       const result = closePrice > round.opening_price ? "up" : closePrice < round.opening_price ? "down" : "draw";
 
-      // ... (lógica de repartición de premios se mantiene igual) ...
+      // 1. Obtener todas las apuestas de esta ronda
+      const { data: bets } = await supabase
+        .from("prediction_bets")
+        .select("*")
+        .eq("round_id", round.id);
+
+      if (bets && bets.length > 0) {
+        for (const bet of bets) {
+          let payout = 0;
+          let status = "lost";
+
+          if (result === "draw") {
+              payout = bet.amount; // Devolución en empate
+              status = "draw";
+          } else if (bet.side === result) {
+              // Victoria: monto * multiplicador (ej 1.95)
+              payout = Math.floor(bet.amount * (bet.multiplier || 1.95));
+              status = "won";
+          }
+
+          // Registrar movimiento y actualizar balance solo si ganó o empató
+          if (payout > 0) {
+            const { data: bal } = await supabase.from("balances").select("points").eq("user_id", bet.user_id).single();
+            const currentPoints = Number(bal?.points ?? 0);
+            await supabase.from("balances").upsert({ 
+                user_id: bet.user_id, 
+                points: currentPoints + payout,
+                updated_at: new Date().toISOString()
+            }, { onConflict: "user_id" });
+
+            await supabase.from("movements").insert({
+                user_id: bet.user_id,
+                type: "premio_prediccion",
+                points: payout,
+                reference: `round:${round.id}:bet:${bet.id}`,
+                metadata: { round_id: round.id, bet_id: bet.id, result, side: bet.side }
+            });
+          }
+
+          // Actualizar estado de la apuesta
+          await supabase.from("prediction_bets").update({ 
+              status,
+              payout,
+              processed_at: new Date().toISOString()
+          }).eq("id", bet.id);
+        }
+      }
 
       await supabase.from("prediction_rounds").update({ 
         closing_price: closePrice, 
