@@ -36,43 +36,29 @@ export async function POST(req: Request) {
   }
 
   const supabase = await createClient();
-  const { data: balance } = await supabase
-    .from("balances")
-    .select("points")
-    .eq("user_id", userId)
-    .single();
-  const current = Number(balance?.points ?? 0);
-  if (current < points) {
-    return NextResponse.json(
-      { error: "Saldo insuficiente." },
-      { status: 400 }
-    );
+
+  // 1. Ejecutar solicitud de retiro de forma atómica (Evita Race Condition)
+  const { data: withdrawData, error: withdrawError } = await supabase.rpc("create_withdrawal_request", {
+    target_user_id: userId,
+    amount_points: points,
+    dest_wallet: wallet
+  });
+
+  if (withdrawError || !withdrawData?.[0]?.success) {
+    return NextResponse.json({ 
+        error: withdrawError?.message || "Saldo insuficiente o error al procesar el retiro." 
+    }, { status: 400 });
   }
 
-  const { data: inserted, error } = await supabase
-    .from("withdrawals")
-    .insert({
-      user_id: userId,
-      points,
-      wallet_destination: wallet,
-      status: "pending",
-    })
-    .select("id")
-    .single();
+  const withdrawalId = withdrawData[0].withdrawal_id;
+  const newBalance = Number(withdrawData[0].result_balance);
 
-  if (error) {
-    return NextResponse.json({ error: "Error al crear retiro." }, { status: 500 });
-  }
-
-  await supabase.from("balances").update({
-    points: current - points,
-    updated_at: new Date().toISOString(),
-  }).eq("user_id", userId);
+  // 2. Registrar el movimiento para el historial
   await supabase.from("movements").insert({
     user_id: userId,
     type: "retiro_bolis",
     points: -points,
-    reference: inserted.id,
+    reference: withdrawalId,
     metadata: { wallet_destination: wallet, status: "pending" },
   });
 
@@ -80,7 +66,7 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     ok: true,
-    withdrawalId: inserted.id,
-    balance: current - points,
+    withdrawalId: withdrawalId,
+    balance: newBalance,
   });
 }
