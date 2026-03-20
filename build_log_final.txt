@@ -1,0 +1,107 @@
+
+> freeboli@0.1.0 build E:\2026 Desarrollo Web\freeboli
+> next build "--no-lint"
+
+ ÔÜá Linting is disabled.
+  Ôû▓ Next.js 14.2.18
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ Ô£ô Compiled successfully
+   Checking validity of types ...
+   Collecting page data ...
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+   Generating static pages (0/76) ...
+   Generating static pages (19/76) 
+   Generating static pages (38/76) 
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+CRON: Iniciando runDailySummary...
+CRON: Consultando estad├¡sticas del periodo: 2026-03-19T04:00:00.000Z al 2026-03-20T04:00:00.000Z
+CRON: Enviando resumen a Telegram...
+   Generating static pages (57/76) 
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+ Ô£ô Generating static pages (76/76)
+   Finalizing page optimization ...
+   Collecting build traces ...
+ ÔÜá Failed to copy traced files for E:\2026 Desarrollo Web\freeboli\.next\server\pages\_app.js Error: EPERM: operation not permitted, symlink 'E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\react@18.3.1\node_modules\react' -> 'E:\2026 Desarrollo Web\freeboli\.next\standalone\node_modules\react'
+    at async Object.symlink (node:internal/fs/promises:1009:10)
+    at async E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\utils.js:1399:25
+    at async Promise.all (index 8)
+    at async handleTraceFiles (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\utils.js:1387:9)
+    at async copyTracedFiles (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\utils.js:1448:9)
+    at async E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\index.js:223:9
+    at async Span.traceAsyncFn (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\trace\trace.js:154:20)
+    at async writeStandaloneDirectory (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\index.js:222:5)
+    at async E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\index.js:2139:17
+    at async Span.traceAsyncFn (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\trace\trace.js:154:20) {
+  errno: -4048,
+  code: 'EPERM',
+  syscall: 'symlink',
+  path: 'E:\\2026 Desarrollo Web\\freeboli\\node_modules\\.pnpm\\react@18.3.1\\node_modules\\react',
+  dest: 'E:\\2026 Desarrollo Web\\freeboli\\.next\\standalone\\node_modules\\react'
+}
+ ÔÜá Failed to copy traced files for E:\2026 Desarrollo Web\freeboli\.next\server\pages\_error.js Error: EPERM: operation not permitted, symlink 'E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\react@18.3.1\node_modules\react' -> 'E:\2026 Desarrollo Web\freeboli\.next\standalone\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\react'
+    at async Object.symlink (node:internal/fs/promises:1009:10)
+    at async E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\utils.js:1399:25
+    at async Promise.all (index 13)
+    at async handleTraceFiles (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\utils.js:1387:9)
+    at async copyTracedFiles (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\utils.js:1448:9)
+    at async E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\index.js:223:9
+    at async Span.traceAsyncFn (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\trace\trace.js:154:20)
+    at async writeStandaloneDirectory (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\index.js:222:5)
+    at async E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\index.js:2139:17
+    at async Span.traceAsyncFn (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\trace\trace.js:154:20) {
+  errno: -4048,
+  code: 'EPERM',
+  syscall: 'symlink',
+  path: 'E:\\2026 Desarrollo Web\\freeboli\\node_modules\\.pnpm\\react@18.3.1\\node_modules\\react',
+  dest: 'E:\\2026 Desarrollo Web\\freeboli\\.next\\standalone\\node_modules\\.pnpm\\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\\node_modules\\react'
+}
+ ÔÜá Failed to copy traced files for E:\2026 Desarrollo Web\freeboli\.next\server\pages\_document.js Error: EPERM: operation not permitted, symlink 'E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next' -> 'E:\2026 Desarrollo Web\freeboli\.next\standalone\node_modules\next'
+    at async Object.symlink (node:internal/fs/promises:1009:10)
+    at async E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\utils.js:1399:25
+    at async Promise.all (index 36)
+    at async handleTraceFiles (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\utils.js:1387:9)
+    at async copyTracedFiles (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\utils.js:1448:9)
+    at async E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\index.js:223:9
+    at async Span.traceAsyncFn (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\trace\trace.js:154:20)
+    at async writeStandaloneDirectory (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\index.js:222:5)
+    at async E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\index.js:2139:17
+    at async Span.traceAsyncFn (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\trace\trace.js:154:20) {
+  errno: -4048,
+  code: 'EPERM',
+  syscall: 'symlink',
+  path: 'E:\\2026 Desarrollo Web\\freeboli\\node_modules\\.pnpm\\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\\node_modules\\next',
+  dest: 'E:\\2026 Desarrollo Web\\freeboli\\.next\\standalone\\node_modules\\next'
+}
+
+> Build error occurred
+Error: EPERM: operation not permitted, symlink 'E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\@next+env@14.2.18\node_modules\@next\env' -> 'E:\2026 Desarrollo Web\freeboli\.next\standalone\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\@next\env'
+    at async Object.symlink (node:internal/fs/promises:1009:10)
+    at async E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\utils.js:1399:25
+    at async Promise.all (index 86)
+    at async handleTraceFiles (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\utils.js:1387:9)
+    at async copyTracedFiles (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\utils.js:1469:5)
+    at async E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\index.js:223:9
+    at async Span.traceAsyncFn (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\trace\trace.js:154:20)
+    at async writeStandaloneDirectory (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\index.js:222:5)
+    at async E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\build\index.js:2139:17
+    at async Span.traceAsyncFn (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\trace\trace.js:154:20) {
+  errno: -4048,
+  code: 'EPERM',
+  syscall: 'symlink',
+  path: 'E:\\2026 Desarrollo Web\\freeboli\\node_modules\\.pnpm\\@next+env@14.2.18\\node_modules\\@next\\env',
+  dest: 'E:\\2026 Desarrollo Web\\freeboli\\.next\\standalone\\node_modules\\.pnpm\\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\\node_modules\\@next\\env'
+}
+ÔÇëELIFECYCLEÔÇë Command failed with exit code 1.

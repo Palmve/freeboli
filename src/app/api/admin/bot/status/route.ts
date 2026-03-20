@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAdminUser } from "@/lib/current-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAllSettings } from "@/lib/site-settings";
+import { syncBotBalances } from "@/lib/bot-engine";
 
 export async function GET() {
   const user = await getAdminUser();
@@ -10,8 +11,7 @@ export async function GET() {
   const supabase = createAdminClient();
   
   // Sincronizar balances con la blockchain antes de mostrar
-  const { syncBotBalances } = await import("@/lib/bot-engine");
-  await syncBotBalances().catch(e => console.error("Sync error:", e));
+  await syncBotBalances().catch((e: any) => console.error("Sync error:", e));
 
   const [settings, { data: wallets }, { data: stats }] = await Promise.all([
     getAllSettings(),

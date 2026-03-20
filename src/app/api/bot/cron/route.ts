@@ -11,18 +11,29 @@ export async function GET(req: Request) {
       // return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  // 1. Liquidar rondas de predicción vencidas
+  // 1. Depósitos (Barrido)
+  const { processDeposits, awardPrizes, runDailySummary } = await import("@/lib/cron-tasks");
+  await processDeposits().catch(e => console.error("Deposits error:", e));
+
+  // 2. Liquidar rondas de predicción vencidas
   const resolved = await resolvePendingRounds().catch(e => {
       console.error("Error resolving rounds via cron:", e);
       return 0;
   });
 
-  // 2. Ejecutar ciclo del bot (Swaps, volumen, etc.)
+  // 3. Ejecutar ciclo del bot (Swaps, volumen, etc.)
   const botResult = await executeBotCycle();
+
+  // 4. Tareas diarias (Premios a las 00:00 y Resumen a las 01:00 UTC aprox)
+  const now = new Date();
+  const hour = now.getUTCHours();
+  if (hour === 0) await awardPrizes().catch(e => console.error("Prizes error:", e));
+  if (hour === 1) await runDailySummary().catch(e => console.error("Summary error:", e));
 
   return NextResponse.json({
       success: true,
       resolved_rounds: resolved,
-      bot_execution: botResult
+      bot_execution: botResult,
+      timestamp: now.toISOString()
   });
 }
