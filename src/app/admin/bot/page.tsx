@@ -9,6 +9,8 @@ export default function BotAdminPage() {
   const [loading, setLoading] = useState(true);
   const [statusMsg, setStatusMsg] = useState("");
 
+  const [stats, setStats] = useState<any>(null);
+
   useEffect(() => {
     fetchBotData();
   }, []);
@@ -20,6 +22,7 @@ export default function BotAdminPage() {
       const d = await res.json();
       setSettings(d.settings);
       setWallets(d.wallets);
+      setStats(d.stats);
     } catch (e) {
       console.error(e);
     } finally {
@@ -66,18 +69,61 @@ export default function BotAdminPage() {
     }
   };
 
-  if (loading) return <div className="p-8 text-slate-400">Cargando Bot Engine...</div>;
+  if (loading) return (
+    <div className="p-8 flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+    </div>
+  );
 
   return (
-    <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-8">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-           <h1 className="text-2xl sm:text-3xl font-bold text-white">Bot de Volumen (Raydium)</h1>
-           <p className="text-slate-400">Versión {APP_VERSION}</p>
+           <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
+             <span className="text-amber-500">Grid</span> Bot Analítico
+           </h1>
+           <p className="text-slate-400 text-sm">Estrategia de Rejilla v{APP_VERSION}</p>
         </div>
-        <div className={`px-4 py-2 rounded-full font-bold text-sm ${settings?.BOT_ENABLED ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}`}>
-            {settings?.BOT_ENABLED ? "● ACTIVO" : "○ DESACTIVADO"}
+        <div className="flex items-center gap-3">
+            <button onClick={fetchBotData} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 transition" title="Refrescar">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            </button>
+            <div className={`px-4 py-2 rounded-full font-bold text-xs shadow-lg ${settings?.BOT_ENABLED ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"}`}>
+                {settings?.BOT_ENABLED ? "● SISTEMA ACTIVO" : "○ BOT EN ESPERA"}
+            </div>
         </div>
+      </div>
+
+      {/* Tarjetas KPI */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="card-kpi bg-gradient-to-br from-slate-800/80 to-slate-900 border border-slate-700/50 p-4 rounded-2xl shadow-xl">
+              <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">PnL Acumulado</p>
+              <p className={`text-xl font-mono font-bold ${stats?.total_pnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                {stats?.total_pnl >= 0 ? "+" : ""}{Number(stats?.total_pnl || 0).toFixed(4)} <span className="text-[10px] opacity-60 font-sans">BOLIS</span>
+              </p>
+              <div className="mt-2 text-[9px] text-slate-500">Basado en {stats?.total_trades || 0} trades</div>
+          </div>
+          <div className="card-kpi bg-gradient-to-br from-slate-800/80 to-slate-900 border border-slate-700/50 p-4 rounded-2xl shadow-xl">
+              <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Operaciones</p>
+              <p className="text-xl font-mono font-bold text-white">
+                {stats?.total_trades || 0}
+              </p>
+              <div className="mt-2 text-[9px] text-slate-500">Últimos 30 días</div>
+          </div>
+          <div className="card-kpi bg-gradient-to-br from-slate-800/80 to-slate-900 border border-slate-700/50 p-4 rounded-2xl shadow-xl">
+              <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Comisiones (Gas)</p>
+              <p className="text-xl font-mono font-bold text-amber-400/80">
+                {Number(stats?.total_fees || 0).toFixed(5)} <span className="text-[10px] opacity-60 font-sans text-slate-400">SOL</span>
+              </p>
+              <div className="mt-2 text-[9px] text-slate-500">Inversión operativa</div>
+          </div>
+          <div className="card-kpi bg-gradient-to-br from-slate-800/80 to-slate-900 border border-slate-700/50 p-4 rounded-2xl shadow-xl">
+              <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Saldo Global (Flota)</p>
+              <p className="text-xl font-mono font-bold text-white">
+                {Number(wallets.reduce((s,w) => s + (w.sol_balance || 0), 0)).toFixed(2)} <span className="text-[10px] opacity-60 font-sans text-slate-400">SOL</span>
+              </p>
+              <div className="mt-2 text-[9px] text-slate-500">Fondo en {wallets.length} wallets</div>
+          </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
