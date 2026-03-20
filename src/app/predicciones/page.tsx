@@ -53,6 +53,7 @@ function PredictionsContent() {
   const [balance, setBalance] = useState<number | null>(null);
   const [history, setHistory] = useState<BetHistory[]>([]);
   const [stats, setStats] = useState<Stats>({ day: 0, week: 0, month: 0, total: 0 });
+  const [type, setType] = useState<"hourly" | "mini">("hourly");
   
   const [amount, setAmount] = useState("100");
   const [loading, setLoading] = useState(false);
@@ -66,25 +67,25 @@ function PredictionsContent() {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch(`/api/predictions/active?asset=${asset}`);
+      const res = await fetch(`/api/predictions/active?asset=${asset}&type=${type}`);
       const d = await res.json();
       if (res.ok) setData(d);
       else setError(d.error);
     } catch (e) {
       setError("Error al conectar con la API.");
     }
-  }, [asset]);
+  }, [asset, type]);
 
   const fetchHistory = useCallback(async () => {
     try {
-      const res = await fetch("/api/predictions/history");
+      const res = await fetch(`/api/predictions/history?type=${type}`);
       const d = await res.json();
       if (res.ok) {
           setHistory(d.history);
           setStats(d.stats);
       }
     } catch (e) {}
-  }, []);
+  }, [type]);
 
   const fetchBalance = useCallback(async () => {
     try {
@@ -129,7 +130,7 @@ function PredictionsContent() {
       const res = await fetch("/api/predictions/bet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ asset, prediction, amount: parseInt(amount) }),
+        body: JSON.stringify({ asset, type, prediction, amount: parseInt(amount) }),
       });
       const resData = await res.json();
       if (res.ok) {
@@ -159,7 +160,21 @@ function PredictionsContent() {
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white">Predicciones</h1>
-          <p className="text-xs sm:text-sm text-slate-400">Pronostica {asset} cada hora.</p>
+          <p className="text-xs sm:text-sm text-slate-400">Pronostica {asset} en modo {type === "mini" ? "Mini (10m)" : "Normal (1h)"}.</p>
+        </div>
+        <div className="flex bg-slate-800 p-1 rounded-xl items-center">
+            <button 
+              onClick={() => setType("hourly")}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition ${type === "hourly" ? "bg-amber-500 text-slate-900" : "text-slate-400 hover:text-white"}`}
+            >
+              NORMAL
+            </button>
+            <button 
+              onClick={() => setType("mini")}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition ${type === "mini" ? "bg-amber-500 text-slate-900" : "text-slate-400 hover:text-white"}`}
+            >
+              MINI 🔥
+            </button>
         </div>
         <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
           {["BTC", "SOL", "BOLIS"].map((a) => (
@@ -209,8 +224,8 @@ function PredictionsContent() {
                 </div>
                 <div className="h-4 w-full bg-slate-800 rounded-full p-1 border border-slate-700">
                     <div 
-                      className={`h-full rounded-full transition-all duration-1000 ${timeLeft < 600 ? "bg-red-500" : "bg-amber-500"}`} 
-                      style={{ width: `${(3600 - timeLeft) / 3600 * 100}%` }}
+                      className={`h-full rounded-full transition-all duration-1000 ${timeLeft < (type === "mini" ? 120 : 600) ? "bg-red-500" : "bg-amber-500"}`} 
+                      style={{ width: `${((type === "mini" ? 600 : 3600) - timeLeft) / (type === "mini" ? 600 : 3600) * 100}%` }}
                     />
                 </div>
                 <div className="flex justify-between text-[10px] sm:text-sm text-slate-400 font-mono">
@@ -344,10 +359,10 @@ function PredictionsContent() {
               </button>
             </div>
             
-            {data && timeLeft < 600 && (
+            {data && timeLeft < (type === "mini" ? 120 : 600) && (
               <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/30 p-3">
                   <p className="text-center text-[11px] text-red-500 font-bold uppercase leading-tight">
-                    Mercado Cerrado: 10 min antes del fin de hora para evitar manipulación.
+                    Mercado Cerrado: {type === "mini" ? "2 min" : "10 min"} antes del fin de ronda.
                   </p>
               </div>
             )}
@@ -395,7 +410,7 @@ function PredictionsContent() {
         onClick={() => setSupportOpen(true)}
         className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal"
       >
-        ¿Problemas con la predicción? Reportar error o disputa aquí - version {APP_VERSION}
+        ¿Problemas con la predicción? Reportar error o disputa aquí - v{APP_VERSION}
       </button>
 
       <SupportModal

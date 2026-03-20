@@ -14,6 +14,7 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => ({}));
   const asset = (body.asset?.toUpperCase() as PredictionAsset) || "BTC";
+  const type = body.type === "mini" ? "mini" : "hourly";
   const prediction = body.prediction === "up" || body.prediction === "down" ? body.prediction : null;
   const amount = Math.floor(Number(body.amount));
 
@@ -24,13 +25,17 @@ export async function POST(req: Request) {
   const minBet = await getSetting<number>("PREDICTION_MIN_BET", 10);
   const maxBetKey = `${asset}_MAX_BET`;
   const maxBet = await getSetting<number>(maxBetKey, 10000);
-  const cutoff = await getSetting<number>("PREDICTION_CUTOFF_SECONDS", 600);
+  
+  // Cutoff dinámico: 10 min rounds (120s defecto), 1 hour (600s defecto)
+  const cutoffKey = type === "mini" ? "PREDICTION_CUTOFF_MINI" : "PREDICTION_CUTOFF_SECONDS";
+  const cutoffLimit = type === "mini" ? 120 : 600;
+  const cutoff = await getSetting<number>(cutoffKey, cutoffLimit);
 
   if (amount < minBet || amount > maxBet) {
     return NextResponse.json({ error: `Apuesta fuera de limites (${minBet}-${maxBet}).` }, { status: 400 });
   }
 
-  const roundData: any = await getActiveRoundWithOdds(asset);
+  const roundData: any = await getActiveRoundWithOdds(asset, type);
   if (roundData?.error) return NextResponse.json({ error: roundData.error }, { status: 404 });
 
   if (roundData.time_left_sec <= cutoff) {
@@ -60,7 +65,7 @@ export async function POST(req: Request) {
     user_id: user.id,
     type: "apuesta_prediccion",
     points: -amount,
-    metadata: { round_id: roundData.id, asset, prediction, odds },
+    metadata: { round_id: roundData.id, asset, type, prediction, odds },
   });
 
   const { data: bet, error } = await supabase
@@ -68,6 +73,7 @@ export async function POST(req: Request) {
     .insert({
       round_id: roundData.id,
       user_id: user.id,
+      type,
       amount,
       prediction,
       odds_at_bet: odds,

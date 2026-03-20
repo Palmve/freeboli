@@ -3,9 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { resolvePendingRounds } from "@/lib/predictions";
 
-export async function GET() {
+export async function GET(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+
+  const { searchParams } = new URL(req.url);
+  const type = searchParams.get("type") as any;
 
   // Sustituye el cron de resolución: liquidar rondas vencidas al consultar historial.
   await resolvePendingRounds().catch(() => {});
@@ -13,13 +16,19 @@ export async function GET() {
   const supabase = await createClient();
 
   // 1. Obtener historial (unir apuestas con sus rondas)
-  const { data: history, error: historyError } = await supabase
+  let query = supabase
     .from("prediction_bets")
     .select(`
       *,
       round:prediction_rounds(*)
     `)
-    .eq("user_id", user.id)
+    .eq("user_id", user.id);
+
+  if (type === "mini" || type === "hourly") {
+    query = query.eq("type", type);
+  }
+
+  const { data: history, error: historyError } = await query
     .order("created_at", { ascending: false })
     .limit(50);
 

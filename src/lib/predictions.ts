@@ -3,38 +3,45 @@ import { getCryptoPrice, calculateDynamicOdds } from "./price-oracle";
 import { getSetting } from "./site-settings";
 
 export type PredictionAsset = "BTC" | "SOL" | "BOLIS";
+export type PredictionRoundType = "hourly" | "mini";
 
 /**
- * Asegura que exista una ronda activa para el asset dado en la hora actual.
+ * Asegura que exista una ronda activa para el asset dado en la hora actual o bloque de 10 min.
  */
-export async function ensureActiveRound(asset: PredictionAsset): Promise<{ data?: any; error?: string }> {
+export async function ensureActiveRound(asset: PredictionAsset, type: PredictionRoundType = "hourly"): Promise<{ data?: any; error?: string }> {
   const supabase = createAdminClient();
   const now = new Date();
   
-  // Calcular inicio y fin de la hora actual
   const startTime = new Date(now);
-  startTime.setMinutes(0, 0, 0);
+  if (type === "mini") {
+    const minutes = Math.floor(startTime.getMinutes() / 10) * 10;
+    startTime.setMinutes(minutes, 0, 0);
+  } else {
+    startTime.setMinutes(0, 0, 0);
+  }
+  
   const endTime = new Date(startTime);
-  endTime.setHours(endTime.getHours() + 1);
+  if (type === "mini") {
+    endTime.setMinutes(endTime.getMinutes() + 10);
+  } else {
+    endTime.setHours(endTime.getHours() + 1);
+  }
 
-  // Buscar si ya existe
   const { data: existing } = await supabase
     .from("prediction_rounds")
     .select("*")
     .eq("asset", asset)
+    .eq("type", type)
     .eq("start_time", startTime.toISOString())
     .single();
 
   if (existing) return { data: existing };
 
-  // Si no existe, crearla obteniendo el precio actual como precio de apertura
   let openPrice = await getCryptoPrice(asset);
   if (openPrice === null) {
-      console.error(`[Prediction] Price feed failed for ${asset}`);
       return { error: `No se pudo obtener el precio de apertura para ${asset}.` };
   }
 
-  // Asegurar 4 decimales para BOLIS al grabar
   if (asset === "BOLIS") {
     openPrice = Number(openPrice.toFixed(4));
   }
@@ -43,6 +50,7 @@ export async function ensureActiveRound(asset: PredictionAsset): Promise<{ data?
     .from("prediction_rounds")
     .insert({
       asset,
+      type,
       start_time: startTime.toISOString(),
       end_time: endTime.toISOString(),
       opening_price: openPrice,
@@ -52,7 +60,6 @@ export async function ensureActiveRound(asset: PredictionAsset): Promise<{ data?
     .single();
 
   if (error) {
-    console.error(`[Prediction] DB Error creating round for ${asset}:`, error);
     return { error: `Error de base de datos al crear la ronda: ${error.message}` };
   }
   return { data: newRound };
@@ -61,15 +68,15 @@ export async function ensureActiveRound(asset: PredictionAsset): Promise<{ data?
 /**
  * Obtiene la ronda activa y calcula las cuotas actuales.
  */
-export async function getActiveRoundWithOdds(asset: PredictionAsset) {
-  const { data: round, error: ensureError } = await ensureActiveRound(asset);
+export async function getActiveRoundWithOdds(asset: PredictionAsset, type: PredictionRoundType = "hourly") {
+  const { data: round, error: ensureError } = await ensureActiveRound(asset, type);
   if (ensureError) return { error: ensureError };
-  if (!round) return { error: "No se encontró ni se pudo crear la ronda." };
+  if (!round) return { error: "No se encontró la ronda." };
   
-  if (round.status !== "open") return { error: `La ronda actual para ${asset} no está abierta (status: ${round.status}).` };
+  if (round.status !== "open") return { error: `Ronda cerrada (status: ${round.status}).` };
 
   const currentPrice = await getCryptoPrice(asset);
-  if (currentPrice === null) return { error: `Error al obtener el precio actual de ${asset}. Reintenta en unos segundos.` };
+  if (currentPrice === null) return { error: `Error de precio.` };
 
   const now = new Date();
   const endTime = new Date(round.end_time);
@@ -92,101 +99,74 @@ export async function getActiveRoundWithOdds(asset: PredictionAsset) {
 }
 
 /**
- * Procesa la resolución de rondas terminadas.
+ * Procesa la resolución de rondas terminadas de forma masiva.
  */
 export async function resolvePendingRounds() {
   const supabase = createAdminClient();
   const now = new Date();
 
-  // Buscar rondas que no estén resueltas ni canceladas cuyo end_time ya pasó
   const { data: pending } = await supabase
     .from("prediction_rounds")
     .select("*")
     .neq("status", "resolved")
     .neq("status", "cancelled")
+    .neq("status", "closed")
     .lt("end_time", now.toISOString());
 
   if (!pending || pending.length === 0) return 0;
 
-  // Procesar rondas en paralelo para evitar latencia acumulada
   const results = await Promise.all(pending.map(async (round) => {
     try {
-      let finalPrice = await getCryptoPrice(round.asset as PredictionAsset);
-      if (finalPrice === null) return false;
+      const closePriceRaw = await getCryptoPrice(round.asset as PredictionAsset);
+      if (closePriceRaw === null) return false;
 
-      // Asegurar 4 decimales para BOLIS al grabar
-      if (round.asset === "BOLIS") {
-        finalPrice = Number(finalPrice.toFixed(4));
-      }
+      const closePrice = round.asset === "BOLIS" ? Number(closePriceRaw.toFixed(4)) : closePriceRaw;
+      const result = closePrice > round.opening_price ? "up" : closePrice < round.opening_price ? "down" : "draw";
 
-      const isDraw = finalPrice === round.opening_price;
-      const result = finalPrice > round.opening_price ? "up" : "down";
-
-      // 1. Actualizar ronda
-      const { error: updateError } = await supabase
-        .from("prediction_rounds")
-        .update({
-          closing_price: finalPrice,
-          status: "resolved",
-        })
-        .eq("id", round.id);
-      
-      if (updateError) throw updateError;
-
-      // 2. Liquidar apuestas
-      if (isDraw) {
-        const { data: allBets } = await supabase
-          .from("prediction_bets")
-          .select("*")
-          .eq("round_id", round.id)
-          .eq("claimed", false);
-        
-        if (allBets) {
-          for (const bet of allBets) {
-            // Acreditar de forma atómica (Evita Race Condition)
-            await supabase.rpc("atomic_add_points", {
-                target_user_id: bet.user_id,
-                amount_to_add: bet.amount
-            });
-
-            await supabase.from("movements").insert({
-              user_id: bet.user_id,
-              type: "premio_prediccion",
-              points: bet.amount,
-              metadata: { round_id: round.id, asset: round.asset, result: "draw", note: "Devolución por empate" },
-            });
-            await supabase.from("prediction_bets").update({ claimed: true }).eq("id", bet.id);
+      if (result === "draw") {
+          const { data: allBets } = await supabase.from("prediction_bets").select("*").eq("round_id", round.id).eq("claimed", false);
+          if (allBets) {
+            for (const bet of allBets) {
+              await supabase.rpc("atomic_add_points", { target_user_id: bet.user_id, amount_to_add: bet.amount });
+              await supabase.from("movements").insert({
+                user_id: bet.user_id,
+                type: "premio_prediccion",
+                points: bet.amount,
+                metadata: { round_id: round.id, asset: round.asset, type: round.type, result: "draw" },
+              });
+              await supabase.from("prediction_bets").update({ claimed: true }).eq("id", bet.id);
+            }
           }
-        }
       } else {
-        const { data: winningBets } = await supabase
-          .from("prediction_bets")
-          .select("*")
-          .eq("round_id", round.id)
-          .eq("prediction", result)
-          .eq("claimed", false);
+          const { data: winningBets } = await supabase
+            .from("prediction_bets")
+            .select("*")
+            .eq("round_id", round.id)
+            .eq("prediction", result)
+            .eq("claimed", false);
 
-        if (winningBets) {
-          for (const bet of winningBets) {
-            // Acreditar premio de forma atómica
-            await supabase.rpc("atomic_add_points", {
-                target_user_id: bet.user_id,
-                amount_to_add: bet.potential_payout
-            });
-
-            await supabase.from("movements").insert({
-              user_id: bet.user_id,
-              type: "premio_prediccion",
-              points: bet.potential_payout,
-              metadata: { round_id: round.id, asset: round.asset, result },
-            });
-            await supabase.from("prediction_bets").update({ claimed: true }).eq("id", bet.id);
+          if (winningBets) {
+            for (const bet of winningBets) {
+              await supabase.rpc("atomic_add_points", { target_user_id: bet.user_id, amount_to_add: bet.potential_payout });
+              await supabase.from("movements").insert({
+                user_id: bet.user_id,
+                type: "premio_prediccion",
+                points: bet.potential_payout,
+                metadata: { round_id: round.id, asset: round.asset, type: round.type, result },
+              });
+              await supabase.from("prediction_bets").update({ claimed: true }).eq("id", bet.id);
+            }
           }
-        }
       }
+
+      await supabase.from("prediction_rounds").update({ 
+        closing_price: closePrice, 
+        status: "closed" 
+      }).eq("id", round.id);
+
       return true;
-    } catch (e) {
-      console.error(`Error resolving round ${round.id}:`, e);
+    } catch (err) {
+      console.error(`[PredictResolve] Error ${round.id}:`, err);
       return false;
     }
   }));
