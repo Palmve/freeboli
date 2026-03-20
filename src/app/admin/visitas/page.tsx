@@ -334,11 +334,21 @@ export default function AdminVisitasPage() {
               <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden flex flex-col max-h-[600px]">
                  <div className="p-4 border-b border-slate-800 bg-slate-950/50">
                     <h3 className="font-bold text-white flex items-center gap-2 mb-3"><i className="ph-users text-blue-400"></i> Explorador</h3>
-                    <div className="flex justify-between items-center text-[10px] text-slate-500 uppercase font-black tracking-widest">
-                       <span>Ordenar por:</span>
+                    <div className="flex flex-col gap-2">
+                       <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Ordenar por:</span>
                        <div className="flex gap-2">
-                          <button onClick={() => setUserSort("lastActive")} className={`p-1.5 rounded-lg border ${userSort === "lastActive" ? "border-amber-500 text-amber-500 bg-amber-500/10" : "border-slate-800"}`}><i className="ph-clock text-lg"></i></button>
-                          <button onClick={() => setUserSort("items")} className={`p-1.5 rounded-lg border ${userSort === "items" ? "border-amber-500 text-amber-500 bg-amber-500/10" : "border-slate-800"}`}><i className="ph-files text-lg"></i></button>
+                          <button 
+                            onClick={() => setUserSort("lastActive")} 
+                            className={`flex-1 py-1.5 px-2 rounded-lg border text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${userSort === "lastActive" ? "border-amber-500 text-amber-500 bg-amber-500/10" : "border-slate-800 text-slate-500"}`}
+                          >
+                            <i className="ph-clock"></i> Recientes
+                          </button>
+                          <button 
+                            onClick={() => setUserSort("items")} 
+                            className={`flex-1 py-1.5 px-2 rounded-lg border text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${userSort === "items" ? "border-amber-500 text-amber-500 bg-amber-500/10" : "border-slate-800 text-slate-500"}`}
+                          >
+                            <i className="ph-files"></i> Actividad
+                          </button>
                        </div>
                     </div>
                  </div>
@@ -352,12 +362,16 @@ export default function AdminVisitasPage() {
                         className={`p-4 border-b border-slate-800 hover:bg-slate-800 cursor-pointer transition flex flex-col gap-1 ${selectedUser?.userId === u.userId ? "bg-slate-800/50 border-r-2 border-r-amber-500" : ""}`}
                       >
                          <div className="flex justify-between items-center">
-                            <span className="font-bold text-amber-400 text-xs">...{u.userId.slice(-8)}</span>
+                            <span className="font-bold text-amber-400 text-xs">Usuario ...{u.userId.slice(-6)}</span>
                             <span className="text-[10px] text-slate-500">{new Date(u.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                          </div>
                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] text-slate-400 truncate max-w-[120px]">{u.location.city || "Desconocido"}</span>
-                            <span className="text-[10px] bg-slate-950 px-1.5 py-0.5 rounded text-amber-500 font-bold">{u.itemsCount} v</span>
+                            <span className="text-[10px] text-slate-400 truncate max-w-[120px]">
+                                {u.location.city ? decodeURIComponent(u.location.city) : "Desconocido"}
+                            </span>
+                            <span className="text-[10px] bg-slate-950 px-2 py-0.5 rounded text-amber-500 font-bold border border-amber-500/20">
+                                {u.itemsCount} {u.itemsCount === 1 ? 'visita' : 'visitas'}
+                            </span>
                          </div>
                       </div>
                     ))}
@@ -369,8 +383,10 @@ export default function AdminVisitasPage() {
                   <div className="p-4 space-y-6">
                      <div className="flex justify-between border-b border-slate-800 pb-4">
                        <div>
-                         <h3 className="font-bold text-xl text-white">...{selectedUser.userId.slice(-12)}</h3>
-                         <p className="text-xs text-slate-500">{selectedUser.location.city}, {selectedUser.location.country}</p>
+                         <h3 className="font-bold text-xl text-white">Detalle de Sesión</h3>
+                         <p className="text-xs text-slate-400 mt-1">
+                            {decodeURIComponent(selectedUser.location.city || "")}, {selectedUser.location.country}
+                         </p>
                        </div>
                        <div className="text-right">
                           <p className="text-lg font-bold text-amber-500">{selectedUser.totalTime}m</p>
