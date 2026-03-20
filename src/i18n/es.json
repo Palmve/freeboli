@@ -462,5 +462,8 @@
     "login_hint": "Entra para retirar.",
     "btn_login": "Entrar",
     "loading": "Cargando…"
+  },
+  "footer": {
+    "bolis_info": "Para más información sobre el comercio de Bolis de Solana {0}"
   }
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { Providers } from "@/components/Providers";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 
@@ -16,11 +17,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className="min-h-screen">
+      <body className="min-h-screen flex flex-col">
         <Providers>
           <AnalyticsTracker />
           <Header />
-          <main className="container mx-auto px-4 py-6">{children}</main>
+          <main className="container mx-auto px-4 py-6 flex-grow">{children}</main>
+          <Footer />
         </Providers>
       </body>
     </html>

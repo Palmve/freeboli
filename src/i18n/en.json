@@ -462,5 +462,8 @@
     "login_hint": "Login to withdraw.",
     "btn_login": "Login",
     "loading": "Loading…"
+  },
+  "footer": {
+    "bolis_info": "For more information about Solana Bolis trading {0}"
   }
 }
