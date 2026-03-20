@@ -177,6 +177,19 @@ export default function BotAdminPage() {
                     />
                  </div>
               </div>
+              
+              <div className="flex items-center justify-between p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                  <div className="space-y-0.5">
+                     <span className="text-sm font-bold text-amber-500 uppercase">Retiros Automáticos (SOL/BOLIS)</span>
+                     <p className="text-[10px] text-slate-500 font-medium tracking-tight">Procesar pagos sin autorización manual</p>
+                  </div>
+                  <button 
+                    onClick={() => setSettings({...settings, WITHDRAWAL_AUTO_APPROVE: !settings.WITHDRAWAL_AUTO_APPROVE})} 
+                    className={`w-12 h-6 rounded-full transition-colors ${settings?.WITHDRAWAL_AUTO_APPROVE ? "bg-amber-500" : "bg-slate-700"} relative`}
+                  >
+                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings?.WITHDRAWAL_AUTO_APPROVE ? "left-7" : "left-1"}`}></div>
+                  </button>
+               </div>
            </div>
            <button onClick={handleSave} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-black py-3 rounded-xl mt-4 transition shadow-lg shadow-amber-500/20 uppercase tracking-widest text-sm">
              GUARDAR CONFIGURACIÓN
@@ -196,14 +209,14 @@ export default function BotAdminPage() {
               {wallets.map(w => (
                 <div key={w.id} className="p-4 bg-slate-800/40 border border-slate-700/50 rounded-xl flex justify-between items-center group hover:border-amber-500/30 transition">
                    <div className="space-y-1">
-                      <p className="font-mono text-slate-300 text-sm group-hover:text-amber-400 transition">
-                        {w.public_key.slice(0,6)}...{w.public_key.slice(-6)}
+                      <p className="font-mono text-slate-300 text-sm group-hover:text-amber-400 transition text-wrap break-all">
+                        {w.public_key}
                       </p>
                       <p className="text-[10px] text-slate-500 font-medium">{w.description || "Bot Worker"}</p>
                    </div>
-                   <div className="text-right">
-                      <p className="font-mono font-bold text-emerald-400">--- SOL</p>
-                      <p className="text-[9px] text-slate-500 uppercase font-bold">Visto: {w.last_used ? new Date(w.last_used).toLocaleTimeString() : 'Inactiva'}</p>
+                   <div className="text-right whitespace-nowrap">
+                      <p className="font-mono font-bold text-emerald-400">{(w.sol_balance || 0).toFixed(4)} SOL</p>
+                      <p className="text-[9px] text-slate-500 uppercase font-bold">Historial: {w.last_used ? new Date(w.last_used).toLocaleTimeString() : 'Inactiva'}</p>
                    </div>
                 </div>
               ))}
@@ -217,7 +230,7 @@ export default function BotAdminPage() {
       </div>
       
       <p className="text-center text-[10px] text-slate-600 uppercase tracking-widest">
-        El bot ejecutará operaciones en segundo plano utilizando el saldo disponible en las wallets activas. Asegúrate de fondear la Master Wallet.
+        El bot ejecutará operaciones en segundo plano utilizando el saldo disponible en las wallets activas. Asegúrate de que las wallets tengan saldo real en Solana Mainnet si deseas operaciones reales.
       </p>
     </div>
   );
