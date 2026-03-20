@@ -81,7 +81,7 @@ export default function TerminosPage() {
         <div>
           <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.conduct_title")}</h2>
           <ul className="list-disc list-inside space-y-1.5 ml-1">
-            {(t("terms.conduct_list") as unknown as string[]).map((item, i) => (
+            {Array.isArray(t("terms.conduct_list")) && (t("terms.conduct_list") as any as string[]).map((item, i) => (
               <li key={i}>{item}</li>
             ))}
           </ul>
@@ -95,7 +95,7 @@ export default function TerminosPage() {
         <div>
           <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.transac_title")}</h2>
           <ul className="list-disc list-inside space-y-1.5 ml-1">
-            {(t("terms.transac_list") as unknown as string[]).map((item, i) => (
+            {Array.isArray(t("terms.transac_list")) && (t("terms.transac_list") as any as string[]).map((item, i) => (
               <li key={i}>{item}</li>
             ))}
           </ul>

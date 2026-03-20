@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { SupportModal } from "@/components/SupportModal";
 import { APP_VERSION } from "@/lib/version";
@@ -161,7 +161,7 @@ export default function HiLoPage() {
     setHistory((prev) => [{ ...entry, id }, ...prev].slice(0, 50));
   }
 
-  async function playOne(betAmount: number, choiceHiLo: "hi" | "lo", odds: number = oddsNum): Promise<Result | null> {
+  const playOne = useCallback(async (betAmount: number, choiceHiLo: "hi" | "lo", odds: number = oddsNum): Promise<Result | null> => {
     const res = await fetch("/api/hi-lo/play", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -177,7 +177,7 @@ export default function HiLoPage() {
       return null;
     }
     return data as Result;
-  }
+  }, [oddsNum, t]);
 
   async function playManual(overrideChoice?: "hi" | "lo") {
     const amount = Math.floor(Number(bet));
@@ -301,7 +301,26 @@ export default function HiLoPage() {
     return () => {
       autoAbortRef.current = true;
     };
-  }, [autoRunning]);
+  }, [
+    autoRunning, 
+    autoBaseBet, 
+    autoNumRolls, 
+    autoStopProfit, 
+    autoStopLoss, 
+    autoBetOn, 
+    lang, 
+    oddsNum, 
+    playOne, 
+    autoMaxBet, 
+    autoOnWinReturnBase, 
+    autoOnWinIncreasePct, 
+    autoOnLoseReturnBase, 
+    autoOnLoseIncreasePct, 
+    autoOnMaxStop, 
+    autoOnMaxReturnBase, 
+    autoOnWinNextChoice, 
+    autoOnLoseNextChoice
+  ]);
 
   const startAuto = () => {
     autoAbortRef.current = false;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Script from "next/script";
 import { createClient } from "@/lib/supabase/client";
 import AdminNav from "@/app/admin/AdminNav";
@@ -27,36 +27,8 @@ export default function AdminVisitasPage() {
 
   const supabase = createClient();
 
-  // Carga de datos
-  useEffect(() => {
-    async function loadStats() {
-      const { data: events, error } = await supabase
-        .from("analytics_events")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(2000);
-
-      if (!error && events) {
-        setData(events);
-        processStats(events);
-      }
-      setLoading(false);
-    }
-    loadStats();
-
-    // Suscripción en tiempo real
-    const channel = supabase
-      .channel("analytics_realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "analytics_events" }, (payload) => {
-        setData((prev) => [payload.new, ...prev].slice(0, 2000));
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, []);
-
-  // Procesamiento de estadísticas (similar a la lógica original)
-  function processStats(events: any[]) {
+  // Procesamiento de estadísticas
+  const processStats = (events: any[]) => {
     const usersMap: Record<string, any> = {};
     const cityPop: Record<string, number> = {};
     const countryPop: Record<string, number> = {};
@@ -93,9 +65,38 @@ export default function AdminVisitasPage() {
     }));
 
     setProcessedUsers(processed);
-  }
+  };
 
-  function calculateUserTime(events: any[]) {
+  // Carga de datos
+  useEffect(() => {
+    async function loadStats() {
+      const { data: events, error } = await supabase
+        .from("analytics_events")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(2000);
+
+      if (!error && events) {
+        setData(events);
+        processStats(events);
+      }
+      setLoading(false);
+    }
+    loadStats();
+
+    // Suscripción en tiempo real
+    const channel = supabase
+      .channel("analytics_realtime")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "analytics_events" }, (payload) => {
+        setData((prev) => [payload.new, ...prev].slice(0, 2000));
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [supabase]);
+
+
+  const calculateUserTime = (events: any[]) => {
     if (events.length < 2) return 0;
     const sorted = [...events].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     let totalMs = 0;
@@ -104,16 +105,10 @@ export default function AdminVisitasPage() {
       if (diff < 1800000) totalMs += diff;
     }
     return Math.floor(totalMs / 60000);
-  }
+  };
 
-  // Render Maps and Charts (triggered when tab changes or data updates)
-  useEffect(() => {
-    if (activeTab === "charts") renderMainChart();
-    if (activeTab === "geo") renderMap();
-    if (activeTab === "all") renderMiniChart();
-  }, [activeTab, data]);
-
-  function renderMainChart() {
+  // Memoizar funciones de renderizado para cumplir con hooks y evitar recreaciones
+  const renderMainChart = useCallback(() => {
     if (!window.Chart || data.length === 0) return;
     const ctx = document.getElementById("statsChartMain") as HTMLCanvasElement;
     if (!ctx) return;
@@ -144,9 +139,9 @@ export default function AdminVisitasPage() {
       },
       options: { responsive: true, maintainAspectRatio: false }
     });
-  }
+  }, [data]);
 
-  function renderMiniChart() {
+  const renderMiniChart = useCallback(() => {
     if (!window.Chart || data.length === 0) return;
     const ctx = document.getElementById("chart-mini") as HTMLCanvasElement;
     if (!ctx) return;
@@ -178,9 +173,9 @@ export default function AdminVisitasPage() {
         scales: { x: { display: false }, y: { display: false } }
       }
     });
-  }
+  }, [data]);
 
-  function renderMap() {
+  const renderMap = useCallback(() => {
     if (!window.L || data.length === 0) return;
     if (mapRef.current) return; // Ya inicializado
 
@@ -203,7 +198,14 @@ export default function AdminVisitasPage() {
       });
       mapRef.current = map;
     }, 100);
-  }
+  }, [data, processedUsers]);
+
+  // Render Maps and Charts (triggered when tab changes or data updates)
+  useEffect(() => {
+    if (activeTab === "charts") renderMainChart();
+    if (activeTab === "geo") renderMap();
+    if (activeTab === "all") renderMiniChart();
+  }, [activeTab, renderMainChart, renderMap, renderMiniChart]);
 
   const kpis = {
     views: data.length,

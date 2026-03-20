@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
 import { SupportModal } from "@/components/SupportModal";
 import { APP_VERSION } from "@/lib/version";
@@ -103,12 +104,13 @@ export default function DepositarPage() {
           <div className="space-y-4">
             <p className="text-sm text-slate-400">{t("deposit.address_label")}</p>
             <div className="inline-block rounded-lg bg-white p-2">
-              <img
+              <Image
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(info.address)}`}
                 alt={t("deposit.qr_alt")}
                 width={200}
                 height={200}
                 className="rounded"
+                unoptimized
               />
             </div>
             <div className="rounded-lg bg-slate-800 p-4 font-mono text-sm break-all text-green-400">
