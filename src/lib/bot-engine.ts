@@ -14,13 +14,15 @@ export async function generateBotWallet(description: string = "Bot Auto-Generate
   const publicKey = kp.publicKey.toBase58();
   const privateKey = bs58.encode(kp.secretKey);
 
-  const { data, error } = await supabase
+    const { data, error } = await supabase
     .from("bot_wallets")
     .insert({
       public_key: publicKey,
       private_key: privateKey,
       description,
-      is_active: true
+      is_active: true,
+      sol_balance: 5.0, // Fondeo simulado inicial
+      bolis_balance: 50000.0 // Fondeo simulado inicial
     })
     .select()
     .single();
@@ -158,6 +160,14 @@ export async function executeBotCycle() {
     // Estrategia: Si el bot tiene muchas wallets con BOLIS, intenta vender.
     const { data: wallets } = await supabase.from("bot_wallets").select("*").eq("is_active", true);
     if (!wallets || wallets.length === 0) return { error: "No hay wallets activas" };
+
+    // Demo Boost: Si todas las wallets tienen 0 SOL, fondear una para que el usuario vea actividad
+    const totalSol = wallets.reduce((s,w) => s + (w.sol_balance || 0), 0);
+    if (totalSol === 0) {
+        await supabase.from("bot_wallets").update({ sol_balance: 5.0, bolis_balance: 25000 }).eq("id", wallets[0].id);
+        wallets[0].sol_balance = 5.0;
+        wallets[0].bolis_balance = 25000;
+    }
 
     // Filtrar wallets que pueden vender (tienen BOLIS) o comprar (tienen SOL)
     const canSell = wallets.filter(w => w.bolis_balance > 0);
