@@ -340,7 +340,7 @@ function PredictionsContent() {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => handleBet("up")}
-                disabled={betting || !data || timeLeft < 600}
+                disabled={betting || !data || timeLeft < (type === "mini" ? 60 : 600)}
                 className="group relative flex flex-col items-center justify-center overflow-hidden rounded-xl bg-emerald-600 py-6 text-white transition hover:bg-emerald-500 disabled:opacity-50"
               >
                 <span className="text-xs font-black uppercase tracking-widest mb-1 opacity-70">Sube</span>
@@ -350,7 +350,7 @@ function PredictionsContent() {
 
               <button
                 onClick={() => handleBet("down")}
-                disabled={betting || !data || timeLeft < 600}
+                disabled={betting || !data || timeLeft < (type === "mini" ? 60 : 600)}
                 className="group relative flex flex-col items-center justify-center overflow-hidden rounded-xl bg-red-600 py-6 text-white transition hover:bg-red-500 disabled:opacity-50"
               >
                 <span className="text-xs font-black uppercase tracking-widest mb-1 opacity-70">Baja</span>
