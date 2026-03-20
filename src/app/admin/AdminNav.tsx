@@ -14,6 +14,7 @@ const tabs = [
   { href: "/admin/proyecciones", label: "Proyecciones" },
   { href: "/admin/alertas", label: "Alertas" },
   { href: "/admin/configuracion", label: "Configuración" },
+  { href: "/admin/bot", label: "Bot Volumen 🔥" },
   { href: "/admin/seguridad", label: "Seguridad" },
 ];
 
