@@ -224,7 +224,7 @@ function PredictionsContent() {
                 </div>
                 <div className="h-4 w-full bg-slate-800 rounded-full p-1 border border-slate-700">
                     <div 
-                      className={`h-full rounded-full transition-all duration-1000 ${timeLeft < (type === "mini" ? 120 : 600) ? "bg-red-500" : "bg-amber-500"}`} 
+                      className={`h-full rounded-full transition-all duration-1000 ${timeLeft < (type === "mini" ? 60 : 600) ? "bg-red-500" : "bg-amber-500"}`} 
                       style={{ width: `${((type === "mini" ? 600 : 3600) - timeLeft) / (type === "mini" ? 600 : 3600) * 100}%` }}
                     />
                 </div>
@@ -359,10 +359,10 @@ function PredictionsContent() {
               </button>
             </div>
             
-            {data && timeLeft < (type === "mini" ? 120 : 600) && (
+            {data && timeLeft < (type === "mini" ? 60 : 600) && (
               <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/30 p-3">
                   <p className="text-center text-[11px] text-red-500 font-bold uppercase leading-tight">
-                    Mercado Cerrado: {type === "mini" ? "2 min" : "10 min"} antes del fin de ronda.
+                    Mercado Cerrado: {type === "mini" ? "1 min" : "10 min"} antes del fin de ronda.
                   </p>
               </div>
             )}
