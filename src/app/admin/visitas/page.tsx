@@ -186,16 +186,18 @@ export default function AdminVisitasPage() {
     
     setTimeout(() => {
         const map = window.L.map("map-geo").setView([20, 0], 2);
-        window.L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png").addTo(map);
+        window.L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png", {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        }).addTo(map);
         
         processedUsers.forEach(u => {
             if (u.location?.lat && u.location?.lon) {
                 window.L.circleMarker([u.location.lat, u.location.lon], {
-                    radius: 6,
+                    radius: 5,
                     fillColor: "#fbbf24",
-                    color: "#fff",
+                    color: "#000",
                     weight: 1,
-                    fillOpacity: 0.8
+                    fillOpacity: 0.9
                 }).addTo(map).bindPopup(`<b>${u.location.city}</b><br>${u.userId.slice(0,8)}`);
             }
         });
@@ -218,34 +220,33 @@ export default function AdminVisitasPage() {
   ).sort((a: any, b: any) => b[1] - a[1]).slice(0, 10);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <AdminNav />
+    <div className="space-y-6">
       <Script src="https://cdn.jsdelivr.net/npm/chart.js" strategy="afterInteractive" />
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <Script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" strategy="afterInteractive" />
       <Script src="https://unpkg.com/@phosphor-icons/web" strategy="afterInteractive" />
 
       {/* Header Estilo Premium */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <i className="ph-duotone ph-chart-polar text-amber-500 text-3xl"></i> Estadísticas de Visitas
+      <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-slate-900/50 p-4 sm:p-6 rounded-2xl border border-slate-800">
+        <div className="text-center lg:text-left">
+          <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center justify-center lg:justify-start gap-2">
+            <i className="ph-duotone ph-chart-polar text-amber-500 text-3xl"></i> Visitas
           </h1>
-          <p className="text-sm text-slate-500">Monitor de actividad en tiempo real conectado a Supabase</p>
+          <p className="text-xs text-slate-500 mt-1">Actividad en tiempo real (Supabase)</p>
         </div>
         
-        <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+        <div className="flex flex-wrap justify-center bg-slate-950 p-1 rounded-xl border border-slate-800 overflow-x-auto max-w-full">
           {[
-            { id: "all", label: "Resumen" },
+            { id: "all", label: "Dashboard" },
             { id: "charts", label: "Gráficos" },
             { id: "content", label: "Top" },
-            { id: "users", label: "Usuarios" },
+            { id: "users", label: "Sesiones" },
             { id: "geo", label: "Mapa" }
           ].map(t => (
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                 activeTab === t.id ? "bg-amber-500 text-slate-900" : "text-slate-400 hover:text-white"
               }`}
             >
@@ -254,7 +255,7 @@ export default function AdminVisitasPage() {
           ))}
         </div>
 
-        <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center gap-2">
+        <div className="hidden sm:flex px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full items-center gap-2">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -401,7 +402,7 @@ export default function AdminVisitasPage() {
         {activeTab === "geo" && (
           <div className="card h-[600px] flex flex-col animate-in fade-in">
              <h3 className="text-lg font-bold text-white mb-4">Mapa de Conexiones Globales</h3>
-             <div id="map-geo" className="flex-1 rounded-2xl overflow-hidden grayscale contrast-125 brightness-75"></div>
+             <div id="map-geo" className="flex-1 rounded-2xl overflow-hidden z-0 bg-slate-800"></div>
           </div>
         )}
       </div>
@@ -417,9 +418,9 @@ export default function AdminVisitasPage() {
 
 function KpiCard({ label, val, color, border = "border-slate-800" }: any) {
   return (
-    <div className={`bg-slate-900 p-5 rounded-2xl border ${border}`}>
-      <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">{label}</div>
-      <div className={`text-3xl font-bold ${color}`}>{val.toLocaleString()}</div>
+    <div className={`bg-slate-900 p-4 sm:p-5 rounded-2xl border ${border}`}>
+      <div className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">{label}</div>
+      <div className={`text-2xl sm:text-3xl font-bold ${color}`}>{val.toLocaleString()}</div>
     </div>
   );
 }
