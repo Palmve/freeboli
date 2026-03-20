@@ -41,7 +41,7 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("freeboli_lang", newLang);
   };
 
-  const t = (keyPath: string): string => {
+  const t = (keyPath: string): any => {
     const keys = keyPath.split(".");
     let current: any = dictionaries[lang];
     
@@ -53,21 +53,18 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
           if (!fallback || fallback[fKey] === undefined) return keyPath;
           fallback = fallback[fKey];
         }
-        return typeof fallback === "string" ? fallback : keyPath;
+        return fallback !== undefined ? fallback : keyPath;
       }
       current = current[key];
     }
-    return typeof current === "string" ? current : keyPath;
+    return current !== undefined ? current : keyPath;
   };
-
-  // Evitar fallos de hidratación en SSR al esperar a que el componente monte en cliente
-  if (!mounted) {
-    return <div style={{ visibility: "hidden" }}>{children}</div>;
-  }
 
   return (
     <LangContext.Provider value={{ lang, t, changeLang }}>
-      {children}
+      <div style={{ visibility: mounted ? "visible" : "hidden" }}>
+        {children}
+      </div>
     </LangContext.Provider>
   );
 }

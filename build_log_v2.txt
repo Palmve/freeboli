@@ -1,0 +1,60 @@
+
+> freeboli@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.18
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+   Generating static pages (0/77) ...
+   Generating static pages (19/77) 
+   Generating static pages (38/77) 
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+TypeError: t(...).map is not a function
+    at d (E:\2026 Desarrollo Web\freeboli\.next\server\app\terminos\page.js:1:4605)
+    at nj (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46251)
+    at nM (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47571)
+    at nN (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64546)
+    at nI (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47010)
+    at nM (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47717)
+    at nM (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61546)
+    at nN (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64546)
+    at nB (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67538)
+    at nD (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66680) {
+  digest: '1428828762'
+}
+
+Error occurred prerendering page "/terminos". Read more: https://nextjs.org/docs/messages/prerender-error
+
+TypeError: t(...).map is not a function
+    at d (E:\2026 Desarrollo Web\freeboli\.next\server\app\terminos\page.js:1:4605)
+    at nj (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46251)
+    at nM (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47571)
+    at nN (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64546)
+    at nI (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47010)
+    at nM (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47717)
+    at nM (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61546)
+    at nN (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64546)
+    at nB (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67538)
+    at nD (E:\2026 Desarrollo Web\freeboli\node_modules\.pnpm\next@14.2.18_@babel+core@7._932bbc8ded08490249ce632c7d4f9f40\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66680)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+   Generating static pages (57/77) 
+ ✓ Generating static pages (77/77)
+
+> Export encountered errors on following paths:
+	/terminos/page: /terminos
