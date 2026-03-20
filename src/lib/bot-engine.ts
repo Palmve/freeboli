@@ -92,7 +92,52 @@ export async function performSwap(walletPk: string, walletSk: string, inputMint:
 }
 
 /**
- * Ciclo principal: decide si toca trade, elige wallet y ejecuta.
+ * Registra una operación en la base de datos y calcula PnL si es venta.
+ */
+async function recordTrade(wallet: any, pair: any, side: "BUY" | "SELL", amountIn: number, amountOut: number, price: number, signature: string) {
+    const supabase = createAdminClient();
+    let pnl = 0;
+    const fee = 0.000005; // Estimación simple de gas SOL
+
+    if (side === "SELL") {
+        // PnL = (Precio Venta - Precio Compra Medio) * Cantidad
+        const costBasis = wallet.avg_buy_price || price;
+        pnl = (price - costBasis) * amountIn;
+    }
+
+    await supabase.from("bot_trades").insert({
+        wallet_id: wallet.id,
+        pair: `${pair.in}/${pair.out}`,
+        side,
+        amount_in: amountIn,
+        amount_out: amountOut,
+        price,
+        fee,
+        pnl,
+        tx_signature: signature
+    });
+
+    // Actualizar balances en la wallet (En producción esto se haría vía RPC real)
+    const newBolis = side === "BUY" ? (wallet.bolis_balance + amountOut) : (wallet.bolis_balance - amountIn);
+    const newSol = side === "BUY" ? (wallet.sol_balance - (amountIn / 1e9)) : (wallet.sol_balance + (amountOut / 1e9));
+    
+    // Actualizar precio medio de compra si fue BUY
+    let newAvgPrice = wallet.avg_buy_price;
+    if (side === "BUY") {
+        const totalBolis = wallet.bolis_balance + amountOut;
+        newAvgPrice = ((wallet.avg_buy_price * wallet.bolis_balance) + (price * amountOut)) / totalBolis;
+    }
+
+    await supabase.from("bot_wallets").update({
+        bolis_balance: newBolis,
+        sol_balance: newSol,
+        avg_buy_price: newAvgPrice,
+        last_used: new Date().toISOString()
+    }).eq("id", wallet.id);
+}
+
+/**
+ * Ciclo principal evolucionado (Grid / Inventario)
  */
 export async function executeBotCycle() {
     const supabase = createAdminClient();
@@ -102,32 +147,47 @@ export async function executeBotCycle() {
 
     const now = new Date();
     const nextRun = new Date(settings.BOT_NEXT_RUN || 0);
-
     if (now < nextRun) return { status: "Esperando próximo intervalo", nextRun };
 
   try {
-    // 1. Elegir una wallet activa al azar
+    // 1. Obtener precio actual (desde oráculo existente)
+    const { getCryptoPrice } = await import("./price-oracle");
+    const currentPrice = await getCryptoPrice("BOLIS") || 0.001; // Fallback
+
+    // 2. Decisión de Side (Buy/Sell) basada en inventario y azar
+    // Estrategia: Si el bot tiene muchas wallets con BOLIS, intenta vender.
     const { data: wallets } = await supabase.from("bot_wallets").select("*").eq("is_active", true);
     if (!wallets || wallets.length === 0) return { error: "No hay wallets activas" };
-    const wallet = wallets[Math.floor(Math.random() * wallets.length)];
 
-    // 2. Elegir par y dirección
-    const pairs = [
-      { in: "BOLIS", out: "SOL", mintIn: "612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha", mintOut: "So11111111111111111111111111111111111111112" },
-      { in: "SOL", out: "BOLIS", mintIn: "So11111111111111111111111111111111111111112", mintOut: "612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha" },
-      { in: "BOLIS", out: "USDT", mintIn: "612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha", mintOut: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" },
-      { in: "USDT", out: "BOLIS", mintIn: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", mintOut: "612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha" },
-    ];
-    const pair = pairs[Math.floor(Math.random() * pairs.length)];
+    // Filtrar wallets que pueden vender (tienen BOLIS) o comprar (tienen SOL)
+    const canSell = wallets.filter(w => w.bolis_balance > 0);
+    const canBuy = wallets.filter(w => w.sol_balance > 0.01);
+
+    let wallet, side, pair;
+    
+    // Probabilidad: 60% seguir tendencia, 40% rellenar inventario
+    if (canSell.length > 0 && (Math.random() > 0.5 || canBuy.length === 0)) {
+        wallet = canSell[Math.floor(Math.random() * canSell.length)];
+        side = "SELL";
+        pair = { in: "BOLIS", out: "SOL", mintIn: "612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha", mintOut: "So11111111111111111111111111111111111111112" };
+    } else if (canBuy.length > 0) {
+        wallet = canBuy[Math.floor(Math.random() * canBuy.length)];
+        side = "BUY";
+        pair = { in: "SOL", out: "BOLIS", mintIn: "So11111111111111111111111111111111111111112", mintOut: "612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha" };
+    } else {
+        return { error: "Sin fondos suficientes en las wallets para operar" };
+    }
 
     // 3. Cantidad aleatoria
     const min = parseInt(settings.BOT_MIN_AMOUNT || "1000");
     const max = parseInt(settings.BOT_MAX_AMOUNT || "5000");
     const amount = Math.floor(Math.random() * (max - min + 1) + min);
 
-    // 4. Ejecutar Swap (Simplificado: asumiendo que el amount ya está en la unidad correcta)
-    // En producción, habría que ajustar decimales por token
-    // const sig = await performSwap(wallet.public_key, wallet.private_key, pair.mintIn, pair.mintOut, amount);
+    // 4. Ejecución (Simulada para trazabilidad, activar performSwap cuando esté listo)
+    const signature = `local_sim_${Date.now()}`; 
+    const amountOut = side === "BUY" ? amount : (amount * currentPrice * 1e9); // Simplificación
+    
+    await recordTrade(wallet, pair, side as any, amount, amountOut, currentPrice, signature);
 
     // 5. Programar siguiente ejecución
     const minInt = parseInt(settings.BOT_MIN_INTERVAL || "1");
@@ -136,9 +196,13 @@ export async function executeBotCycle() {
     const nextDate = new Date(now.getTime() + delayMin * 60000);
 
     await supabase.from("site_settings").upsert({ key: "BOT_NEXT_RUN", value: JSON.stringify(nextDate.toISOString()) });
-    await supabase.from("bot_wallets").update({ last_used: now.toISOString() }).eq("id", wallet.id);
 
-    return { status: "Swap ejecutado con éxito", pair: `${pair.in}/${pair.out}`, wallet: wallet.public_key, nextRun: nextDate };
+    return { 
+        status: "Operación de Rejilla Exitosa", 
+        trade: { side, pair: `${pair.in}/${pair.out}`, amount, price: currentPrice },
+        wallet: wallet.public_key, 
+        nextRun: nextDate 
+    };
   } catch (err: any) {
     console.error("[BotCycle] Error:", err.message);
     return { error: err.message };
