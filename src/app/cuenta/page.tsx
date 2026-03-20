@@ -112,10 +112,10 @@ export default function CuentaPage() {
       <div className="card space-y-3">
         <h2 className="text-lg font-semibold text-slate-300">{t("account.lang_title")}</h2>
         <p className="text-sm text-slate-400">{t("account.lang_desc")}</p>
-        <div className="flex gap-4 mt-2">
+        <div className="flex flex-col sm:flex-row gap-3 mt-2">
           <button
             onClick={() => changeLang("es")}
-            className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all font-bold flex items-center justify-center gap-2 ${
+            className={`w-full py-3 px-4 rounded-xl border-2 transition-all font-bold flex items-center justify-center gap-3 ${
               lang === "es" 
                 ? "border-amber-500 bg-amber-500/10 text-amber-400" 
                 : "border-slate-800 bg-slate-800/50 text-slate-400 hover:border-slate-700"
@@ -125,7 +125,7 @@ export default function CuentaPage() {
           </button>
           <button
             onClick={() => changeLang("en")}
-            className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all font-bold flex items-center justify-center gap-2 ${
+            className={`w-full py-3 px-4 rounded-xl border-2 transition-all font-bold flex items-center justify-center gap-3 ${
               lang === "en" 
                 ? "border-amber-500 bg-amber-500/10 text-amber-400" 
                 : "border-slate-800 bg-slate-800/50 text-slate-400 hover:border-slate-700"
