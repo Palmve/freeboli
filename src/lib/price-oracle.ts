@@ -69,7 +69,7 @@ export function calculateDynamicOdds(
    * p = 1 / (1 + exp(-k * diffPct / (sigma * sqrt(tRel))))
    */
   const k = 1.0;
-  const sigma = 0.015; // 1.5% de volatilidad esperada por bloque de tiempo
+  const sigma = 0.006; // Volatilidad reducida = Sensibilidad aumentada
   
   const exponent = (k * diffPct) / (sigma * Math.sqrt(tRel));
   const probUp = 1 / (1 + Math.exp(-exponent));

@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   
   // Cutoff dinámico: 10 min rounds (60s defecto), 1 hour (600s defecto)
   const cutoffKey = type === "mini" ? "PREDICTION_CUTOFF_MINI" : "PREDICTION_CUTOFF_SECONDS";
-  const cutoffLimit = type === "mini" ? 60 : 600;
+  const cutoffLimit = type === "mini" ? 120 : 600;
   const cutoff = await getSetting<number>(cutoffKey, cutoffLimit);
 
   if (amount < minBet || amount > maxBet) {

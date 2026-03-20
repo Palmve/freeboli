@@ -224,7 +224,7 @@ function PredictionsContent() {
                 </div>
                 <div className="h-4 w-full bg-slate-800 rounded-full p-1 border border-slate-700">
                     <div 
-                      className={`h-full rounded-full transition-all duration-1000 ${timeLeft < (type === "mini" ? 60 : 600) ? "bg-red-500" : "bg-amber-500"}`} 
+                      className={`h-full rounded-full transition-all duration-1000 ${timeLeft < (type === "mini" ? 120 : 600) ? "bg-red-500" : "bg-amber-500"}`} 
                       style={{ width: `${((type === "mini" ? 600 : 3600) - timeLeft) / (type === "mini" ? 600 : 3600) * 100}%` }}
                     />
                 </div>
@@ -249,7 +249,7 @@ function PredictionsContent() {
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="bg-slate-800/30 text-slate-500 text-left">
-                            <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">ID</th>
+                            <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">Fecha</th>
                             <th className="hidden sm:table-cell px-6 py-3 font-bold uppercase tracking-wider text-[10px]">Activo</th>
                             <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">Apuesta</th>
                             <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">Monto</th>
@@ -275,8 +275,8 @@ function PredictionsContent() {
                                             setDetailOpen(true);
                                         }}
                                     >
-                                        <td className="px-3 sm:px-6 py-4 font-mono text-[10px] font-bold text-amber-500/70 group-hover:text-amber-500">
-                                            {bet.short_id || bet.id.substring(0, 8).toUpperCase()}
+                                        <td className="px-3 sm:px-6 py-4 font-mono text-[10px] font-bold text-slate-400">
+                                            {new Date(bet.created_at).toLocaleDateString([], { day: '2-digit', month: '2-digit' })} {new Date(bet.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
                                         </td>
                                         <td className="hidden sm:table-cell px-6 py-4 font-bold text-slate-300">{bet.round?.asset || asset}</td>
                                         <td className="px-3 sm:px-6 py-4">
@@ -340,7 +340,7 @@ function PredictionsContent() {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => handleBet("up")}
-                disabled={betting || !data || timeLeft < (type === "mini" ? 60 : 600)}
+                disabled={betting || !data || timeLeft < (type === "mini" ? 120 : 600)}
                 className="group relative flex flex-col items-center justify-center overflow-hidden rounded-xl bg-emerald-600 py-6 text-white transition hover:bg-emerald-500 disabled:opacity-50"
               >
                 <span className="text-xs font-black uppercase tracking-widest mb-1 opacity-70">Sube</span>
@@ -350,7 +350,7 @@ function PredictionsContent() {
 
               <button
                 onClick={() => handleBet("down")}
-                disabled={betting || !data || timeLeft < (type === "mini" ? 60 : 600)}
+                disabled={betting || !data || timeLeft < (type === "mini" ? 120 : 600)}
                 className="group relative flex flex-col items-center justify-center overflow-hidden rounded-xl bg-red-600 py-6 text-white transition hover:bg-red-500 disabled:opacity-50"
               >
                 <span className="text-xs font-black uppercase tracking-widest mb-1 opacity-70">Baja</span>
@@ -359,10 +359,10 @@ function PredictionsContent() {
               </button>
             </div>
             
-            {data && timeLeft < (type === "mini" ? 60 : 600) && (
+            {data && timeLeft < (type === "mini" ? 120 : 600) && (
               <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/30 p-3">
                   <p className="text-center text-[11px] text-red-500 font-bold uppercase leading-tight">
-                    Mercado Cerrado: {type === "mini" ? "1 min" : "10 min"} antes del fin de ronda.
+                    Mercado Cerrado: {type === "mini" ? "2 min" : "10 min"} antes del fin de ronda.
                   </p>
               </div>
             )}
