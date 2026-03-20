@@ -65,15 +65,19 @@ export async function POST(req: Request) {
     );
   }
 
-  const { data: balanceRow } = await supabase
-    .from("balances")
-    .select("points")
-    .eq("user_id", userId)
-    .single();
-  const currentPoints = Number(balanceRow?.points ?? 0);
-  if (currentPoints < bet) {
-    return NextResponse.json({ error: "Saldo insuficiente." }, { status: 400 });
+  // 1. Descuento atómico de la apuesta (Evita Race Condition)
+  const { data: subData, error: subError } = await supabase.rpc("atomic_subtract_points", {
+    target_user_id: userId,
+    amount_to_subtract: bet,
+  });
+
+  if (subError || !subData?.[0]?.success) {
+    return NextResponse.json({ 
+        error: subError?.message || "Saldo insuficiente o error en la transaccion." 
+    }, { status: 400 });
   }
+
+  const balanceAfterBet = Number(subData[0].result_balance);
 
   // Check terms acceptance
   const { data: profile } = await supabase
@@ -96,13 +100,8 @@ export async function POST(req: Request) {
   const nonce = (count ?? 0) + 1;
 
   const result = playHiLo(bet, choice, odds, client_seed, nonce);
-  const newPoints = currentPoints - result.bet + result.payout;
+  let finalPoints = balanceAfterBet;
   const { verification } = result;
-
-  await supabase.from("balances").upsert(
-    { user_id: userId, points: newPoints, updated_at: new Date().toISOString() },
-    { onConflict: "user_id" }
-  );
   await supabase.from("movements").insert({
     user_id: userId,
     type: "apuesta_hi_lo",
@@ -120,6 +119,15 @@ export async function POST(req: Request) {
     },
   });
   if (result.payout > 0) {
+    // 2. Acreditar premio de forma atómica
+    const { data: addData } = await supabase.rpc("atomic_add_points", {
+        target_user_id: userId,
+        amount_to_add: result.payout
+    });
+    if (addData?.[0]?.success) {
+        finalPoints = Number(addData[0].result_balance);
+    }
+
     await supabase.from("movements").insert({
       user_id: userId,
       type: "premio_hi_lo",
@@ -165,16 +173,12 @@ export async function POST(req: Request) {
   if (ref?.referrer_id && AFFILIATE_COMMISSION_PERCENT > 0 && result.payout > 0) {
     const commission = Math.floor((result.payout * AFFILIATE_COMMISSION_PERCENT) / 100);
     if (commission > 0) {
-      const { data: refBalance } = await supabase
-        .from("balances")
-        .select("points")
-        .eq("user_id", ref.referrer_id)
-        .single();
-      const refNew = Number(refBalance?.points ?? 0) + commission;
-      await supabase.from("balances").upsert(
-        { user_id: ref.referrer_id, points: refNew, updated_at: new Date().toISOString() },
-        { onConflict: "user_id" }
-      );
+      // 3. Acreditar comisión de afiliado de forma atómica
+      await supabase.rpc("atomic_add_points", {
+          target_user_id: ref.referrer_id,
+          amount_to_add: commission
+      });
+
       await supabase.from("movements").insert({
         user_id: ref.referrer_id,
         type: "comision_afiliado",
@@ -191,7 +195,7 @@ export async function POST(req: Request) {
     win: result.win,
     bet: result.bet,
     payout: result.payout,
-    newBalance: newPoints,
+    newBalance: finalPoints,
     verification: {
       server_seed: verification.server_seed,
       server_seed_hash: verification.server_seed_hash,
