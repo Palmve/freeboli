@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import AdminWithdrawSettings from "../AdminWithdrawSettings";
 
-// ... (types)
+type Withdrawal = {
   id: string;
   user_id: string;
   points: number;
