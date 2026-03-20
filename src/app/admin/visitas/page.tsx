@@ -62,7 +62,7 @@ export default function AdminVisitasPage() {
     const countryPop: Record<string, number> = {};
 
     events.forEach(e => {
-      const uid = e.user_id || `anon-${e.metadata?.ua?.slice(0, 10)}-${e.metadata?.city}`;
+      const uid = e.user_id || `anon-${e.id.slice(-6)}`;
       if (!usersMap[uid]) {
         usersMap[uid] = {
           userId: uid,
@@ -363,7 +363,7 @@ export default function AdminVisitasPage() {
                       <div className="flex justify-between items-center">
                         <span className={`font-bold text-xs ${u.userId.startsWith('anon-') ? 'text-slate-500' : 'text-amber-400'}`}>
                           {u.userId.startsWith('anon-') 
-                            ? `#${u.userId.slice(5, 9)}` 
+                            ? `#${u.userId.slice(-4)}` 
                             : `...${u.userId.slice(-6)}`}
                         </span>
                         <span className="text-[10px] text-slate-500">{new Date(u.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
