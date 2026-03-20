@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
+import { HelpModal } from "./HelpModal";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
@@ -20,6 +21,7 @@ export function Header() {
   const [balance, setBalance] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userLevel, setUserLevel] = useState<{ level: number; name: string; icon: string; color: string } | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   useEffect(() => {
     if (REQUIRE_AUTH || session?.user) return;
@@ -75,6 +77,7 @@ export function Header() {
   ];
 
   return (
+    <>
     <header className="sticky top-0 z-50 border-b border-slate-700 bg-slate-900/95 backdrop-blur">
       <div className="container mx-auto flex h-14 items-center justify-between px-4">
         {/* Logo */}
@@ -145,18 +148,29 @@ export function Header() {
 
         {/* Right side: balance (always visible) + hamburger */}
         <div className="flex items-center gap-2">
-          {loggedIn && (
-            <Link href="/cuenta" className="flex items-center gap-1.5 rounded bg-slate-800 px-2.5 py-1.5 shrink-0">
-              {userLevel && (
-                <span className={`text-sm ${userLevel.color}`} title={userLevel.name}>
-                  {userLevel.icon}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {loggedIn && (
+              <Link href="/cuenta" className="flex items-center gap-1.5 rounded bg-slate-800 px-2.5 py-1.5">
+                {userLevel && (
+                  <span className={`text-sm ${userLevel.color}`} title={userLevel.name}>
+                    {userLevel.icon}
+                  </span>
+                )}
+                <span className="font-mono text-sm text-amber-400">
+                  {balance != null ? `${balance.toLocaleString()} pts` : "..."}
                 </span>
-              )}
-              <span className="font-mono text-sm text-amber-400">
-                {balance != null ? `${balance.toLocaleString()} pts` : "..."}
-              </span>
-            </Link>
-          )}
+              </Link>
+            )}
+            <button
+              onClick={() => setHelpOpen(true)}
+              className="bg-slate-800 p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-amber-400 transition ml-0.5"
+              title="Ayuda / Tutorial"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+          </div>
 
           {/* Hamburger button - mobile only */}
           <button
@@ -253,5 +267,7 @@ export function Header() {
         </div>
       )}
     </header>
+    <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
+    </>
   );
 }
