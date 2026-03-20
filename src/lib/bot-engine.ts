@@ -161,9 +161,10 @@ export async function executeBotCycle() {
     const { data: wallets } = await supabase.from("bot_wallets").select("*").eq("is_active", true);
     if (!wallets || wallets.length === 0) return { error: "No hay wallets activas" };
 
-    // Demo Boost: Si todas las wallets tienen 0 SOL, fondear una para que el usuario vea actividad
+    // Demo Boost: Si todas las wallets tienen poco balance (< 0.5 SOL), fondear una para demo
     const totalSol = wallets.reduce((s,w) => s + (w.sol_balance || 0), 0);
-    if (totalSol === 0) {
+    if (totalSol < 0.5) {
+        console.log("[BotEngine] Inyectando Demo Boost en wallet principal...");
         await supabase.from("bot_wallets").update({ sol_balance: 5.0, bolis_balance: 25000 }).eq("id", wallets[0].id);
         wallets[0].sol_balance = 5.0;
         wallets[0].bolis_balance = 25000;

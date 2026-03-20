@@ -201,7 +201,7 @@ function PredictionsContent() {
                    <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest">Precio Actual {asset}</p>
                    <div className="mt-1 flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
                      <span className="text-3xl sm:text-5xl font-mono font-bold text-white tracking-tighter">
-                       ${data?.current_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 4 : 2 })}
+                       ${data?.current_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 5 : asset === "SOL" ? 3 : 2, maximumFractionDigits: asset === "BOLIS" ? 5 : asset === "SOL" ? 3 : 2 })}
                      </span>
                      <span className={`text-lg sm:text-xl font-bold flex items-center ${isUp ? "text-emerald-400" : "text-red-400"}`}>
                        {isUp ? "▲" : "▼"} {Math.abs(diff).toFixed(3)}%
@@ -229,7 +229,7 @@ function PredictionsContent() {
                     />
                 </div>
                 <div className="flex justify-between text-[10px] sm:text-sm text-slate-400 font-mono">
-                    <span>${data?.opening_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 4 : 2 })}</span>
+                    <span>${data?.opening_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 5 : asset === "SOL" ? 3 : 2, maximumFractionDigits: asset === "BOLIS" ? 5 : asset === "SOL" ? 3 : 2 })}</span>
                     <span>{data ? new Date(data.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--"}</span>
                 </div>
             </div>
@@ -340,7 +340,7 @@ function PredictionsContent() {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => handleBet("up")}
-                disabled={betting || !data || timeLeft < (type === "mini" ? 120 : 600)}
+                disabled={betting || !data || timeLeft < (type === "mini" ? 120 : 600) || (asset === "BOLIS" && type === "mini")}
                 className="group relative flex flex-col items-center justify-center overflow-hidden rounded-xl bg-emerald-600 py-6 text-white transition hover:bg-emerald-500 disabled:opacity-50"
               >
                 <span className="text-xs font-black uppercase tracking-widest mb-1 opacity-70">Sube</span>
@@ -350,7 +350,7 @@ function PredictionsContent() {
 
               <button
                 onClick={() => handleBet("down")}
-                disabled={betting || !data || timeLeft < (type === "mini" ? 120 : 600)}
+                disabled={betting || !data || timeLeft < (type === "mini" ? 120 : 600) || (asset === "BOLIS" && type === "mini")}
                 className="group relative flex flex-col items-center justify-center overflow-hidden rounded-xl bg-red-600 py-6 text-white transition hover:bg-red-500 disabled:opacity-50"
               >
                 <span className="text-xs font-black uppercase tracking-widest mb-1 opacity-70">Baja</span>
@@ -359,7 +359,15 @@ function PredictionsContent() {
               </button>
             </div>
             
-            {data && timeLeft < (type === "mini" ? 120 : 600) && (
+            {asset === "BOLIS" && type === "mini" && (
+                <div className="mt-4 rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
+                    <p className="text-center text-[11px] text-amber-500 font-bold uppercase leading-tight">
+                        Mercado MINI BOLIS bloqueado temporalmente por administración.
+                    </p>
+                </div>
+            )}
+            
+            {data && timeLeft < (type === "mini" ? 120 : 600) && !(asset === "BOLIS" && type === "mini") && (
               <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/30 p-3">
                   <p className="text-center text-[11px] text-red-500 font-bold uppercase leading-tight">
                     Mercado Cerrado: {type === "mini" ? "2 min" : "10 min"} antes del fin de ronda.
