@@ -143,9 +143,12 @@ export async function resolvePendingRounds() {
         
         if (allBets) {
           for (const bet of allBets) {
-            const { data: balance } = await supabase.from("balances").select("points").eq("user_id", bet.user_id).single();
-            const newPoints = Number(balance?.points ?? 0) + Number(bet.amount);
-            await supabase.from("balances").upsert({ user_id: bet.user_id, points: newPoints, updated_at: new Date().toISOString() });
+            // Acreditar de forma atómica (Evita Race Condition)
+            await supabase.rpc("atomic_add_points", {
+                target_user_id: bet.user_id,
+                amount_to_add: bet.amount
+            });
+
             await supabase.from("movements").insert({
               user_id: bet.user_id,
               type: "premio_prediccion",
@@ -165,10 +168,12 @@ export async function resolvePendingRounds() {
 
         if (winningBets) {
           for (const bet of winningBets) {
-            const { data: balance } = await supabase.from("balances")
-              .select("points").eq("user_id", bet.user_id).single();
-            const newPoints = Number(balance?.points ?? 0) + Number(bet.potential_payout);
-            await supabase.from("balances").upsert({ user_id: bet.user_id, points: newPoints, updated_at: new Date().toISOString() });
+            // Acreditar premio de forma atómica
+            await supabase.rpc("atomic_add_points", {
+                target_user_id: bet.user_id,
+                amount_to_add: bet.potential_payout
+            });
+
             await supabase.from("movements").insert({
               user_id: bet.user_id,
               type: "premio_prediccion",

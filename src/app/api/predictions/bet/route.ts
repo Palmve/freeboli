@@ -42,25 +42,19 @@ export async function POST(req: Request) {
 
   const supabase = await createClient();
 
-  // 1. Verificar balance
-  const { data: balance } = await supabase
-    .from("balances")
-    .select("points")
-    .eq("user_id", user.id)
-    .single();
+  // 1. Descuento atómico de la apuesta (Evita Race Condition)
+  const { data: subData, error: subError } = await supabase.rpc("atomic_subtract_points", {
+    target_user_id: user.id,
+    amount_to_subtract: amount,
+  });
 
-  if (Number(balance?.points ?? 0) < amount) {
-    return NextResponse.json({ error: "Saldo insuficiente." }, { status: 400 });
+  if (subError || !subData?.[0]?.success) {
+    return NextResponse.json({ 
+        error: subError?.message || "Saldo insuficiente o error en la transaccion." 
+    }, { status: 400 });
   }
 
-  // 2. Ejecutar apuesta (Descontar saldo y registrar apuesta)
-  const newPoints = Number(balance?.points) - amount;
-
-  await supabase.from("balances").upsert({
-    user_id: user.id,
-    points: newPoints,
-    updated_at: new Date().toISOString(),
-  });
+  const newPoints = Number(subData[0].result_balance);
 
   await supabase.from("movements").insert({
     user_id: user.id,
