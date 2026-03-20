@@ -22,23 +22,23 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email) return null;
         const email = credentials.email.trim().toLowerCase();
-        const { allowed } = rateLimit(`login:${email}`, 5, 15 * 60 * 1000);
-        if (!allowed) return null;
+        
         try {
           const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
           const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-          if (!url || !key) {
-            console.error("[NextAuth] Falta SUPABASE URL o clave");
-            return null;
-          }
+          if (!url || !key) return null;
+
           const { createClient } = await import("@supabase/supabase-js");
           const supabase = createClient(url, key);
+          
           const { data: profile } = await supabase
             .from("profiles")
             .select("id, email, name, password_hash")
             .eq("email", email)
             .single();
+
           if (!profile) return null;
+          
           if (profile.password_hash) {
             const { verifyPassword } = await import("@/lib/password");
             if (!credentials.password || !verifyPassword(credentials.password, profile.password_hash))
@@ -46,6 +46,7 @@ export const authOptions: NextAuthOptions = {
           } else if (credentials.password) {
             return null;
           }
+
           return {
             id: profile.id,
             email: profile.email,
@@ -64,44 +65,53 @@ export const authOptions: NextAuthOptions = {
       try {
         const { createClient } = await import("@/lib/supabase/server");
         const supabase = await createClient();
+        
+        // Buscar perfil existente
         const { data: existing } = await supabase
           .from("profiles")
           .select("id, public_id")
           .eq("email", user.email)
           .single();
+
         if (!existing) {
+          // Crear perfil nuevo de forma asíncrona si es posible, o atrapar error
           const publicId = Math.floor(Math.random() * 900000) + 100000;
-          const { data: created } = await supabase
+          const { data: created, error: createError } = await supabase
             .from("profiles")
             .insert({
               email: user.email,
               name: user.name ?? user.email,
-              image: user.image ?? null,
+              image: (user as any).image ?? null,
               public_id: publicId,
               referral_code: String(publicId),
             })
             .select("id")
             .single();
-          if (created) {
+          
+          if (created && !createError) {
+            // Tareas de bienvenida
             const { WELCOME_POINTS } = await import("@/lib/config");
-            await supabase.from("balances").insert({
-              user_id: created.id,
-              points: WELCOME_POINTS,
-            });
-            await supabase.from("movements").insert({
-              user_id: created.id,
-              type: "recompensa",
-              points: WELCOME_POINTS,
-              reference: null,
-              metadata: { source: "bienvenida" },
-            });
+            await Promise.all([
+              supabase.from("balances").insert({ user_id: created.id, points: WELCOME_POINTS }),
+              supabase.from("movements").insert({
+                user_id: created.id,
+                type: "recompensa",
+                points: WELCOME_POINTS,
+                metadata: { source: "bienvenida" },
+              })
+            ]).catch(e => console.error("Error en bienvenida:", e));
           }
         } else if (!existing.public_id) {
           const publicId = Math.floor(Math.random() * 900000) + 100000;
-          await supabase.from("profiles").update({ public_id: publicId, referral_code: String(publicId) }).eq("id", existing.id);
+          try {
+            await supabase.from("profiles").update({ public_id: publicId, referral_code: String(publicId) }).eq("id", existing.id);
+          } catch {
+            // Ignorar error no crítico
+          }
         }
       } catch (e) {
         console.error("[NextAuth] signIn callback error:", e);
+        // NO BLOQUEAR EL LOGIN si fallan tareas de perfil (mejor que entre y luego se arregle)
       }
       return true;
     },
