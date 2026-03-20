@@ -2,10 +2,13 @@
 
 import { useSession } from "next-auth/react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { MAX_BET_POINTS, MAX_WIN_POINTS, MAX_DAILY_WIN_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
+import Link from "next/link";
 
 export default function TerminosPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [accepting, setAccepting] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState("");
@@ -33,9 +36,22 @@ export default function TerminosPage() {
   const maxDailyBolis = (MAX_DAILY_WIN_POINTS / POINTS_PER_BOLIS).toLocaleString();
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 py-8">
-      <h1 className="text-2xl font-bold text-white">Terminos y Condiciones de Juego</h1>
-      <p className="text-sm text-slate-400">Ultima actualizacion: Marzo 2026</p>
+    <div className="relative mx-auto max-w-3xl space-y-6 py-8 px-4">
+      {/* Botón de cierre superior */}
+      <button 
+        onClick={() => router.back()}
+        className="absolute right-4 top-8 rounded-full bg-slate-800 p-2 text-slate-400 hover:bg-slate-700 hover:text-white transition"
+        title="Cerrar"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-white pr-10">Terminos y Condiciones de Juego</h1>
+        <p className="text-sm text-slate-400">Ultima actualizacion: Marzo 2026</p>
+      </div>
 
       <div className="card space-y-4 text-sm text-slate-300 leading-relaxed">
         <h2 className="text-lg font-semibold text-amber-400">1. Naturaleza del servicio</h2>
@@ -140,8 +156,19 @@ export default function TerminosPage() {
       )}
 
       {accepted && (
-        <div className="card text-center">
+        <div className="card text-center space-y-4">
           <p className="text-green-400 font-semibold">Terminos aceptados correctamente. Ya puedes jugar.</p>
+          <Link href="/hi-lo" className="btn-primary inline-block">
+            Volver al Juego
+          </Link>
+        </div>
+      )}
+
+      {!accepted && (
+        <div className="text-center pb-8">
+          <button onClick={() => router.back()} className="text-slate-500 hover:text-slate-300 transition text-sm">
+            ← Volver anterior
+          </button>
         </div>
       )}
     </div>
