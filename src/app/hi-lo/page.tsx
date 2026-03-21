@@ -226,7 +226,7 @@ export default function HiLoPage() {
     if (!autoRunning) return;
 
     let currentBet = Math.floor(Number(autoBaseBet)) || 1;
-    let rollsLeft = Math.min(Math.floor(Number(autoNumRolls)) || 10, 500);
+    let rollsLeft = Math.min(Math.floor(Number(autoNumRolls)) || 10, 10000);
     const stopProfit = autoStopProfit ? Math.floor(Number(autoStopProfit)) : null;
     const stopLoss = autoStopLoss ? Math.floor(Number(autoStopLoss)) : null;
     let totalProfit = 0;
@@ -326,7 +326,7 @@ export default function HiLoPage() {
     autoAbortRef.current = false;
     setLastAutoBand(null);
     setAutoRollsPlayed(0);
-    const total = Math.min(Math.floor(Number(autoNumRolls)) || 10, 500);
+    const total = Math.min(Math.floor(Number(autoNumRolls)) || 10, 10000);
     setAutoRollsRemaining(total);
     setAutoBiggestBet(0);
     setAutoBiggestWin(0);
@@ -494,7 +494,7 @@ export default function HiLoPage() {
               <input
                 type="number"
                 min={1}
-                max={500}
+                max={10000}
                 value={autoNumRolls}
                 onChange={(e) => setAutoNumRolls(e.target.value)}
                 className="mt-1 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 font-mono text-white"

@@ -16,18 +16,18 @@ export function generateCaptcha(claimCount: number): CaptchaChallenge {
 
   switch (op) {
     case "+":
-      a = 10 + Math.floor(Math.random() * 90);
-      b = 10 + Math.floor(Math.random() * 90);
+      a = 1 + Math.floor(Math.random() * 20); // Sencillo 1-20
+      b = 1 + Math.floor(Math.random() * 20); 
       answer = a + b;
       break;
     case "-":
-      a = 20 + Math.floor(Math.random() * 80);
-      b = 1 + Math.floor(Math.random() * (a - 1));
+      a = 10 + Math.floor(Math.random() * 20); // 10 a 29
+      b = 1 + Math.floor(Math.random() * 9);   // 1 a 9 (siempre menor que a)
       answer = a - b;
       break;
     case "*":
-      a = 2 + Math.floor(Math.random() * 12);
-      b = 2 + Math.floor(Math.random() * 12);
+      a = 2 + Math.floor(Math.random() * 8); // 2 a 9 (Tabla simple)
+      b = 2 + Math.floor(Math.random() * 8); // 2 a 9
       answer = a * b;
       break;
   }
