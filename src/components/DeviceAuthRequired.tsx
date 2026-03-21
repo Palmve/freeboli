@@ -10,6 +10,15 @@ export default function DeviceAuthRequired({ email }: { email: string }) {
   const [pin, setPin] = useState(["", "", "", "", "", ""]);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  function maskEmail(emailstr: string) {
+    if (!emailstr || !emailstr.includes("@")) return emailstr;
+    const [name, domain] = emailstr.split("@");
+    if (name.length <= 4) return name.substring(0, 1) + "***@" + domain;
+    const start = name.substring(0, 3);
+    const end = name.substring(name.length - 2);
+    return `${start}****${end}@${domain}`;
+  }
+
   useEffect(() => {
     // Solicitar PIN inicial automáticamente si le parece conveniente a la UX
     // RequestPin();
@@ -131,7 +140,7 @@ export default function DeviceAuthRequired({ email }: { email: string }) {
       {status === "idle" || status === "requesting" ? (
         <div className="w-full">
           <p className="text-slate-300 text-sm mb-4">
-            Se enviará un código PIN de único uso a la bandeja de: <br/> <strong className="text-white block mt-1 bg-slate-800 py-1.5 rounded">{email}</strong>
+            Se enviará un código PIN de único uso a la bandeja de: <br/> <strong className="text-white block mt-1 bg-slate-800 py-1.5 rounded text-lg font-mono tracking-wide">{maskEmail(email)}</strong>
           </p>
           <button 
             onClick={requestPin}
