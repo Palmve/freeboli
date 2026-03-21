@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserId, getCurrentUser, isUserBlocked } from "@/lib/current-user";
 import { getRequestIpHash } from "@/lib/ip";
+import { rateLimit } from "@/lib/rate-limit";
 import {
   FAUCET_POINTS,
   FAUCET_COOLDOWN_HOURS,
@@ -41,6 +42,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Tu cuenta está suspendida o bloqueada." }, { status: 403 });
   }
   const userId = currentUser.id;
+
+  // Límite de ráfaga para bloquear scripts concurrentes por ID (1 petición por 5 segundos)
+  const { allowed } = rateLimit(`faucet:${userId}`, 1, 5000);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Procesando pago, espera unos segundos..." },
+      { status: 429 } 
+    );
+  }
 
   const supabase = await createClient();
   const ipHash = await getRequestIpHash();
@@ -167,19 +177,18 @@ export async function POST(request: Request) {
     cfg.base, hourlyStreak, dailyStreak, cfg.hourlyTiers, cfg.dailyTiers
   );
 
-  // --- Update balance ---
-  const { data: balanceRow } = await supabase
-    .from("balances")
-    .select("points")
-    .eq("user_id", userId)
-    .single();
+  // --- Update balance atomically ---
+  const { data: addData, error: addError } = await supabase.rpc("atomic_add_points", {
+    target_user_id: userId,
+    amount_to_add: payout
+  });
 
-  const newPoints = Number(balanceRow?.points ?? 0) + payout;
+  if (addError || !addData?.[0]?.success) {
+    return NextResponse.json({ error: "Error de servidor procesando los fondos. Intenta más tarde." }, { status: 500 });
+  }
 
-  await supabase.from("balances").upsert(
-    { user_id: userId, points: newPoints, updated_at: now.toISOString() },
-    { onConflict: "user_id" }
-  );
+  const newPoints = Number(addData[0].result_balance);
+
   await supabase.from("movements").insert({
     user_id: userId,
     type: "faucet",
@@ -212,16 +221,11 @@ export async function POST(request: Request) {
     if (ref?.referrer_id) {
       const commission = Math.floor((payout * cfg.commission) / 100);
       if (commission > 0) {
-        const { data: refBalance } = await supabase
-          .from("balances")
-          .select("points")
-          .eq("user_id", ref.referrer_id)
-          .single();
-        const refNewPoints = Number(refBalance?.points ?? 0) + commission;
-        await supabase.from("balances").upsert(
-          { user_id: ref.referrer_id, points: refNewPoints, updated_at: now.toISOString() },
-          { onConflict: "user_id" }
-        );
+        await supabase.rpc("atomic_add_points", {
+          target_user_id: ref.referrer_id,
+          amount_to_add: commission
+        });
+
         await supabase.from("movements").insert({
           user_id: ref.referrer_id,
           type: "comision_afiliado",
