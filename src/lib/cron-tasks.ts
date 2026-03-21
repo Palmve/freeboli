@@ -137,7 +137,7 @@ export async function processDeposits() {
 
 // --- RANKING PRIZES ---
 
-const RANKING_TYPES = ["faucet", "apuesta_hi_lo", "apuesta_prediccion", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado"];
+const RANKING_TYPES = ["faucet", "apuesta_hi_lo", "apuesta_hi_lo_historico", "apuesta_prediccion", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado"];
 
 interface PrizeConfig {
   period: "daily" | "weekly" | "monthly";

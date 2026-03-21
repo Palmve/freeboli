@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     dateFilter = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
   }
 
-  const rankingTypes = ["faucet", "apuesta_hi_lo", "apuesta_prediccion", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado", "premio_ranking"];
+  const rankingTypes = ["faucet", "apuesta_hi_lo", "apuesta_hi_lo_historico", "apuesta_prediccion", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado", "premio_ranking"];
 
   let movQuery = supabase
     .from("movements")

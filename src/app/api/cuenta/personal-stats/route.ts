@@ -26,6 +26,21 @@ export async function GET() {
     .eq("user_id", user.id)
     .eq("type", "apuesta_hi_lo");
 
+  const { data: hiLoHist } = await supabase
+    .from("movements")
+    .select("metadata")
+    .eq("user_id", user.id)
+    .eq("type", "apuesta_hi_lo_historico");
+
+  let historicalBetCount = 0;
+  for (const m of hiLoHist ?? []) {
+     if (typeof m.metadata === "object" && m.metadata !== null && "rollup_count" in m.metadata) {
+         historicalBetCount += Number((m.metadata as any).rollup_count || 0);
+     }
+  }
+
+  const hiLoBetsTotal = (hiLoBets ?? 0) + historicalBetCount;
+
   const { data: w } = await supabase
     .from("withdrawals")
     .select("points, status")
@@ -37,11 +52,11 @@ export async function GET() {
 
   return NextResponse.json({
     stats: {
-      hiLoBets: hiLoBets ?? 0,
+      hiLoBets: hiLoBetsTotal,
       faucetEarned: sums["faucet"] ?? 0,
       commissionsEarned: sums["comision_afiliado"] ?? 0,
       rankingPrizes: sums["premio_ranking"] ?? 0,
-      hiLoPrizes: sums["premio_hi_lo"] ?? 0,
+      hiLoPrizes: (sums["premio_hi_lo"] ?? 0) + (sums["premio_hi_lo_historico"] ?? 0),
       predictionPrizes: sums["premio_prediccion"] ?? 0,
       rewardsEarned: sums["recompensa"] ?? 0,
       depositsTotal: sums["deposito_bolis"] ?? 0,

@@ -150,12 +150,53 @@ export async function POST(req: Request) {
   // Mantener solo las últimas 100 jugadas HI-LO por usuario (apuestas + premios)
   const { data: oldHiLo } = await supabase
     .from("movements")
-    .select("id")
+    .select("id, points, type, created_at")
     .eq("user_id", userId)
     .in("type", ["apuesta_hi_lo", "premio_hi_lo"])
     .order("created_at", { ascending: false })
     .range(100, 1000);
+
   if (oldHiLo && oldHiLo.length > 0) {
+    const groupedByDay: Record<string, { pointsBet: number, pointsWon: number, countBet: number, countWon: number, ids: string[] }> = {};
+    
+    for (const m of oldHiLo) {
+        const day = m.created_at.split("T")[0];
+        if (!groupedByDay[day]) groupedByDay[day] = { pointsBet: 0, pointsWon: 0, countBet: 0, countWon: 0, ids: [] };
+        
+        groupedByDay[day].ids.push(m.id);
+        if (m.type === "apuesta_hi_lo") {
+            groupedByDay[day].pointsBet += Number(m.points);
+            groupedByDay[day].countBet++;
+        }
+        if (m.type === "premio_hi_lo") {
+            groupedByDay[day].pointsWon += Number(m.points);
+            groupedByDay[day].countWon++;
+        }
+    }
+
+    for (const [day, group] of Object.entries(groupedByDay)) {
+        if (group.pointsBet !== 0) {
+            await supabase.from("movements").insert({
+                user_id: userId,
+                type: "apuesta_hi_lo_historico",
+                points: group.pointsBet,
+                created_at: `${day}T23:59:59.000Z`,
+                reference: "agrupacion_" + day,
+                metadata: { rollup_count: group.countBet }
+            });
+        }
+        if (group.pointsWon !== 0) {
+            await supabase.from("movements").insert({
+                user_id: userId,
+                type: "premio_hi_lo_historico",
+                points: group.pointsWon,
+                created_at: `${day}T23:59:59.000Z`,
+                reference: "agrupacion_" + day,
+                metadata: { rollup_count: group.countWon }
+            });
+        }
+    }
+
     await supabase
       .from("movements")
       .delete()
