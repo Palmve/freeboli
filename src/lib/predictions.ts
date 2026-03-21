@@ -43,7 +43,7 @@ export async function ensureActiveRound(asset: PredictionAsset, type: Prediction
   }
 
   if (asset === "BOLIS") {
-    openPrice = Number(openPrice.toFixed(5));
+    openPrice = Number(openPrice.toFixed(6));
   }
 
   const { data: newRound, error } = await supabase
@@ -119,7 +119,7 @@ export async function resolvePendingRounds() {
       const closePriceRaw = await getCryptoPrice(round.asset as PredictionAsset);
       if (closePriceRaw === null) return false;
 
-      const closePrice = round.asset === "BOLIS" ? Number(closePriceRaw.toFixed(5)) : closePriceRaw;
+      const closePrice = round.asset === "BOLIS" ? Number(closePriceRaw.toFixed(6)) : closePriceRaw;
       const result = closePrice > round.opening_price ? "up" : closePrice < round.opening_price ? "down" : "draw";
 
       // 1. Obtener todas las apuestas de esta ronda

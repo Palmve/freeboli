@@ -211,9 +211,9 @@ function PredictionsContent() {
       {error && <div className="mb-6 rounded-lg bg-red-500/20 p-4 text-center text-red-400 border border-red-500/50 font-medium">{error}</div>}
       {success && <div className="mb-6 rounded-lg bg-emerald-500/20 p-4 text-center text-emerald-400 border border-emerald-500/50 font-medium">{success}</div>}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Panel Izquierdo: Precio y Tiempo */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6">
+        {/* Panel Izquierdo: Precio y Tiempo (T1) */}
+        <div className="order-1 lg:order-none lg:col-span-2">
           <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 sm:p-8 shadow-xl">
             <div className="flex flex-col gap-6 sm:flex-row sm:justify-between sm:items-start mb-6">
                 <div className="text-center sm:text-left">
@@ -222,7 +222,7 @@ function PredictionsContent() {
                    </p>
                    <div className="mt-1 flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
                      <span className="text-3xl sm:text-5xl font-mono font-bold text-white tracking-tighter">
-                       ${data?.current_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 5 : asset === "SOL" ? 3 : 2, maximumFractionDigits: asset === "BOLIS" ? 5 : asset === "SOL" ? 3 : 2 })}
+                       ${data?.current_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2, maximumFractionDigits: asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2 })}
                      </span>
                      <span className={`text-lg sm:text-xl font-bold flex items-center ${isUp ? "text-emerald-400" : "text-red-400"}`}>
                        {isUp ? "▲" : "▼"} {Math.abs(diff).toFixed(3)}%
@@ -250,14 +250,16 @@ function PredictionsContent() {
                     />
                 </div>
                 <div className="flex justify-between text-[10px] sm:text-sm text-slate-400 font-mono">
-                    <span>${data?.opening_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 5 : asset === "SOL" ? 3 : 2, maximumFractionDigits: asset === "BOLIS" ? 5 : asset === "SOL" ? 3 : 2 })}</span>
+                    <span>${data?.opening_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2, maximumFractionDigits: asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2 })}</span>
                     <span>{data ? new Date(data.end_time).toLocaleTimeString(lang === "es" ? "es-ES" : "en-US", { hour: '2-digit', minute: '2-digit', hour12: false }) : "--:--"}</span>
                 </div>
             </div>
           </div>
+        </div>
 
-          {/* Historial de Apuestas */}
-          <div className="rounded-2xl border border-slate-700 bg-slate-900 overflow-hidden shadow-xl text-left">
+        {/* T2: Historial de Apuestas - Móvil 3ro, PC fila 2 */}
+        <div className="order-3 lg:order-none lg:col-span-2 lg:col-start-1 lg:row-start-2">
+          <div className="rounded-2xl border border-slate-700 bg-slate-900 overflow-hidden shadow-xl text-left h-full">
             <div className="border-b border-slate-700 bg-slate-800/50 px-6 py-4">
                 <h3 className="font-bold text-white flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
@@ -320,9 +322,9 @@ function PredictionsContent() {
           </div>
         </div>
 
-        {/* Panel Derecho: Apuesta y Stats */}
-        <div className="space-y-6 text-left">
-          <div className="rounded-2xl border border-amber-500/30 bg-slate-900 p-6 shadow-xl relative overflow-hidden">
+        {/* T3: Panel de Apuesta - Móvil 2do, PC derecha */}
+        <div className="order-2 lg:order-none lg:col-span-1 lg:col-start-3 lg:row-start-1">
+          <div className="rounded-2xl border border-amber-500/30 bg-slate-900 p-6 shadow-xl relative overflow-hidden h-full text-left">
             <div className="absolute top-0 right-0 p-3 opacity-10">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
@@ -396,9 +398,11 @@ function PredictionsContent() {
               </div>
             )}
           </div>
+        </div>
 
-          {/* Resumen de Ganancias */}
-          <div className="rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-xl">
+        {/* T4: Resumen de Ganancias - Móvil 4to, PC derecha abajo */}
+        <div className="order-4 lg:order-none lg:col-span-1 lg:col-start-3 lg:row-start-2">
+          <div className="rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-xl h-full">
              <h3 className="font-bold text-white mb-4 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-emerald-500" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
