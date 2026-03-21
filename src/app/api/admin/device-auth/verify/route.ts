@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAdminUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
+import crypto from "crypto";
 
 export async function POST(req: Request) {
   const user = await getAdminUser();
@@ -15,25 +16,26 @@ export async function POST(req: Request) {
   }
 
   const supabase = await createClient();
+  const hashedPin = crypto.createHash("sha256").update(pin).digest("hex");
   
   const { data: tokens } = await supabase
-    .from("verification_tokens")
-    .select("token, expires")
-    .eq("identifier", user.email)
-    .eq("token", pin);
+    .from("email_verifications")
+    .select("token_hash, expires_at")
+    .eq("user_id", user.id)
+    .eq("token_hash", hashedPin);
 
   if (!tokens || tokens.length === 0) {
     return NextResponse.json({ error: "PIN incorrecto" }, { status: 401 });
   }
 
   const tokenRecord = tokens[0];
-  if (new Date(tokenRecord.expires).getTime() < Date.now()) {
+  if (new Date(tokenRecord.expires_at).getTime() < Date.now()) {
     return NextResponse.json({ error: "El PIN ha expirado. Solicita otro." }, { status: 401 });
   }
 
   // PIN válido. Proceder con el Fingerprinting.
   // 1. Destruimos el PIN para evitar re-usos (Replay Attacks).
-  await supabase.from("verification_tokens").delete().eq("identifier", user.email);
+  await supabase.from("email_verifications").delete().eq("user_id", user.id);
 
   // 2. Insertamos la galleta de reconocimiento de dispositivo a perpetuidad (3 Años).
   cookies().set("freeboli_device_trusted", "true", {

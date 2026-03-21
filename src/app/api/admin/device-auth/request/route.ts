@@ -13,17 +13,18 @@ export async function POST() {
   // Generate 6-digit numeric PIN
   const pin = Array.from({ length: 6 }, () => crypto.randomInt(0, 10)).join("");
   const expires = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  const tokenHash = crypto.createHash("sha256").update(pin).digest("hex");
 
   const supabase = await createClient();
   
   // Clean old tokens
-  await supabase.from("verification_tokens").delete().eq("identifier", user.email);
+  await supabase.from("email_verifications").delete().eq("user_id", user.id);
 
-  // Store new token
-  const { error: dbError } = await supabase.from("verification_tokens").insert({
-    identifier: user.email,
-    token: pin,
-    expires: expires
+  // Store new token (hashed)
+  const { error: dbError } = await supabase.from("email_verifications").insert({
+    user_id: user.id,
+    token_hash: tokenHash,
+    expires_at: expires
   });
 
   if (dbError) {
