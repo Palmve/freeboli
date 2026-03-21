@@ -217,9 +217,29 @@ function PredictionsContent() {
           <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 sm:p-8 shadow-xl">
             <div className="flex flex-col gap-6 sm:flex-row sm:justify-between sm:items-start mb-6">
                 <div className="text-center sm:text-left">
-                   <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest">
-                     {t("predictions.price_current").replace("{0}", asset)}
-                   </p>
+                   <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-2">
+                       <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                         {t("predictions.price_current").replace("{0}", asset)}
+                         <a
+                           href={
+                               asset === "BOLIS" 
+                               ? "https://dexscreener.com/solana/612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha"
+                               : asset === "SOL"
+                               ? "https://www.coinbase.com/price/solana"
+                               : "https://www.coinbase.com/price/bitcoin"
+                           }
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="text-slate-500 hover:text-amber-400 transition inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full w-4 h-4 sm:w-5 sm:h-5"
+                           title={lang === "es" ? "Ver fuente del precio" : "View price source"}
+                         >
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5 sm:h-3 sm:w-3" viewBox="0 0 20 20" fill="currentColor">
+                             <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                             <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                           </svg>
+                         </a>
+                       </p>
+                   </div>
                    <div className="mt-1 flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
                      <span className="text-3xl sm:text-5xl font-mono font-bold text-white tracking-tighter">
                        ${data?.current_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2, maximumFractionDigits: asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2 })}

@@ -47,6 +47,21 @@ export async function POST(req: Request) {
 
   const supabase = await createClient();
 
+  // Verificar límite de 5 apuestas máximas por ronda para este usuario
+  const { count: userBetCount, error: countError } = await supabase
+    .from("prediction_bets")
+    .select("*", { count: "exact", head: true })
+    .eq("round_id", roundData.id)
+    .eq("user_id", user.id);
+
+  if (countError) {
+    return NextResponse.json({ error: "Error al verificar tu historial de apuestas." }, { status: 500 });
+  }
+
+  if (userBetCount !== null && userBetCount >= 5) {
+    return NextResponse.json({ error: "Límite alcanzado: Solo se permiten 5 apuestas por ronda." }, { status: 400 });
+  }
+
   // 1. Descuento atómico de la apuesta (Evita Race Condition)
   const { data: subData, error: subError } = await supabase.rpc("atomic_subtract_points", {
     target_user_id: user.id,
