@@ -126,15 +126,13 @@ Parametros editables desde `/admin/configuracion` sin redesplegar:
 
 ---
 
-## Resumen para un agente de IA
-
-- **Web pública:** https://freeboli.vercel.app/
-- **Código:** https://github.com/Palmve/freeboli (rama `main`)
-- **Hosting:** Vercel, proyecto **freeboli**.
-- **Base de datos:** Supabase; credenciales solo en env.
-- **Subir cambios:** `git add . && git commit -m "..." && git push origin main` → Vercel despliega solo.
-- **Migraciones:** 11 archivos SQL en `supabase/migrations/`, ejecutar en orden en Supabase SQL Editor.
-- **Config en vivo:** Tabla `site_settings` editable desde `/admin/configuracion`.
+- **Resumen para un agente de IA:**
+  - **Ubicación:** `e:\2026 Desarrollo Web\freeboli`.
+  - **Producción:** https://freeboli.win (vinculado a `main` en GitHub).
+  - **Build:** Requiere un linter limpio (`npm run lint`) y transpilación de tipos exitosa. Se añadió `.eslintrc.json`.
+  - **Internacionalización (i18n):** Usa `src/i18n/*.json` y `LangContext.tsx`. El `LangProvider` debe envolver todos los componentes que usen el hook `useLang` para evitar errores durante el prerenderizado (SSR).
+  - **Analíticas:** Se usa `AnalyticsTracker` en el `layout.tsx` para registrar eventos en la tabla `analytics_events`.
+  - **Subir cambios:** `git add . && git commit -m "..." && git push origin main`.
 
 ---
 

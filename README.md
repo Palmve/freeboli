@@ -10,6 +10,8 @@ Web de juego con puntos internos y BOLIS (token Solana). Faucet con rachas, HI-L
 - **Auth:** NextAuth.js (credentials + Google opcional)
 - **Estilo:** Tailwind CSS (tema oscuro)
 - **Deploy:** Vercel con cron jobs
+- **Internacionalización (i18n):** Soporte bilingüe (ES/EN) con detección automática y persistencia.
+- **Analíticas:** Registro de visitas y eventos personalizados en tiempo real.
 - **Package manager:** pnpm
 
 ## Estructura principal
@@ -105,7 +107,8 @@ Abre [http://localhost:3000](http://localhost:3000). Ver `LOCAL.md` para configu
 - Headers de seguridad HTTP
 
 ### Admin
-- Pestañas: Resumen, Wallets, Depósitos, Retiros, Usuarios, Ranking, Estadísticas, Proyecciones, Alertas, Configuración, Seguridad
+- **Visitas**: Panel con métricas en tiempo real, mapa de calor y listado de eventos (`/admin/visitas`).
+- **Pestañas**: Resumen, Wallets, Depósitos, Retiros, Usuarios, Ranking, Estadísticas, Proyecciones, Alertas, Configuración, Seguridad
 - **Estadísticas**: Balance P&L de la plataforma (ingresos vs costos), desglose por tipo, jugadas HI-LO
 - **Proyecciones**: Simulador client-side de costos mensuales (faucet, afiliados, logros)
 - **Configuración**: Editor en vivo de todos los parámetros del sistema (tabla `site_settings`)
