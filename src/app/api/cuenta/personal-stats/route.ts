@@ -30,7 +30,8 @@ export async function GET() {
     .from("movements")
     .select("metadata")
     .eq("user_id", user.id)
-    .eq("type", "apuesta_hi_lo_historico");
+    .eq("type", "apuesta_hi_lo")
+    .like("reference", "agrupacion_%");
 
   let historicalBetCount = 0;
   for (const m of hiLoHist ?? []) {
@@ -56,7 +57,7 @@ export async function GET() {
       faucetEarned: sums["faucet"] ?? 0,
       commissionsEarned: sums["comision_afiliado"] ?? 0,
       rankingPrizes: sums["premio_ranking"] ?? 0,
-      hiLoPrizes: (sums["premio_hi_lo"] ?? 0) + (sums["premio_hi_lo_historico"] ?? 0),
+      hiLoPrizes: sums["premio_hi_lo"] ?? 0,
       predictionPrizes: sums["premio_prediccion"] ?? 0,
       rewardsEarned: sums["recompensa"] ?? 0,
       depositsTotal: sums["deposito_bolis"] ?? 0,

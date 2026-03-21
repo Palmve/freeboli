@@ -178,7 +178,7 @@ export async function POST(req: Request) {
         if (group.pointsBet !== 0) {
             await supabase.from("movements").insert({
                 user_id: userId,
-                type: "apuesta_hi_lo_historico",
+                type: "apuesta_hi_lo",
                 points: group.pointsBet,
                 created_at: `${day}T23:59:59.000Z`,
                 reference: "agrupacion_" + day,
@@ -188,10 +188,10 @@ export async function POST(req: Request) {
         if (group.pointsWon !== 0) {
             await supabase.from("movements").insert({
                 user_id: userId,
-                type: "premio_hi_lo_historico",
+                type: "premio_hi_lo",
                 points: group.pointsWon,
                 created_at: `${day}T23:59:59.000Z`,
-                reference: "agrupacion_" + day,
+                reference: "agrupacion_premio_" + day,
                 metadata: { rollup_count: group.countWon }
             });
         }
