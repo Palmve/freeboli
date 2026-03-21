@@ -191,25 +191,6 @@ function PredictionsContent() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] p-4 sm:p-8 relative">
-      {/* Banner de Notificación Global Auto-expirable (10s) */}
-      {notification.message && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[150] w-[90%] max-w-md p-4 rounded-xl shadow-2xl border animate-in fade-in slide-in-from-top-4 duration-300 ${
-          notification.type === "success" ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400" : "bg-red-500/10 border-red-500/50 text-red-400"
-        }`}>
-          <div className="flex items-center gap-3">
-            {notification.type === "success" ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            )}
-            <p className="text-sm font-bold uppercase leading-tight">{notification.message}</p>
-          </div>
-        </div>
-      )}
 
       <div className="mx-auto max-w-7xl">
         {/* Header & Tabs */}
@@ -263,36 +244,68 @@ function PredictionsContent() {
         </div>
 
         {/* Tarjeta Descriptiva del Juego */}
-        <div className="mb-8 animate-in fade-in slide-in-from-left-4 duration-500 text-left">
-           <div className={`rounded-xl border p-4 border-l-4 shadow-xl ${
-             type === "micro" ? "bg-amber-500/5 border-slate-700 border-l-amber-500" :
-             type === "mini" ? "bg-sky-500/5 border-slate-700 border-l-sky-500" :
-             "bg-indigo-500/5 border-slate-700 border-l-indigo-500"
-           }`}>
-              <div className="flex gap-4">
-                 <div className="mt-1 flex-shrink-0">
-                    <div className={`p-2 rounded-lg ${
-                      type === "micro" ? "bg-amber-500/20 text-amber-500" :
-                      type === "mini" ? "bg-sky-500/20 text-sky-500" :
-                      "bg-indigo-500/20 text-indigo-500"
-                    }`}>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                 </div>
-                 <div className="flex-1">
-                    <h3 className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
-                      type === "micro" ? "text-amber-500" : type === "mini" ? "text-sky-500" : "text-indigo-500"
-                    }`}>
-                      Guía del Modo {type === "hourly" ? "Normal" : type.toUpperCase()}
-                    </h3>
-                    <p className="text-sm text-slate-300 leading-relaxed font-medium">
-                       {type === "hourly" ? t("predictions.desc_hourly") : type === "mini" ? t("predictions.desc_mini") : t("predictions.desc_micro")}
-                    </p>
-                 </div>
-              </div>
-           </div>
+        <div className="mb-8 animate-in fade-in slide-in-from-left-4 duration-500 text-left relative min-h-[85px]">
+           {notification.message ? (
+             /* Notificación integrada en el espacio de la guía */
+             <div className={`rounded-xl border p-4 border-l-4 shadow-xl flex items-center gap-4 animate-in zoom-in-95 duration-300 ${
+               notification.type === "success" ? "bg-emerald-500/10 border-emerald-500/50 border-l-emerald-500 text-emerald-400" : "bg-red-500/10 border-red-500/50 border-l-red-500 text-red-400"
+             }`}>
+                <div className="flex-shrink-0 mt-0.5">
+                   {notification.type === "success" ? (
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                     </svg>
+                   ) : (
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                     </svg>
+                   )}
+                </div>
+                <div>
+                   <h4 className="text-xs font-black uppercase tracking-widest mb-0.5">{notification.type === "success" ? "Éxito" : "Atención"}</h4>
+                   <p className="text-sm font-bold leading-tight">{notification.message}</p>
+                </div>
+                <button 
+                  onClick={() => setNotification({ message: "", type: null })}
+                  className="ml-auto opacity-50 hover:opacity-100 transition"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+             </div>
+           ) : (
+             /* Tarjeta de Guía Estándar */
+             <div className={`rounded-xl border p-4 border-l-4 shadow-xl ${
+               type === "micro" ? "bg-amber-500/5 border-slate-700 border-l-amber-500" :
+               type === "mini" ? "bg-sky-500/5 border-slate-700 border-l-sky-500" :
+               "bg-indigo-500/5 border-slate-700 border-l-indigo-500"
+             }`}>
+                <div className="flex gap-4">
+                   <div className="mt-1 flex-shrink-0">
+                      <div className={`p-2 rounded-lg ${
+                        type === "micro" ? "bg-amber-500/20 text-amber-500" :
+                        type === "mini" ? "bg-sky-500/20 text-sky-500" :
+                        "bg-indigo-500/20 text-indigo-500"
+                      }`}>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                   </div>
+                   <div className="flex-1">
+                      <h3 className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
+                        type === "micro" ? "text-amber-500" : type === "mini" ? "text-sky-500" : "text-indigo-500"
+                      }`}>
+                        Guía del Modo {type === "hourly" ? "Normal" : type.toUpperCase()}
+                      </h3>
+                      <p className="text-sm text-slate-300 leading-relaxed font-medium">
+                         {type === "hourly" ? t("predictions.desc_hourly") : type === "mini" ? t("predictions.desc_mini") : t("predictions.desc_micro")}
+                      </p>
+                   </div>
+                </div>
+             </div>
+           )}
         </div>
 
       <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6">
