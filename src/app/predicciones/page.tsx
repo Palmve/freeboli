@@ -245,8 +245,25 @@ function PredictionsContent() {
           </div>
         </div>
 
+        {/* Selector de Activos (BTC, SOL, BOLIS) */}
+        <div className="grid grid-cols-3 gap-2 mb-6 sm:flex sm:flex-wrap sm:justify-center">
+          {["BTC", "SOL", "BOLIS"].map((a) => (
+            <Link 
+              key={a}
+              href={`/predicciones?asset=${a}`} 
+              className={`rounded-xl px-2 py-3 sm:px-8 sm:py-3 text-xs sm:text-sm font-black text-center transition-all border ${
+                asset === a 
+                  ? "bg-amber-500 text-slate-900 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)]" 
+                  : "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              {a}
+            </Link>
+          ))}
+        </div>
+
         {/* Tarjeta Descriptiva del Juego */}
-        <div className="mb-8 animate-in fade-in slide-in-from-left-4 duration-500">
+        <div className="mb-8 animate-in fade-in slide-in-from-left-4 duration-500 text-left">
            <div className={`rounded-xl border p-4 border-l-4 shadow-xl ${
              type === "micro" ? "bg-amber-500/5 border-slate-700 border-l-amber-500" :
              type === "mini" ? "bg-sky-500/5 border-slate-700 border-l-sky-500" :
@@ -264,7 +281,7 @@ function PredictionsContent() {
                       </svg>
                     </div>
                  </div>
-                 <div className="flex-1 text-left">
+                 <div className="flex-1">
                     <h3 className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
                       type === "micro" ? "text-amber-500" : type === "mini" ? "text-sky-500" : "text-indigo-500"
                     }`}>
