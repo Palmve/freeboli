@@ -1,0 +1,19 @@
+name: FreeBoli Bot Cron
+
+on:
+  schedule:
+    # Se ejecuta cada hora en el minuto 15 (puedes cambiarlo)
+    # Formato: min hora día mes día_semana
+    - cron: '15 * * * *'
+  
+  # También permite ejecutarlo manualmente desde GitHub
+  workflow_dispatch:
+
+jobs:
+  run-bot-tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar al endpoint del Bot Tick
+        run: |
+          curl -s -X GET "https://freeboli.win/api/bot/tick"
+          echo "Tick enviado al bot."

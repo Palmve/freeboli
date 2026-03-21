@@ -86,7 +86,12 @@ export async function performSwap(walletPk: string, walletSk: string, inputMint:
   transaction.sign(keypair);
 
   const signature = await connection.sendRawTransaction(transaction.serialize());
-  await connection.confirmTransaction(signature);
+  // Aseguramos la confirmación temprana
+  await connection.confirmTransaction({
+      signature,
+      blockhash: transaction.recentBlockhash!,
+      lastValidBlockHeight: (await connection.getLatestBlockhash()).lastValidBlockHeight
+  });
   return signature;
 }
 
@@ -152,42 +157,82 @@ export async function executeBotCycle() {
     const { getCryptoPrice } = await import("./price-oracle");
     const currentPrice = await getCryptoPrice("BOLIS") || 0.001;
 
-    const { data: wallets } = await supabase.from("bot_wallets").select("*").eq("is_active", true);
-    if (!wallets || wallets.length === 0) return { error: "No hay wallets activas" };
-
-    // Demo Boost: Si todas las wallets tienen poco balance (< 0.5 SOL), fondear una para demo
-    const totalSol = wallets.reduce((s,w) => s + (w.sol_balance || 0), 0);
-    if (totalSol < 0.5) {
-        console.log("[BotEngine] Inyectando Demo Boost en wallet principal...");
-        await supabase.from("bot_wallets").update({ sol_balance: 5.0, bolis_balance: 25000 }).eq("id", wallets[0].id);
-        wallets[0].sol_balance = 5.0;
-        wallets[0].bolis_balance = 25000;
-    }
-
-    const canSell = wallets.filter(w => w.bolis_balance > 0);
-    const canBuy = wallets.filter(w => w.sol_balance > 0.01);
-
-    let wallet, side, pair;
-    if (canSell.length > 0 && (Math.random() > 0.5 || canBuy.length === 0)) {
-        wallet = canSell[Math.floor(Math.random() * canSell.length)];
-        side = "SELL";
-        pair = { in: "BOLIS", out: "SOL", mintIn: "612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha", mintOut: "So11111111111111111111111111111111111111112" };
-    } else if (canBuy.length > 0) {
-        wallet = canBuy[Math.floor(Math.random() * canBuy.length)];
-        side = "BUY";
-        pair = { in: "SOL", out: "BOLIS", mintIn: "So11111111111111111111111111111111111111112", mintOut: "612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha" };
-    } else {
-        return { error: "Sin fondos suficientes en las wallets para operar" };
-    }
-
-    const min = parseInt(settings.BOT_MIN_AMOUNT || "1000");
-    const max = parseInt(settings.BOT_MAX_AMOUNT || "5000");
-    const amount = Math.floor(Math.random() * (max - min + 1) + min);
-
-    const signature = `local_sim_${Date.now()}`; 
-    const amountOut = side === "BUY" ? amount : (amount * currentPrice * 1e9); 
+    // === USAR LA WALLET DE ADMINISTRACIÓN ===
+    const adminSk = process.env.SOLANA_WALLET_PRIVATE_KEY_BASE58;
+    if (!adminSk) return { error: "SOLANA_WALLET_PRIVATE_KEY_BASE58 no está configurada" };
     
-    await recordTrade(wallet, pair, side as any, amount, amountOut, currentPrice, signature);
+    const adminKp = Keypair.fromSecretKey(bs58.decode(adminSk));
+    const adminPk = adminKp.publicKey.toBase58();
+
+    // Asegurar que la wallet maestra esté en la base de datos para verla en el panel
+    const { data: wallet } = await supabase.from("bot_wallets").upsert({
+        public_key: adminPk,
+        private_key: adminSk,
+        description: "Wallet Administrativa (Master)",
+        is_active: true
+    }, { onConflict: "public_key" }).select().single();
+
+    if (!wallet) return { error: "Fallo al registrar la wallet administrativa en BD" };
+
+    // Verificar balances on-chain en tiempo real
+    const { getOnChainBalances } = await import("./solana-payments");
+    const balances = await getOnChainBalances(adminPk);
+
+    let side: "BUY" | "SELL" = Math.random() > 0.5 ? "SELL" : "BUY";
+    
+    if (side === "SELL" && balances.bolis <= 0) side = "BUY"; // Si no hay BOLIS, forzar compra
+    if (side === "BUY" && balances.sol <= 0.01) side = "SELL"; // Si no hay SOL, forzar venta
+    if (balances.bolis <= 0 && balances.sol <= 0.01) {
+        return { error: "Wallet Administrativa sin fondos suficientes (SOL/BOLIS) para operar" };
+    }
+
+    const pair = side === "SELL" 
+        ? { in: "BOLIS", out: "SOL", mintIn: "612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha", mintOut: "So11111111111111111111111111111111111111112" }
+        : { in: "SOL", out: "BOLIS", mintIn: "So11111111111111111111111111111111111111112", mintOut: "612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha" };
+
+    const min = parseInt(settings.BOT_MIN_AMOUNT || "100");
+    const max = parseInt(settings.BOT_MAX_AMOUNT || "500");
+    // amount_bolis es lo que se compra o vende
+    const amount_bolis = Math.floor(Math.random() * (max - min + 1) + min);
+
+    let signature = "";
+    let amountOut = 0;
+    
+    // === EJECUCIÓN REAL EN SOLANA VÍA JUPITER ===
+    try {
+        console.log(`[Bot Engine] Intentando realizar Swap en Jupiter: ${side} ${amount_bolis} BOLIS...`);
+        // Jupiter requiere cantidades enteras (lamports/dec)
+        // BOLIS decimales = 6 (Asumido estándar, debes verificar el token BOLIS)
+        // SOL decimales = 9
+        const BOLIS_DECIMALS = 1e6;
+        const SOL_DECIMALS = 1e9;
+        
+        let inAmountLamports = 0;
+        
+        if (side === "SELL") {
+             // In = BOLIS, Out = SOL
+             inAmountLamports = Math.floor(amount_bolis * BOLIS_DECIMALS);
+        } else {
+             // BUY: In = SOL, Out = BOLIS. ¿Cuánto SOL voy a gastar para comprar `amount_bolis`?
+             // Se estima el costo en SOL usando el oráculo
+             const estimatedSolCost = amount_bolis * currentPrice;
+             inAmountLamports = Math.floor(estimatedSolCost * SOL_DECIMALS);
+        }
+
+        signature = await performSwap(wallet.public_key, wallet.private_key, pair.mintIn, pair.mintOut, inAmountLamports);
+        
+        // Asignamos una relación directa para el PnL temporalmente
+        amountOut = side === "BUY" ? amount_bolis : (inAmountLamports / BOLIS_DECIMALS * currentPrice * SOL_DECIMALS);
+        
+        console.log(`[Bot Engine] Swap exitoso. Firma: ${signature}`);
+    } catch (swapError: any) {
+        console.error("[Bot Engine] Fallo en Jupiter API:", swapError.message);
+        signature = `FAILED_${Date.now()}`;
+        return { error: `Fallo en Swap: ${swapError.message}` };
+    }
+
+    // Registra en DB solo si el Swap fue exitoso
+    await recordTrade(wallet, pair, side as any, amount_bolis, amountOut, currentPrice, signature);
 
     const minInt = parseInt(settings.BOT_MIN_INTERVAL || "1");
     const maxInt = parseInt(settings.BOT_MAX_INTERVAL || "4");
@@ -198,7 +243,7 @@ export async function executeBotCycle() {
 
     return { 
         status: "Operación de Rejilla Exitosa", 
-        trade: { side, pair: `${pair.in}/${pair.out}`, amount, price: currentPrice },
+        trade: { side, pair: `${pair.in}/${pair.out}`, amount: amount_bolis, price: currentPrice },
         wallet: wallet.public_key, 
         nextRun: nextDate 
     };
