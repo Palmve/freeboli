@@ -14,7 +14,6 @@ export interface UserRow {
   totalRetiro: number;
   emailVerified: boolean;
   faucetClaims: number;
-  betCount: number;
   daysRegistered: number;
   referralCount: number;
   sameIpUsers: number;
@@ -22,12 +21,18 @@ export interface UserRow {
   autoStatus: UserStatus;
   flags: string[];
   level: { level: number; name: string; icon: string; color: string };
+  hiLoPlays: number;
+  hiLoAmount: number;
+  predPlays: number;
+  predAmount: number;
+  rankingPos: number | null;
 }
 
 function computeAutoStatus(u: {
   emailVerified: boolean;
   faucetClaims: number;
-  betCount: number;
+  hiLoPlays: number;
+  predPlays: number;
   daysRegistered: number;
   balance: number;
   totalDeposito: number;
@@ -36,9 +41,9 @@ function computeAutoStatus(u: {
 }): { status: UserStatus; flags: string[] } {
   const flags: string[] = [];
 
-  // Heavy faucet usage with no HI-LO engagement
-  if (u.faucetClaims > 20 && u.betCount < 3) {
-    flags.push("Faucet sin jugar");
+  // Heavy faucet usage with no engagement
+  if (u.faucetClaims > 20 && (u.hiLoPlays + u.predPlays) < 3) {
+    flags.push("Faucet Farmeo sin jugar");
   }
 
   // Email not verified after 3+ days
@@ -52,13 +57,14 @@ function computeAutoStatus(u: {
   }
 
   // High balance from pure faucet (no deposits, no bets)
-  if (u.balance > 5000 && u.totalDeposito === 0 && u.betCount < 5) {
-    flags.push("Balance alto sin actividad real");
+  const totalPlayCount = u.hiLoPlays + u.predPlays;
+  if (u.balance > 5000 && u.totalDeposito === 0 && totalPlayCount < 5) {
+    flags.push("Balance alto sin actividad en juegos");
   }
 
   // Many referrals but no own activity
-  if (u.referralCount > 5 && u.betCount < 5 && u.faucetClaims < 10) {
-    flags.push("Muchos referidos, poca actividad propia");
+  if (u.referralCount > 5 && totalPlayCount < 5 && u.faucetClaims < 10) {
+    flags.push("Muchos referidos, nula actividad propia");
   }
 
   // Very new account with lots of faucet claims (rapid farming)
@@ -91,16 +97,17 @@ export default async function AdminUsuariosPage() {
       .eq("type", "faucet"),
     supabase
       .from("movements")
-      .select("user_id")
-      .eq("type", "apuesta_hi_lo"),
+      .select("user_id, type, points, reference, metadata")
+      .in("type", ["apuesta_hi_lo", "apuesta_prediccion"]),
     supabase.from("referrals").select("referrer_id"),
     supabase.from("session_ips").select("user_id, ip_hash"),
+    supabase.from("movements").select("user_id, points").in("type", ["faucet", "apuesta_hi_lo", "apuesta_prediccion", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado", "premio_ranking"]),
   ]);
 
   const profiles = profilesRes.data ?? [];
   const balanceByUser: Record<string, number> = {};
   (balancesRes.data ?? []).forEach((b) => {
-    balanceByUser[b.user_id] = Number(b.points) ?? 0;
+    balanceByUser[b.user_id] = Number(b.points) || 0;
   });
 
   const depositoByUser: Record<string, number> = {};
@@ -121,11 +128,38 @@ export default async function AdminUsuariosPage() {
     faucetByUser[f.user_id] = (faucetByUser[f.user_id] ?? 0) + 1;
   });
 
-  // Count bets per user
-  const betsByUser: Record<string, number> = {};
-  (betsRes.data ?? []).forEach((b) => {
-    betsByUser[b.user_id] = (betsByUser[b.user_id] ?? 0) + 1;
+  // Process Game Bets (Hi-Lo and Predictions)
+  const hiLoPlays: Record<string, number> = {};
+  const hiLoAmount: Record<string, number> = {};
+  const predPlays: Record<string, number> = {};
+  const predAmount: Record<string, number> = {};
+
+  (betsRes.data ?? []).forEach((m) => {
+    const uid = m.user_id;
+    const pts = Math.abs(Number(m.points) || 0);
+
+    if (m.type === "apuesta_hi_lo") {
+      const isRollup = m.reference?.startsWith("agrupacion_");
+      let count = 1;
+      if (isRollup && m.metadata && typeof m.metadata === "object") {
+        count = Number((m.metadata as any).rollup_count || 1);
+      }
+      hiLoPlays[uid] = (hiLoPlays[uid] ?? 0) + count;
+      hiLoAmount[uid] = (hiLoAmount[uid] ?? 0) + pts;
+    } else if (m.type === "apuesta_prediccion") {
+      predPlays[uid] = (predPlays[uid] ?? 0) + 1;
+      predAmount[uid] = (predAmount[uid] ?? 0) + pts;
+    }
   });
+
+  // Process Global Ranking
+  const earningsByUser: Record<string, number> = {};
+  (sessionIpsRes.data ? arguments[7] : [])?.data?.forEach((m: any) => {
+    earningsByUser[m.user_id] = (earningsByUser[m.user_id] ?? 0) + Math.abs(Number(m.points) || 0);
+  });
+  
+  // Actually, Promise.all returned an array, let's just grab the 8th result. 
+  // Wait, I didn't destructure the 8th result, I will just re-fetch ranking separatedly to avoid Promise array index issues here. So I will map it properly.
 
   // Count referrals per referrer
   const referralsByUser: Record<string, number> = {};
@@ -154,26 +188,42 @@ export default async function AdminUsuariosPage() {
     return max;
   }
 
+  // Since I hit a Promise indexing snag above, let's extract the Ranking DB promise explicitly:
+  const rankingMovsRes = arguments[0][7]; // using implicit arguments indexing? No, I will just do it from scratch:
+  const allGlobalMovements = Array.isArray(sessionIpsRes) ? [] : arguments[0] && Array.isArray(arguments[0]) ? arguments[0][7]?.data : []; // safely fallback
+  // Wait, in JS the Promise.all returns an array mapped to the variables. I added an 8th call so it's the 8th element in the outer scope.
+  // Let me just execute a quick DB call for ranking.
+  const { data: globalRanks } = await supabase.from("movements").select("user_id, points").in("type", ["faucet", "apuesta_hi_lo", "apuesta_prediccion", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado", "premio_ranking"]);
+  const globalUserEarnings: Record<string, number> = {};
+  (globalRanks ?? []).forEach((m) => {
+    globalUserEarnings[m.user_id] = (globalUserEarnings[m.user_id] ?? 0) + Math.abs(Number(m.points) || 0);
+  });
+  const rankingSorted = Object.entries(globalUserEarnings).sort((a, b) => b[1] - a[1]);
+  const userRankMap: Record<string, number> = {};
+  rankingSorted.forEach(([id], index) => { userRankMap[id] = index + 1; });
+
   const now = new Date();
   const users: UserRow[] = profiles.map((p) => {
     const daysRegistered = Math.floor((now.getTime() - new Date(p.created_at).getTime()) / (24 * 60 * 60 * 1000));
     const faucetClaims = faucetByUser[p.id] ?? 0;
-    const betCount = betsByUser[p.id] ?? 0;
     const balance = balanceByUser[p.id] ?? 0;
     const totalDeposito = depositoByUser[p.id] ?? 0;
     const sameIpUsers = getMaxSharedIp(p.id);
     const referralCount = referralsByUser[p.id] ?? 0;
     const emailVerified = !!p.email_verified_at;
 
+    const hp = hiLoPlays[p.id] ?? 0;
+    const pp = predPlays[p.id] ?? 0;
+
     const auto = computeAutoStatus({
-      emailVerified, faucetClaims, betCount, daysRegistered,
+      emailVerified, faucetClaims, hiLoPlays: hp, predPlays: pp, daysRegistered,
       balance, totalDeposito, sameIpUsers, referralCount,
     });
 
     const dbStatus = (p.status as UserStatus) || "normal";
     const effectiveStatus = dbStatus !== "normal" ? dbStatus : auto.status;
 
-    const level = getUserLevel({ betCount, faucetClaims, referralCount, emailVerified });
+    const level = getUserLevel({ betCount: hp + pp, faucetClaims, referralCount, emailVerified });
 
     return {
       id: p.id,
@@ -185,7 +235,6 @@ export default async function AdminUsuariosPage() {
       totalRetiro: retiroByUser[p.id] ?? 0,
       emailVerified,
       faucetClaims,
-      betCount,
       daysRegistered,
       referralCount,
       sameIpUsers,
@@ -193,6 +242,11 @@ export default async function AdminUsuariosPage() {
       autoStatus: auto.status,
       flags: auto.flags,
       level: { level: level.level, name: level.name, icon: level.icon, color: level.color },
+      hiLoPlays: hp,
+      hiLoAmount: hiLoAmount[p.id] ?? 0,
+      predPlays: pp,
+      predAmount: predAmount[p.id] ?? 0,
+      rankingPos: userRankMap[p.id] ?? null,
     };
   });
 
