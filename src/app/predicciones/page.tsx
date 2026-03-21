@@ -100,13 +100,29 @@ function PredictionsContent() {
   useEffect(() => {
     fetchData();
     fetchHistory();
-    fetchBalance();
     const syncTimer = setInterval(() => {
         fetchData();
         fetchHistory();
+        fetchBalance(); // Actualizar balance periódicamente también
     }, 10000); 
     return () => clearInterval(syncTimer);
   }, [fetchData, fetchHistory, fetchBalance]);
+
+  // Fetchear balance cuando la sesión esté disponible
+  useEffect(() => {
+    if (session?.user) {
+        fetchBalance();
+    }
+  }, [session?.user, fetchBalance]);
+
+  // Escuchar eventos globales de actualización de balance (para sincronizar con el Header)
+  useEffect(() => {
+    const onBalanceUpdate = (e: CustomEvent<number>) => {
+      if (typeof e.detail === "number") setBalance(e.detail);
+    };
+    window.addEventListener("freeboli-balance-update", onBalanceUpdate as EventListener);
+    return () => window.removeEventListener("freeboli-balance-update", onBalanceUpdate as EventListener);
+  }, []);
 
   useEffect(() => {
     const clockTimer = setInterval(() => {
