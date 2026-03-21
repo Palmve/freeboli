@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { runAwardPrizesFromAdmin } from "../manual-cron-actions";
 
 interface PrizeAward {
   id: string;
@@ -46,8 +47,12 @@ export default function AdminRankingPage() {
   }, []);
 
   async function triggerPrizes() {
-    const res = await fetch("/api/cron/award-prizes");
-    const data = await res.json().catch(() => ({}));
+    const result = await runAwardPrizesFromAdmin();
+    if (!result.ok) {
+      alert(result.error);
+      return;
+    }
+    const data = result.data;
     alert(JSON.stringify(data.results ?? data, null, 2));
     window.location.reload();
   }

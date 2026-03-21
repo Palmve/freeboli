@@ -2,16 +2,13 @@ import { NextResponse } from "next/server";
 import { executeBotCycle } from "@/lib/bot-engine";
 import { resolvePendingRounds } from "@/lib/predictions";
 import { processDeposits, awardPrizes, runDailySummary } from "@/lib/cron-tasks";
+import { requireCronSecret } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  // Protección por CRON_SECRET (Vercel lo envía en los headers si se configura)
-  const authHeader = req.headers.get("authorization");
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      // Opcional: Descomentar para producción estricta
-      // return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  }
+  const denied = requireCronSecret(req);
+  if (denied) return denied;
 
   const results: any = {
     timestamp: new Date().toISOString(),

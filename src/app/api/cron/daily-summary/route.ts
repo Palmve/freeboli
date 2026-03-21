@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { runDailySummary } from "@/lib/cron-tasks";
+import { requireCronSecret } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
 
-/** 
- * Permite disparar el resumen diario manualmente desde el panel admin.
- * Verificado por el middleware de sesión en la ruta admin/.
- */
-export async function GET() {
+/** Solo automatización: Authorization: Bearer CRON_SECRET (p. ej. curl o job externo). */
+export async function GET(req: Request) {
+  const denied = requireCronSecret(req);
+  if (denied) return denied;
   const res = await runDailySummary();
   return NextResponse.json(res);
 }

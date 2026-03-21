@@ -28,15 +28,6 @@ export function AnalyticsTracker() {
           },
         }),
       }).catch(() => {}); // Ignorar fallos de analíticas
-
-      // 2. Cron Pasivo: Invoca al bot de trading ligeramente
-      // Si el bot está en enfriamiento (cooldown), el servidor responde en milisegundos sin consumir BD
-      // Si está listo para operar, realiza la operación en background
-      fetch("/api/bot/tick", {
-        method: "GET",
-        keepalive: true,
-      }).catch(() => {});
-      
     }, 1000);
 
     return () => clearTimeout(timer);

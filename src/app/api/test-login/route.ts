@@ -1,19 +1,18 @@
 /**
- * Solo en desarrollo: verifica que el usuario existe y la clave es correcta.
- * Uso: GET /api/test-login?email=albertonava@gmail.com&password=Hunberto@2001
- * Eliminar o deshabilitar en producción.
+ * Solo en desarrollo: comprueba email/contraseña contra la BD (sin crear sesión).
+ * Preferible probar con POST + body para no dejar la clave en historial del navegador.
  */
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { verifyPassword } from "@/lib/password";
 
-export async function GET(req: Request) {
+export async function POST(req: Request) {
   if (process.env.NODE_ENV !== "development" || process.env.REQUIRE_AUTH === "true") {
     return NextResponse.json({ error: "No disponible." }, { status: 404 });
   }
-  const { searchParams } = new URL(req.url);
-  const email = searchParams.get("email");
-  const password = searchParams.get("password");
+  const body = await req.json().catch(() => ({}));
+  const email = body.email;
+  const password = body.password;
   if (!email || !password) {
     return NextResponse.json(
       { ok: false, error: "Falta email o password (query params)" },

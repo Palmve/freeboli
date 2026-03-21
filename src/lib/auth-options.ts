@@ -116,10 +116,18 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
+        const email =
+          (typeof token.email === "string" && token.email ? token.email : null) ||
+          session.user.email ||
+          "";
+        if (email) {
+          (session.user as { email?: string }).email = email;
+        }
         (session as { user: { id?: string; isAdmin?: boolean } }).user.id = token.sub ?? undefined;
         try {
           const { isAdmin } = await import("@/lib/auth");
-          (session as { user: { isAdmin?: boolean } }).user.isAdmin = isAdmin(session);
+          const sessionForCheck = { user: { email } } as import("next-auth").Session;
+          (session as { user: { isAdmin?: boolean } }).user.isAdmin = isAdmin(sessionForCheck);
         } catch {
           (session as { user: { isAdmin?: boolean } }).user.isAdmin = false;
         }
@@ -127,9 +135,10 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async jwt({ token, user }) {
-      if (user?.email) {
+      if (user) {
         token.sub = user.id;
-        token.email = user.email;
+        if (user.email) token.email = user.email;
+        if (user.name) token.name = user.name;
       }
       return token;
     },

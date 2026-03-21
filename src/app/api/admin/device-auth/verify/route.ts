@@ -25,6 +25,8 @@ export async function POST(req: Request) {
     .eq("token_hash", hashedPin);
 
   if (!tokens || tokens.length === 0) {
+    // Retraso para mitigar fuerza bruta (entre 1 y 2 segundos)
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
     return NextResponse.json({ error: "PIN incorrecto" }, { status: 401 });
   }
 
@@ -37,13 +39,13 @@ export async function POST(req: Request) {
   // 1. Destruimos el PIN para evitar re-usos (Replay Attacks).
   await supabase.from("email_verifications").delete().eq("user_id", user.id);
 
-  // 2. Insertamos la galleta de reconocimiento de dispositivo a perpetuidad (3 Años).
+  // 2. Insertamos la galleta de reconocimiento de dispositivo (30 Días).
   cookies().set("freeboli_device_trusted", "true", {
     path: "/",
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true, // Siempre secure en cookies sensibles
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 365 * 3, 
+    maxAge: 60 * 60 * 24 * 30, // 30 Días
   });
 
   return NextResponse.json({ success: true, message: "Dispositivo autorizado de forma permanente." });

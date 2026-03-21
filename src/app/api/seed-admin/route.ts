@@ -1,18 +1,26 @@
 /**
- * Crea o actualiza el usuario admin en la BD.
- * Uso: http://localhost:3000/api/seed-admin (con npm run dev)
+ * Crea o actualiza un usuario admin en la BD (solo desarrollo).
+ * Define SEED_ADMIN_EMAIL y SEED_ADMIN_PASSWORD en .env.local (no subir al repositorio).
  */
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { hashPassword } from "@/lib/password";
 import { WELCOME_POINTS } from "@/lib/config";
 
-const EMAIL = "albertonava@gmail.com";
-const PASSWORD = "Humberto@2001#1";
-
 export async function GET() {
   if (process.env.NODE_ENV !== "development") {
     return NextResponse.json({ error: "Solo en desarrollo" }, { status: 404 });
+  }
+  const EMAIL = (process.env.SEED_ADMIN_EMAIL || "").trim().toLowerCase();
+  const PASSWORD = process.env.SEED_ADMIN_PASSWORD || "";
+  if (!EMAIL || !PASSWORD) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Define SEED_ADMIN_EMAIL y SEED_ADMIN_PASSWORD en .env.local para usar esta ruta.",
+      },
+      { status: 400 }
+    );
   }
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -67,9 +75,10 @@ export async function GET() {
       });
     }
 
+    const seedName = (process.env.SEED_ADMIN_NAME || "Admin").trim() || "Admin";
     const { data: inserted, error } = await supabase
       .from("profiles")
-      .insert({ email: EMAIL, name: "Alberto", password_hash, is_admin: true })
+      .insert({ email: EMAIL, name: seedName, password_hash, is_admin: true })
       .select("id")
       .single();
 

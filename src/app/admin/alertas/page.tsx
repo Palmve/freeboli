@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { runDailySummaryFromAdmin } from "../manual-cron-actions";
 
 const ALERT_TYPES = [
   { icon: "👤", label: "Nuevo usuario registrado", trigger: "Al registrarse un usuario nuevo" },
@@ -43,9 +44,19 @@ export default function AlertasPage() {
     setSummaryTesting(true);
     setSummaryResult(null);
     try {
-      const res = await fetch("/api/cron/daily-summary");
-      const data = await res.json().catch(() => ({}));
-      setSummaryResult(data.ok ? "Resumen enviado a Telegram." : data.error || "Error");
+      const result = await runDailySummaryFromAdmin();
+      if (!result.ok) {
+        setSummaryResult(result.error);
+        return;
+      }
+      const data = result.data;
+      const errMsg =
+        "error" in data && data.error
+          ? data.error
+          : "message" in data && data.message && !data.ok
+            ? data.message
+            : "Error";
+      setSummaryResult(data.ok ? "Resumen enviado a Telegram." : errMsg);
     } catch {
       setSummaryResult("Error de conexion");
     } finally {

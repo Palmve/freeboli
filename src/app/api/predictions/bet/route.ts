@@ -9,8 +9,8 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   if (isUserBlocked(user.status)) return NextResponse.json({ error: "Cuenta bloqueada." }, { status: 403 });
 
-  // Sustituye el cron de resolución: antes de apostar, liquida rondas vencidas.
-  await resolvePendingRounds().catch(() => {});
+  // El cron master (/api/cron/master) se encarga de resolver las rondas pendientes cada minuto.
+  // Se elimina la llamada síncrona aquí para optimizar el rendimiento y evitar latencia en apuestas.
 
   const body = await req.json().catch(() => ({}));
   const asset = (body.asset?.toUpperCase() as PredictionAsset) || "BTC";

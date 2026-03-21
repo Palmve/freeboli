@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { awardPrizes } from "@/lib/cron-tasks";
+import { requireCronSecret } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
 
-/** 
- * Permite disparar el otorgamiento de premios manualmente desde el panel admin.
- * Verificado por el middleware de sesión en la ruta admin/.
- */
-export async function GET() {
+/** Solo automatización: Authorization: Bearer CRON_SECRET (p. ej. curl o job externo). */
+export async function GET(req: Request) {
+  const denied = requireCronSecret(req);
+  if (denied) return denied;
   const res = await awardPrizes();
   return NextResponse.json(res);
 }

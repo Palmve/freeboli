@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { executeBotCycle } from "@/lib/bot-engine";
+import { requireCronSecret } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,9 @@ export const dynamic = "force-dynamic";
  * retornará rápidamente sin consumir recursos.
  */
 export async function GET(req: Request) {
+  const denied = requireCronSecret(req);
+  if (denied) return denied;
+
   try {
     const result = await executeBotCycle();
     

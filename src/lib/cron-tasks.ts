@@ -1,11 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Guard contra ejecución durante el build de Next.js
-// NEXT_PHASE solo está disponible en next.config.mjs, por lo que usamos otros indicios
-const IS_BUILD = process.env.NODE_ENV === 'production' && !process.env.VERCEL;
-const IS_VERCEL_BUILD = process.env.CI === 'true' && !process.env.VERCEL_ENV; // Vercel pone VERCEL_ENV en runtime
-
-const SHOULD_SKIP_CRON = IS_BUILD || IS_VERCEL_BUILD;
+// No usar "production && !VERCEL": eso desactiva cron en cualquier host propio (Docker, VPS, etc.).
+// Solo omitir en CI de Vercel antes de runtime, o si se fuerza SKIP_CRON=true.
+const IS_VERCEL_CI_WITHOUT_RUNTIME = process.env.CI === "true" && !process.env.VERCEL_ENV;
+const SHOULD_SKIP_CRON =
+  process.env.SKIP_CRON === "true" || IS_VERCEL_CI_WITHOUT_RUNTIME;
 
 if (SHOULD_SKIP_CRON) {
     if (typeof process !== 'undefined') {
