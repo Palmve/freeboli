@@ -13,10 +13,11 @@ export async function GET() {
   // Sincronizar balances con la blockchain antes de mostrar
   await syncBotBalances().catch((e: any) => console.error("Sync error:", e));
 
-  const [settings, { data: wallets }, { data: stats }] = await Promise.all([
+  const [settings, { data: wallets }, { data: stats }, { data: recent_trades }] = await Promise.all([
     getAllSettings(),
     supabase.from("bot_wallets").select("*").order("created_at", { ascending: false }),
-    supabase.rpc("get_bot_stats") // Usaré un RPC para eficiencia o un query manual
+    supabase.rpc("get_bot_stats"), // Usaré un RPC para eficiencia o un query manual
+    supabase.from("bot_trades").select("*").order("created_at", { ascending: false }).limit(10)
   ]);
 
   // Si el RPC falla (porque no se inyectó todavía), hacemos un fallback de query
@@ -30,5 +31,5 @@ export async function GET() {
       };
   }
 
-  return NextResponse.json({ settings, wallets, stats: finalStats });
+  return NextResponse.json({ settings, wallets, stats: finalStats, recent_trades });
 }

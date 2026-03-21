@@ -6,6 +6,7 @@ import { APP_VERSION } from "@/lib/version";
 export default function BotAdminPage() {
   const [settings, setSettings] = useState<any>(null);
   const [wallets, setWallets] = useState<any[]>([]);
+  const [recentTrades, setRecentTrades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusMsg, setStatusMsg] = useState("");
 
@@ -23,6 +24,7 @@ export default function BotAdminPage() {
       setSettings(d.settings);
       setWallets(d.wallets);
       setStats(d.stats);
+      setRecentTrades(d.recent_trades || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -88,8 +90,16 @@ export default function BotAdminPage() {
           <button onClick={fetchBotData} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 transition" title="Refrescar">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
           </button>
-          <div className={`px-4 py-2 rounded-full font-bold text-xs shadow-lg ${settings?.BOT_ENABLED ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"}`}>
-            {settings?.BOT_ENABLED ? "● SISTEMA ACTIVO" : "○ BOT EN ESPERA"}
+          <div className={`px-4 py-2 rounded-full font-bold text-xs shadow-lg flex items-center gap-2 ${settings?.BOT_ENABLED ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"}`}>
+            {settings?.BOT_ENABLED ? (
+              <>
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                SISTEMA OPERANDO
+              </>
+            ) : "○ BOT DETENIDO"}
           </div>
         </div>
       </div>
@@ -138,91 +148,85 @@ export default function BotAdminPage() {
               </button>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Int. Mínimo (min)</label>
+              <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                <label className="text-[10px] text-amber-500 uppercase font-black tracking-widest flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  Int. Mínimo (min)
+                </label>
                 <input
                   type="number"
-                  value={settings?.BOT_MIN_INTERVAL}
+                  value={settings?.BOT_MIN_INTERVAL || 0}
                   onChange={(e) => setSettings({ ...settings, BOT_MIN_INTERVAL: parseInt(e.target.value) })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 mt-1 text-white font-mono"
+                  className="w-full bg-transparent border-none focus:ring-0 p-0 mt-2 text-white font-mono text-2xl font-black"
                 />
               </div>
-              <div>
-                <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Int. Máximo (min)</label>
+              <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                <label className="text-[10px] text-amber-500 uppercase font-black tracking-widest flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  Int. Máximo (min)
+                </label>
                 <input
                   type="number"
-                  value={settings?.BOT_MAX_INTERVAL}
+                  value={settings?.BOT_MAX_INTERVAL || 0}
                   onChange={(e) => setSettings({ ...settings, BOT_MAX_INTERVAL: parseInt(e.target.value) })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 mt-1 text-white font-mono"
+                  className="w-full bg-transparent border-none focus:ring-0 p-0 mt-2 text-white font-mono text-2xl font-black"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Monto Mín (BOLIS)</label>
-                <input
-                  type="number"
-                  value={settings?.BOT_MIN_AMOUNT}
-                  onChange={(e) => setSettings({ ...settings, BOT_MIN_AMOUNT: parseInt(e.target.value) })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 mt-1 text-white font-mono"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Monto Máx (BOLIS)</label>
-                <input
-                  type="number"
-                  value={settings?.BOT_MAX_AMOUNT}
-                  onChange={(e) => setSettings({ ...settings, BOT_MAX_AMOUNT: parseInt(e.target.value) })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 mt-1 text-white font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-              <div className="space-y-0.5">
-                <span className="text-sm font-bold text-amber-500 uppercase">Retiros Automáticos (SOL/BOLIS)</span>
-                <p className="text-[10px] text-slate-500 font-medium tracking-tight">Procesar pagos sin autorización manual</p>
-              </div>
-              <button
-                onClick={() => setSettings({ ...settings, WITHDRAWAL_AUTO_APPROVE: !settings.WITHDRAWAL_AUTO_APPROVE })}
-                className={`w-12 h-6 rounded-full transition-colors ${settings?.WITHDRAWAL_AUTO_APPROVE ? "bg-amber-500" : "bg-slate-700"} relative`}
-              >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings?.WITHDRAWAL_AUTO_APPROVE ? "left-7" : "left-1"}`}></div>
-              </button>
-            </div>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest text-center">
+              El bot operará en un intervalo aleatorio entre estos dos valores.
+            </p>
           </div>
           <button onClick={handleSave} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-black py-3 rounded-xl mt-4 transition shadow-lg shadow-amber-500/20 uppercase tracking-widest text-sm">
             GUARDAR CONFIGURACIÓN
           </button>
         </div>
 
-        {/* Flota de Wallets */}
+        {/* Últimas Operaciones */}
         <div className="card space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-slate-200">Enjambre de Wallets</h2>
-            <button onClick={generateWallet} className="text-[10px] bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg text-white font-bold uppercase tracking-widest border border-slate-600">
-              + GENERAR NUEVA
-            </button>
+            <h2 className="text-xl font-bold text-slate-200">Últimas Operaciones</h2>
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+              Mostrando las 10 más recientes
+            </div>
           </div>
           {statusMsg && <p className="text-xs text-amber-500 italic animate-pulse">{statusMsg}</p>}
           <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-            {wallets.map(w => (
-              <div key={w.id} className="p-4 bg-slate-800/40 border border-slate-700/50 rounded-xl flex justify-between items-center group hover:border-amber-500/30 transition">
-                <div className="space-y-1">
-                  <p className="font-mono text-slate-300 text-sm group-hover:text-amber-400 transition text-wrap break-all">
-                    {w.public_key}
-                  </p>
-                  <p className="text-[10px] text-slate-500 font-medium">{w.description || "Bot Worker"}</p>
+            {recentTrades.map(t => (
+              <div key={t.id} className="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl flex flex-col gap-2 hover:border-amber-500/30 transition">
+                <div className="flex justify-between items-center">
+                  <div className={`text-xs font-black uppercase tracking-widest px-2 py-1 rounded ${t.side === 'BUY' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                    {t.side === 'BUY' ? 'COMPRA' : 'VENTA'} BOLIS
+                  </div>
+                  <div className="text-[10px] text-slate-500">
+                    {new Date(t.created_at).toLocaleString()}
+                  </div>
                 </div>
-                <div className="text-right whitespace-nowrap">
-                  <p className="font-mono font-bold text-emerald-400">{(w.sol_balance || 0).toFixed(4)} SOL</p>
-                  <p className="text-[9px] text-slate-500 uppercase font-bold">Historial: {w.last_used ? new Date(w.last_used).toLocaleTimeString() : 'Inactiva'}</p>
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p className="font-mono text-white text-sm">
+                      {t.side === 'BUY' ? `+${t.amount_out.toFixed(2)} BOLIS` : `-${t.amount_in.toFixed(2)} BOLIS`}
+                    </p>
+                    <a href={`https://solscan.io/tx/${t.tx_signature}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-amber-500 hover:text-amber-400 font-mono truncate max-w-[150px] inline-block">
+                      Solscan ↗
+                    </a>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400 font-mono">
+                      @ {Number(t.price).toFixed(6)} SOL
+                    </p>
+                    {t.pnl !== 0 && (
+                      <p className={`text-[10px] font-bold font-mono ${t.pnl > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        PnL: {t.pnl > 0 ? '+' : ''}{t.pnl.toFixed(4)}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
-            {wallets.length === 0 && (
+            {recentTrades.length === 0 && (
               <div className="text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl">
-                <p className="text-slate-600 font-bold uppercase tracking-widest text-xs">Sin wallets registradas</p>
+                <p className="text-slate-600 font-bold uppercase tracking-widest text-xs">Aún no hay operaciones registradas</p>
               </div>
             )}
           </div>
@@ -230,7 +234,7 @@ export default function BotAdminPage() {
       </div>
 
       <p className="text-center text-[10px] text-slate-600 uppercase tracking-widest">
-        El bot ejecutará operaciones en segundo plano utilizando el saldo disponible en las wallets activas. Asegúrate de que las wallets tengan saldo real en Solana Mainnet si deseas operaciones reales.
+        El bot ejecutará operaciones en segundo plano utilizando el saldo disponible en la Master Wallet.
       </p>
     </div>
   );
