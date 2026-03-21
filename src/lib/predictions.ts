@@ -136,9 +136,9 @@ export async function resolvePendingRounds() {
           if (result === "draw") {
               payout = bet.amount; // Devolución en empate
               status = "draw";
-          } else if (bet.side === result) {
-              // Victoria: monto * multiplicador (ej 1.95)
-              payout = Math.floor(bet.amount * (bet.multiplier || 1.95));
+          } else if (bet.prediction === result) {
+              // Victoria: monto * multiplicador original
+              payout = bet.potential_payout || Math.floor(bet.amount * (bet.odds_at_bet || 1.95));
               status = "won";
           }
 
@@ -157,7 +157,7 @@ export async function resolvePendingRounds() {
                 type: "premio_prediccion",
                 points: payout,
                 reference: `round:${round.id}:bet:${bet.id}`,
-                metadata: { round_id: round.id, bet_id: bet.id, result, side: bet.side }
+                metadata: { round_id: round.id, bet_id: bet.id, result, side: bet.prediction }
             });
           }
 

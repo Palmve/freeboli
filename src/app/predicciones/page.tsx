@@ -271,7 +271,7 @@ function PredictionsContent() {
                     <thead>
                         <tr className="bg-slate-800/30 text-slate-500 text-left">
                             <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">{t("predictions.history_th_date")}</th>
-                            <th className="hidden sm:table-cell px-6 py-3 font-bold uppercase tracking-wider text-[10px]">{t("predictions.history_th_asset")}</th>
+                            <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">{t("predictions.history_th_asset")}</th>
                             <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">{t("predictions.history_th_bet")}</th>
                             <th className="px-3 sm:px-6 py-3 font-bold uppercase tracking-wider text-[10px]">{t("predictions.history_th_amount")}</th>
                             <th className="hidden sm:table-cell px-6 py-3 font-bold uppercase tracking-wider text-[10px]">{t("predictions.history_th_odds")}</th>
@@ -299,7 +299,7 @@ function PredictionsContent() {
                                         <td className="px-3 sm:px-6 py-4 font-mono text-[10px] font-bold text-slate-400">
                                             {new Date(bet.created_at).toLocaleDateString(lang === "es" ? "es-ES" : "en-US", { day: '2-digit', month: '2-digit' })} {new Date(bet.created_at).toLocaleTimeString(lang === "es" ? "es-ES" : "en-US", { hour: '2-digit', minute: '2-digit', hour12: false })}
                                         </td>
-                                        <td className="hidden sm:table-cell px-6 py-4 font-bold text-slate-300">{bet.round?.asset || asset}</td>
+                                        <td className="px-3 sm:px-6 py-4 font-bold text-slate-300 text-[10px] sm:text-sm">{bet.round?.asset || asset}</td>
                                         <td className="px-3 sm:px-6 py-4">
                                             <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${bet.prediction === "up" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
                                                 {bet.prediction === "up" ? "▲" : "▼"}
