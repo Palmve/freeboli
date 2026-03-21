@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { getCurrentUserId } from "@/lib/current-user";
 import { getUserLevel } from "@/lib/levels";
 import { getSetting } from "@/lib/site-settings";
@@ -16,11 +16,17 @@ interface LeaderboardEntry {
   isCurrentUser: boolean;
 }
 
+// Cliente con elevación de privilegios (bypassa RLS) esencial para Leaderboards globales
+const supabaseAdmin = createSupabaseClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const period = searchParams.get("period") || "all";
 
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
   const currentUserId = await getCurrentUserId();
 
   let dateFilter: string | null = null;
