@@ -37,6 +37,22 @@ export async function POST(req: Request) {
 
   const supabase = await createClient();
 
+  // 0. Revisión Anti-Sybil: Verificar si esta wallet ha sido usada por OTRO usuario.
+  const { data: previousUsage, error: usageError } = await supabase
+    .from("withdrawals")
+    .select("user_id")
+    .eq("wallet_destination", wallet)
+    .limit(1);
+
+  if (!usageError && previousUsage && previousUsage.length > 0) {
+    if (previousUsage[0].user_id !== userId) {
+      return NextResponse.json(
+        { error: "Esta billetera protegida ya fue utilizada por otro usuario. Por reglas Anti-Fraude, debes usar una billetera de Solana única y personal." },
+        { status: 403 }
+      );
+    }
+  }
+
   // 1. Ejecutar solicitud de retiro de forma atómica (Evita Race Condition)
   const { data: withdrawData, error: withdrawError } = await supabase.rpc("create_withdrawal_request", {
     target_user_id: userId,
