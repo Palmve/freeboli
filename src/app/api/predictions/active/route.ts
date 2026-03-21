@@ -4,7 +4,8 @@ import { getActiveRoundWithOdds, PredictionAsset, resolvePendingRounds } from "@
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const asset = (searchParams.get("asset")?.toUpperCase() as PredictionAsset) || "BTC";
-  const type = (searchParams.get("type") as any) === "mini" ? "mini" : "hourly";
+  const tParam = searchParams.get("type");
+  const type = (tParam === "mini" || tParam === "micro") ? tParam : "hourly";
 
   if (asset !== "BTC" && asset !== "SOL" && asset !== "BOLIS") {
     return NextResponse.json({ error: "Asset no soportado." }, { status: 400 });

@@ -3,7 +3,7 @@ import { getCryptoPrice, calculateDynamicOdds } from "./price-oracle";
 import { getSetting } from "./site-settings";
 
 export type PredictionAsset = "BTC" | "SOL" | "BOLIS";
-export type PredictionRoundType = "hourly" | "mini";
+export type PredictionRoundType = "hourly" | "mini" | "micro";
 
 /**
  * Asegura que exista una ronda activa para el asset dado en la hora actual o bloque de 10 min.
@@ -16,6 +16,9 @@ export async function ensureActiveRound(asset: PredictionAsset, type: Prediction
   if (type === "mini") {
     const minutes = Math.floor(startTime.getMinutes() / 10) * 10;
     startTime.setMinutes(minutes, 0, 0);
+  } else if (type === "micro") {
+    const minutes = Math.floor(startTime.getMinutes() / 2) * 2;
+    startTime.setMinutes(minutes, 0, 0);
   } else {
     startTime.setMinutes(0, 0, 0);
   }
@@ -23,6 +26,8 @@ export async function ensureActiveRound(asset: PredictionAsset, type: Prediction
   const endTime = new Date(startTime);
   if (type === "mini") {
     endTime.setMinutes(endTime.getMinutes() + 10);
+  } else if (type === "micro") {
+    endTime.setMinutes(endTime.getMinutes() + 2);
   } else {
     endTime.setHours(endTime.getHours() + 1);
   }
@@ -82,16 +87,27 @@ export async function getActiveRoundWithOdds(asset: PredictionAsset, type: Predi
   const endTime = new Date(round.end_time);
   const timeLeftSec = Math.max(0, Math.floor((endTime.getTime() - now.getTime()) / 1000));
   
-  const houseEdge = await getSetting<number>("PREDICTION_HOUSE_EDGE", 0.05);
-  const totalTimeSec = round.type === "mini" ? 600 : 3600;
+  let oddsUp = 0;
+  let oddsDown = 0;
+  let oddsMicro = 0;
 
-  const oddsUp = calculateDynamicOdds("up", round.opening_price, currentPrice, timeLeftSec, totalTimeSec, round.asset as any, houseEdge);
-  const oddsDown = calculateDynamicOdds("down", round.opening_price, currentPrice, timeLeftSec, totalTimeSec, round.asset as any, houseEdge);
+  if (round.type === "micro") {
+    // Total 120s. Betting closed at 60s.
+    if (timeLeftSec >= 100) oddsMicro = 9;
+    else if (timeLeftSec >= 80) oddsMicro = 8;
+    else if (timeLeftSec > 60) oddsMicro = 7;
+    else oddsMicro = 0;
+  } else {
+    const houseEdge = await getSetting<number>("PREDICTION_HOUSE_EDGE", 0.05);
+    const totalTimeSec = round.type === "mini" ? 600 : 3600;
+    oddsUp = calculateDynamicOdds("up", round.opening_price, currentPrice, timeLeftSec, totalTimeSec, round.asset as any, houseEdge);
+    oddsDown = calculateDynamicOdds("down", round.opening_price, currentPrice, timeLeftSec, totalTimeSec, round.asset as any, houseEdge);
+  }
 
   return {
     ...round,
     current_price: currentPrice,
-    odds: {
+    odds: round.type === "micro" ? { micro: oddsMicro } : {
       up: parseFloat(oddsUp.toFixed(2)),
       down: parseFloat(oddsDown.toFixed(2)),
     },
@@ -120,7 +136,16 @@ export async function resolvePendingRounds() {
       if (closePriceRaw === null) return false;
 
       const closePrice = round.asset === "BOLIS" ? Number(closePriceRaw.toFixed(6)) : closePriceRaw;
-      const result = closePrice > round.opening_price ? "up" : closePrice < round.opening_price ? "down" : "draw";
+      
+      let result = "draw";
+      let microResult = "";
+      if (round.type === "micro") {
+        const decimals = round.asset === "BOLIS" ? 6 : round.asset === "SOL" ? 3 : 2;
+        microResult = closePriceRaw.toFixed(decimals).slice(-1);
+      } else {
+        const closePrice = round.asset === "BOLIS" ? Number(closePriceRaw.toFixed(6)) : closePriceRaw;
+        result = closePrice > round.opening_price ? "up" : closePrice < round.opening_price ? "down" : "draw";
+      }
 
       // 1. Obtener todas las apuestas de esta ronda
       const { data: bets } = await supabase
@@ -133,13 +158,20 @@ export async function resolvePendingRounds() {
           let payout = 0;
           let status = "lost";
 
-          if (result === "draw") {
-              payout = bet.amount; // Devolución en empate
-              status = "draw";
-          } else if (bet.prediction === result) {
-              // Victoria: monto * multiplicador original
-              payout = bet.potential_payout || Math.floor(bet.amount * (bet.odds_at_bet || 1.95));
-              status = "won";
+          if (round.type === "micro") {
+            if (bet.prediction === microResult) {
+                payout = bet.potential_payout || Math.floor(bet.amount * (bet.odds_at_bet || 7));
+                status = "won";
+            }
+          } else {
+            if (result === "draw") {
+                payout = bet.amount; // Devolución en empate
+                status = "draw";
+            } else if (bet.prediction === result) {
+                // Victoria: monto * multiplicador original
+                payout = bet.potential_payout || Math.floor(bet.amount * (bet.odds_at_bet || 1.95));
+                status = "won";
+            }
           }
 
           // Registrar movimiento y actualizar balance solo si ganó o empató

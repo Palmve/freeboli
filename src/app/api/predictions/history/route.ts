@@ -24,7 +24,7 @@ export async function GET(req: Request) {
     `)
     .eq("user_id", user.id);
 
-  if (type === "mini" || type === "hourly") {
+  if (type === "mini" || type === "hourly" || type === "micro") {
     query = query.eq("type", type);
   }
 

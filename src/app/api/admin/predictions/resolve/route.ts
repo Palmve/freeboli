@@ -9,10 +9,13 @@ export async function POST() {
   try {
     const resolvedCount = await resolvePendingRounds();
     
-    // Asegurar rondas activas por si acaso
-    await ensureActiveRound("BTC");
-    await ensureActiveRound("SOL");
-    await ensureActiveRound("BOLIS");
+    // Asegurar rondas activas por si acaso (todas las modalidades)
+    const types: ("hourly"| "mini" | "micro")[] = ["hourly", "mini", "micro"];
+    for (const asset of (["BTC", "SOL", "BOLIS"] as const)) {
+        for (const type of types) {
+           await ensureActiveRound(asset, type).catch(() => {});
+        }
+    }
 
     return NextResponse.json({ 
       success: true, 

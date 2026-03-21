@@ -12,10 +12,31 @@ export function BetDetailModal({ isOpen, onClose, bet }: BetDetailModalProps) {
   if (!isOpen || !bet) return null;
 
   const isResolved = bet.round?.status === "resolved";
-  const win = isResolved && ((bet.round?.closing_price || 0) >= (bet.round?.opening_price || 0) ? "up" : "down") === bet.prediction;
-  const isDraw = isResolved && bet.round?.closing_price === bet.round?.opening_price;
-  
-  const asset = bet.round?.asset || "BTC";
+  const type = bet.type || bet.round?.type || "hourly";
+  const asset: string = bet.round?.asset || "BTC";
+
+  let win = false;
+  let isDraw = false;
+
+  if (isResolved) {
+      if (type === "micro") {
+          const decimals = asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2;
+          const closeDigit = bet.round?.closing_price?.toFixed(decimals).slice(-1);
+          win = closeDigit === bet.prediction;
+      } else {
+          const closePrice = bet.round?.closing_price || 0;
+          const openPrice = bet.round?.opening_price || 0;
+          isDraw = closePrice === openPrice;
+          win = !isDraw && (closePrice > openPrice ? "up" : "down") === bet.prediction;
+      }
+  }
+
+  const getPredictionLabel = () => {
+    if (type === "micro") return `el número ${bet.prediction}`;
+    return bet.prediction === "up" ? "Sube ▲" : "Baja ▼";
+  };
+
+  const priceDecimals = asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -54,8 +75,12 @@ export function BetDetailModal({ isOpen, onClose, bet }: BetDetailModalProps) {
               <div className="p-3 sm:p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
                 <p className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Tu Predicción</p>
                 <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded text-[10px] sm:text-xs font-black uppercase ${bet.prediction === "up" ? "bg-emerald-500 text-slate-900" : "bg-red-500 text-white"}`}>
-                    {bet.prediction === "up" ? "Sube ▲" : "Baja ▼"}
+                  <span className={`px-2 py-1 rounded text-[10px] sm:text-xs font-black uppercase ${
+                    type === "micro" ? "bg-amber-500 text-slate-900" :
+                    bet.prediction === "up" ? "bg-emerald-500 text-slate-900" : 
+                    "bg-red-500 text-white"
+                  }`}>
+                    {getPredictionLabel()}
                   </span>
                   <span className="text-slate-400 font-bold text-xs sm:text-sm">{bet.odds_at_bet}x</span>
                 </div>
@@ -71,7 +96,7 @@ export function BetDetailModal({ isOpen, onClose, bet }: BetDetailModalProps) {
                <div>
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Precio de Apertura ({asset})</p>
                   <p className="text-xl font-mono font-bold text-slate-300">
-                    ${bet.round?.opening_price?.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 4 : 2 })}
+                    ${bet.round?.opening_price?.toLocaleString(undefined, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals })}
                   </p>
                </div>
                
@@ -83,7 +108,7 @@ export function BetDetailModal({ isOpen, onClose, bet }: BetDetailModalProps) {
                <div>
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Precio de Cierre</p>
                   <p className={`text-2xl font-mono font-black ${!isResolved ? "text-slate-600 italic" : "text-white"}`}>
-                    {isResolved ? `$${bet.round?.closing_price?.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 4 : 2 })}` : "En espera..."}
+                    {isResolved ? `$${bet.round?.closing_price?.toLocaleString(undefined, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals })}` : "En espera..."}
                   </p>
                </div>
             </div>

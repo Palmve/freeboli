@@ -14,35 +14,64 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => ({}));
   const asset = (body.asset?.toUpperCase() as PredictionAsset) || "BTC";
-  const type = body.type === "mini" ? "mini" : "hourly";
-  const prediction = body.prediction === "up" || body.prediction === "down" ? body.prediction : null;
+  const type = body.type === "mini" ? "mini" : body.type === "micro" ? "micro" : "hourly";
+  
+  let prediction = null;
+  if (type === "micro") {
+    if (typeof body.prediction === "string" && /^[0-9]$/.test(body.prediction)) {
+        prediction = body.prediction;
+    }
+  } else {
+    if (body.prediction === "up" || body.prediction === "down") {
+        prediction = body.prediction;
+    }
+  }
   const amount = Math.floor(Number(body.amount));
 
   if (!prediction || amount < 1) {
-    return NextResponse.json({ error: "Datos de apuesta invalidos." }, { status: 400 });
+    return NextResponse.json({ error: "Datos de apuesta inválidos." }, { status: 400 });
   }
 
   const minBet = await getSetting<number>("PREDICTION_MIN_BET", 10);
   const maxBetKey = `${asset}_MAX_BET`;
   const maxBet = await getSetting<number>(maxBetKey, 10000);
   
-  // Cutoff dinámico: 10 min rounds (60s defecto), 1 hour (600s defecto)
-  const cutoffKey = type === "mini" ? "PREDICTION_CUTOFF_MINI" : "PREDICTION_CUTOFF_SECONDS";
-  const cutoffLimit = type === "mini" ? 120 : 600;
-  const cutoff = await getSetting<number>(cutoffKey, cutoffLimit);
+  // Cutoff dinámico: 10 min rounds (60s defecto), 1 hour (600s defecto), micro (60s)
+  let cutoffKey = "PREDICTION_CUTOFF_SECONDS";
+  let cutoffDefault = 600;
+
+  if (type === "mini") {
+    cutoffKey = "PREDICTION_CUTOFF_MINI";
+    cutoffDefault = 120;
+  } else if (type === "micro") {
+    cutoffKey = "PREDICTION_CUTOFF_MICRO";
+    cutoffDefault = 60;
+  }
+  
+  const cutoff = await getSetting<number>(cutoffKey, cutoffDefault);
 
   if (amount < minBet || amount > maxBet) {
-    return NextResponse.json({ error: `Apuesta fuera de limites (${minBet}-${maxBet}).` }, { status: 400 });
+    return NextResponse.json({ error: `Apuesta fuera de límites (${minBet}-${maxBet}).` }, { status: 400 });
   }
 
   const roundData: any = await getActiveRoundWithOdds(asset, type);
   if (roundData?.error) return NextResponse.json({ error: roundData.error }, { status: 404 });
 
   if (roundData.time_left_sec <= cutoff) {
-    return NextResponse.json({ error: "Las apuestas para esta ronda estan cerradas." }, { status: 400 });
+    return NextResponse.json({ error: "Las apuestas para esta ronda están cerradas." }, { status: 400 });
   }
 
-  const odds = roundData.odds[prediction];
+  // --- ANTI-FRAUDE MICRO ---
+  // No se puede apostar al último dígito exacto actual
+  if (type === "micro") {
+      const currentLastDigit = String(roundData.current_price).slice(-1);
+      if (prediction === currentLastDigit) {
+          return NextResponse.json({ error: "El Oráculo declinó la operación: El número " + prediction + " está bloqueado en este milisegundo." }, { status: 400 });
+      }
+  }
+
+  const odds = type === "micro" ? roundData.odds.micro : roundData.odds[prediction as "up" | "down"];
+  if (odds === 0) return NextResponse.json({ error: "Las apuestas están cerradas temporalmente." }, { status: 400 });
   const potentialPayout = Math.floor(amount * odds);
 
   const supabase = await createClient();
