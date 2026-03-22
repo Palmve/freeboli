@@ -116,7 +116,7 @@
     "table_th_points": "Puntos",
     "table_th_days": "Días",
     "table_th_bonus": "Bonus",
-    "formula_desc": "Fórmula: base x multiplicador hora x (1 + bonus día). Ejemplo: racha 25h + día 15 = 100 x 3.0 x 1.75 = 525 pts",
+    "formula_desc": "Fórmula: base x multiplicador hora x (1 + bonus día). Ejemplo: racha 9h + día 15 = 100 x 3.0 x 1.75 = 525 pts",
     "footer_view_account": "Ver cuenta y retirar BOLIS",
     "support_hint": "¿Problemas con el faucet? Reportar error o disputa aquí",
     "error_verify_email": "Verifica tu correo para reclamar.",

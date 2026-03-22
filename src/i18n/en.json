@@ -116,7 +116,7 @@
     "table_th_points": "Points",
     "table_th_days": "Days",
     "table_th_bonus": "Bonus",
-    "formula_desc": "Formula: base x hourly multiplier x (1 + daily bonus). Example: 25h streak + day 15 = 100 x 3.0 x 1.75 = 525 pts",
+    "formula_desc": "Formula: base x hourly multiplier x (1 + daily bonus). Example: 9h streak + day 15 = 100 x 3.0 x 1.75 = 525 pts",
     "footer_view_account": "View account and withdraw BOLIS",
     "support_hint": "Problems with the faucet? Report error or dispute here",
     "error_verify_email": "Verify your email to claim.",

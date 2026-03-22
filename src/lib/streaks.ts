@@ -6,11 +6,11 @@ export interface StreakTier {
 }
 
 export const DEFAULT_HOURLY_TIERS: StreakTier[] = [
-  { min: 1, max: 3, multiplier: 1.0 },
-  { min: 4, max: 6, multiplier: 1.5 },
-  { min: 7, max: 12, multiplier: 2.0 },
-  { min: 13, max: 24, multiplier: 2.5 },
-  { min: 25, max: 999999, multiplier: 3.0 },
+  { min: 1, max: 2, multiplier: 1.0 },
+  { min: 3, max: 4, multiplier: 1.5 },
+  { min: 5, max: 6, multiplier: 2.0 },
+  { min: 7, max: 8, multiplier: 2.5 },
+  { min: 9, max: 999999, multiplier: 3.0 },
 ];
 
 export const DEFAULT_DAILY_TIERS: StreakTier[] = [
