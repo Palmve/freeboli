@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { LEVELS } from "@/lib/levels";
 import { useLang } from "@/context/LangContext";
+import LevelProgressCard from "@/components/LevelProgressCard";
 
 interface Entry {
   rank: number;
@@ -221,7 +222,10 @@ export default function ClasificacionPage() {
         {t("ranking.total_players").replace("{0}", totalPlayers.toLocaleString())}
       </p>
 
-      {/* Levels info */}
+      {/* Mi Nivel - Widget personal del jugador */}
+      <LevelProgressCard />
+
+      {/* Levels info - Tabla global de requisitos */}
       <div className="card space-y-3">
         <h2 className="text-lg font-semibold text-amber-400">{t("ranking.levels_title")}</h2>
         <p className="text-xs text-slate-400">{t("ranking.levels_subtitle")}</p>
@@ -232,22 +236,24 @@ export default function ClasificacionPage() {
                 <th className="p-2">{t("ranking.th_lvl_name")}</th>
                 <th className="p-2 text-center">{t("ranking.th_lvl_bets")}</th>
                 <th className="p-2 text-center">{t("ranking.th_lvl_faucet")}</th>
-                <th className="p-2 text-center">{t("ranking.th_lvl_refs")}</th>
-                <th className="p-2 text-center">{t("ranking.th_lvl_email")}</th>
+                <th className="p-2 text-center">{t("ranking.th_lvl_preds")}</th>
+                <th className="p-2 text-center">{t("ranking.th_lvl_days")}</th>
+                <th className="p-2 text-center">{t("ranking.th_lvl_reward")}</th>
               </tr>
             </thead>
             <tbody>
               {LEVELS.map((l) => (
                 <tr key={l.level} className="border-b border-slate-700/50 hover:bg-slate-800/30 transition">
                   <td className="p-2 text-left">
-                    <span className={`${l.color} font-bold`}>
-                      {l.icon} {l.name}
-                    </span>
+                    <span className={`${l.color} font-bold`}>{l.icon} {l.name}</span>
                   </td>
                   <td className="p-2 text-center text-slate-300 font-mono">{l.minBets > 0 ? l.minBets.toLocaleString() : "-"}</td>
                   <td className="p-2 text-center text-slate-300 font-mono">{l.minFaucet > 0 ? l.minFaucet.toLocaleString() : "-"}</td>
-                  <td className="p-2 text-center text-slate-300 font-mono">{l.minReferrals > 0 ? l.minReferrals : "-"}</td>
-                  <td className="p-2 text-center text-slate-400 font-bold">{l.requiresEmail ? t("ranking.yes") : "-"}</td>
+                  <td className="p-2 text-center text-slate-300 font-mono">{l.minPredictions > 0 ? l.minPredictions.toLocaleString() : "-"}</td>
+                  <td className="p-2 text-center text-slate-300 font-mono">{l.minDaysSinceJoined > 0 ? `${l.minDaysSinceJoined}d` : "-"}</td>
+                  <td className="p-2 text-center text-amber-400 font-mono font-bold">
+                    {l.rewardPoints > 0 ? `+${l.rewardPoints.toLocaleString()}` : "-"}
+                  </td>
                 </tr>
               ))}
             </tbody>

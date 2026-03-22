@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
 import { playHiLo } from "@/lib/hilo";
-import { AFFILIATE_GAME_PERCENT, MAX_BET_POINTS, MAX_WIN_POINTS, MAX_DAILY_WIN_POINTS } from "@/lib/config";
+import { AFFILIATE_GAME_PERCENT, MAX_WIN_POINTS, MAX_DAILY_WIN_POINTS } from "@/lib/config";
+import { fetchUserLevel } from "@/lib/levels";
 import { getSetting } from "@/lib/site-settings";
-import { alertLargeWin, alertDailyLimitReached } from "@/lib/telegram";
+import { alertLargeWin } from "@/lib/telegram";
 
 export async function POST(req: Request) {
   const currentUser = await getCurrentUser();
@@ -27,13 +28,16 @@ export async function POST(req: Request) {
     );
   }
 
-  const maxBet = await getSetting<number>("MAX_BET_POINTS", MAX_BET_POINTS);
+  const supabase = await createClient();
+  const userLevel = await fetchUserLevel(supabase, userId);
+
+  const maxBet = userLevel.benefits.maxBetPoints;
   const maxWin = await getSetting<number>("MAX_WIN_POINTS", MAX_WIN_POINTS);
   const maxDailyWin = await getSetting<number>("MAX_DAILY_WIN_POINTS", MAX_DAILY_WIN_POINTS);
 
   if (bet > maxBet) {
     return NextResponse.json(
-      { error: `Apuesta maxima: ${maxBet.toLocaleString()} puntos.` },
+      { error: `Tu nivel (${userLevel.name}) permite una apuesta máxima de ${maxBet.toLocaleString()} puntos.` },
       { status: 400 }
     );
   }
@@ -46,7 +50,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const supabase = await createClient();
+  // ... (supabase ya está creado arriba)
 
   // Check daily win cap
   const todayStart = new Date();
@@ -65,10 +69,10 @@ export async function POST(req: Request) {
     );
   }
 
-  // 1. Descuento atómico de la apuesta (Evita Race Condition)
-  const { data: subData, error: subError } = await supabase.rpc("atomic_subtract_points", {
-    target_user_id: userId,
-    amount_to_subtract: bet,
+  // 1. Descuento atómico de la apuesta e incremento de contador de nivel
+  const { data: subData, error: subError } = await supabase.rpc("place_hilo_bet", {
+    p_user_id: userId,
+    p_amount: bet,
   });
 
   if (subError || !subData?.[0]?.success) {
@@ -240,6 +244,9 @@ export async function POST(req: Request) {
       });
     }
   }
+
+  const { checkAndNotifyLevelUp } = await import("@/lib/levels");
+  await checkAndNotifyLevelUp(supabase, userId, currentUser.email, currentUser.name);
 
   return NextResponse.json({
     roll: result.roll,

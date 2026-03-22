@@ -238,12 +238,20 @@ export async function POST(request: Request) {
     }
   }
 
-  // Update last_ip
+  // Update last_ip and Level stats
   const ip = await getRequestIp();
+  await supabase.rpc("update_faucet_stats", {
+    p_user_id: userId,
+    p_current_streak: dailyStreak
+  });
+
   await supabase
     .from("profiles")
     .update({ last_ip: ip })
     .eq("id", userId);
+
+  const { checkAndNotifyLevelUp } = await import("@/lib/levels");
+  await checkAndNotifyLevelUp(supabase, userId, currentUser.email, currentUser.name);
 
   return NextResponse.json({
     ok: true,

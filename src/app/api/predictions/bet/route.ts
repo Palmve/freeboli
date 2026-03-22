@@ -3,12 +3,16 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
 import { getActiveRoundWithOdds, PredictionAsset, resolvePendingRounds } from "@/lib/predictions";
 import { getSetting } from "@/lib/site-settings";
-import { AFFILIATE_GAME_PERCENT } from "@/lib/config";
+import { AFFILIATE_GAME_PERCENT, MAX_WIN_POINTS } from "@/lib/config";
+import { fetchUserLevel } from "@/lib/levels";
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   if (isUserBlocked(user.status)) return NextResponse.json({ error: "Cuenta bloqueada." }, { status: 403 });
+
+  const supabase = await createClient();
+  const userLevel = await fetchUserLevel(supabase, user.id);
 
   // El cron master (/api/cron/master) se encarga de resolver las rondas pendientes cada minuto.
   // Se elimina la llamada síncrona aquí para optimizar el rendimiento y evitar latencia en apuestas.
@@ -34,8 +38,7 @@ export async function POST(req: Request) {
   }
 
   const minBet = await getSetting<number>("PREDICTION_MIN_BET", 10);
-  const maxBetKey = `${asset}_MAX_BET`;
-  const maxBet = await getSetting<number>(maxBetKey, 100000);
+  const maxBet = userLevel.benefits.maxBetPoints;
   
   // Cutoff dinámico: 10 min rounds (60s defecto), 1 hour (600s defecto), micro (60s)
   let cutoffKey = "PREDICTION_CUTOFF_SECONDS";
@@ -75,7 +78,7 @@ export async function POST(req: Request) {
   if (odds === 0) return NextResponse.json({ error: "Las apuestas están cerradas temporalmente." }, { status: 400 });
   const potentialPayout = Math.floor(amount * odds);
 
-  const supabase = await createClient();
+  // ... (supabase ya está creado arriba)
 
   // 1. Ejecutar apuesta de forma atómica (Verifica saldo y límite de 5 apuestas por ronda)
   const { data: betResult, error: betError } = await supabase.rpc("place_prediction_bet", {
@@ -122,6 +125,9 @@ export async function POST(req: Request) {
       });
     }
   }
+
+  const { checkAndNotifyLevelUp } = await import("@/lib/levels");
+  await checkAndNotifyLevelUp(supabase, user.id, user.email, user.name);
 
   return NextResponse.json({
     success: true,

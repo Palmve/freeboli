@@ -5,6 +5,7 @@ import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
 import { rateLimit } from "@/lib/rate-limit";
 import { alertWithdrawalRequest } from "@/lib/telegram";
 import { getSetting } from "@/lib/site-settings";
+import { fetchUserLevel } from "@/lib/levels";
 import { PublicKey } from "@solana/web3.js";
 
 export async function POST(req: Request) {
@@ -30,10 +31,22 @@ export async function POST(req: Request) {
   const points = Number(body.points);
   const wallet = typeof body.wallet === "string" ? body.wallet.trim() : "";
 
+  const supabase = await createClient();
+  const userLevel = await fetchUserLevel(supabase, userId);
+  const maxWithdrawBolis = userLevel.benefits.maxWithdrawBolis;
+  const requestedBolis = points / POINTS_PER_BOLIS;
+
   // 1. Validar Puntos y Billetera (Formato Básico y Red Solana)
   if (!Number.isInteger(points) || points < MIN_WITHDRAW_POINTS || !wallet || wallet.length < 32) {
     return NextResponse.json(
       { error: `Datos inválidos. Mínimo ${MIN_WITHDRAW_POINTS.toLocaleString()} puntos.` },
+      { status: 400 }
+    );
+  }
+
+  if (requestedBolis > maxWithdrawBolis) {
+    return NextResponse.json(
+      { error: `Tu nivel (${userLevel.name}) permite un retiro máximo de ${maxWithdrawBolis} BOLIS por solicitud.` },
       { status: 400 }
     );
   }
@@ -48,7 +61,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const supabase = await createClient();
+  // ... (supabase ya está creado arriba)
 
   // 0. Revisión Anti-Sybil: Verificar si esta wallet ha sido usada por OTRO usuario.
   const { data: previousUsage, error: usageError } = await supabase

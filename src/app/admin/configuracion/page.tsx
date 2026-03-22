@@ -165,6 +165,11 @@ export default function ConfiguracionPage() {
   const [activeTab, setActiveTab] = useState(groups[0]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // Niveles
+  const [autoLevelNotify, setAutoLevelNotify] = useState(true);
+  const [levelMsg, setLevelMsg] = useState("");
+  const [levelSending, setLevelSending] = useState(false);
+
   // Tickets
   const [tickets, setTickets] = useState<any[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
@@ -214,6 +219,12 @@ export default function ConfiguracionPage() {
               className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === "Tickets" ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
             >
               Tickets Soporte
+            </button>
+            <button
+              onClick={() => { setActiveTab("Niveles"); setIsMenuOpen(false); }}
+              className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === "Niveles" ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
+            >
+              📊 Niveles y Emails
             </button>
           </nav>
         </div>
@@ -317,6 +328,109 @@ export default function ConfiguracionPage() {
                     </table>
                   </div>
                 )}
+              </div>
+            </section>
+          ) : activeTab === "Niveles" ? (
+            <section className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {/* Toggle Auto-Envío */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <h3 className="text-base font-bold text-white mb-1">📧 Auto-Envío al Cambiar de Nivel</h3>
+                <p className="text-sm text-slate-400 mb-4">Cuando está activo, el sistema envía la tarjeta de nivel al usuario cada vez que asciende de rango.</p>
+                <div className="flex items-center justify-between">
+                  <span className={`font-medium ${autoLevelNotify ? "text-emerald-400" : "text-slate-500"}`}>
+                    {autoLevelNotify ? "🟢 Activo" : "🔴 Desactivado"}
+                  </span>
+                  <button
+                    onClick={() => setAutoLevelNotify(!autoLevelNotify)}
+                    className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${autoLevelNotify ? "bg-emerald-500" : "bg-slate-700"}`}
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${autoLevelNotify ? "translate-x-8" : "translate-x-1"}`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Tabla de Niveles */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-800">
+                  <h3 className="text-base font-bold text-white">Configuración de Niveles</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-slate-800/50 text-slate-400 text-left uppercase tracking-tight">
+                        <th className="px-4 py-3">Rango</th>
+                        <th className="px-4 py-3 text-center">HI-LO</th>
+                        <th className="px-4 py-3 text-center">Faucet</th>
+                        <th className="px-4 py-3 text-center">Días</th>
+                        <th className="px-4 py-3 text-center">Premio</th>
+                        <th className="px-4 py-3 text-center">Apuesta Máx.</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {[
+                        { level: 1, name: "Novato", icon: "🥉", minBets: 0, minFaucet: 0, minDaysSinceJoined: 0, rewardPoints: 0, maxBet: 10000 },
+                        { level: 2, name: "Aprendiz", icon: "🥈", minBets: 5, minFaucet: 3, minDaysSinceJoined: 0, rewardPoints: 0, maxBet: 25000 },
+                        { level: 3, name: "Jugador", icon: "🥇", minBets: 20, minFaucet: 10, minDaysSinceJoined: 1, rewardPoints: 0, maxBet: 50000 },
+                        { level: 4, name: "Veterano", icon: "⭐", minBets: 200, minFaucet: 30, minDaysSinceJoined: 7, rewardPoints: 1000, maxBet: 100000 },
+                        { level: 5, name: "Experto", icon: "💎", minBets: 1000, minFaucet: 60, minDaysSinceJoined: 30, rewardPoints: 5000, maxBet: 250000 },
+                        { level: 6, name: "Maestro", icon: "👑", minBets: 5000, minFaucet: 100, minDaysSinceJoined: 90, rewardPoints: 25000, maxBet: 500000 },
+                        { level: 7, name: "Leyenda", icon: "🔥", minBets: 10000, minFaucet: 200, minDaysSinceJoined: 180, rewardPoints: 100000, maxBet: 1000000 },
+                      ].map((l) => (
+                        <tr key={l.level} className="hover:bg-slate-800/20 transition">
+                          <td className="px-4 py-3 font-bold">{l.icon} {l.name}</td>
+                          <td className="px-4 py-3 text-center text-slate-400 font-mono">{l.minBets.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-center text-slate-400 font-mono">{l.minFaucet}</td>
+                          <td className="px-4 py-3 text-center text-slate-400 font-mono">{l.minDaysSinceJoined > 0 ? `${l.minDaysSinceJoined}d` : "-"}</td>
+                          <td className="px-4 py-3 text-center text-amber-400 font-mono font-bold">{l.rewardPoints > 0 ? `+${l.rewardPoints.toLocaleString()}` : "-"}</td>
+                          <td className="px-4 py-3 text-center text-emerald-400 font-mono">{l.maxBet.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Envío Manual Individual */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+                <h3 className="text-base font-bold text-white">📤 Enviar Tarjeta a un Usuario</h3>
+                <p className="text-xs text-slate-400">Introduce el User ID para enviar manualmente la tarjeta de nivel actual.</p>
+                <div className="flex gap-2">
+                  <input id="level-user-id" type="text" placeholder="User ID (UUID)"
+                    className="flex-1 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-white font-mono text-sm focus:border-amber-500 focus:outline-none" />
+                  <button
+                    onClick={async () => {
+                      const uid = (document.getElementById('level-user-id') as HTMLInputElement)?.value?.trim();
+                      if (!uid) { setLevelMsg("⚠️ Introduce un User ID."); return; }
+                      setLevelMsg("Enviando...");
+                      const r = await fetch('/api/admin/levels/notify-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ userId: uid }) });
+                      const d = await r.json();
+                      setLevelMsg(d.ok ? `✅ Enviado a ${d.email} (Nivel: ${d.level})` : `❌ ${d.error}`);
+                    }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm transition"
+                  >Enviar</button>
+                </div>
+                {levelMsg && <p className="text-sm font-medium text-slate-300 border border-slate-700 rounded-lg px-3 py-2">{levelMsg}</p>}
+              </div>
+
+              {/* Envío Masivo */}
+              <div className="bg-slate-900 border border-red-500/20 rounded-2xl p-5 space-y-3">
+                <h3 className="text-base font-bold text-red-400">📣 Envío Masivo - Anuncio de Niveles</h3>
+                <p className="text-xs text-slate-400">Envía la tarjeta de nivel personalizada a TODOS los usuarios registrados con email verificado.</p>
+                <button
+                  disabled={levelSending}
+                  onClick={async () => {
+                    if (!confirm("¿Enviar email a TODOS los usuarios? Esta acción puede tardar varios minutos.")) return;
+                    setLevelSending(true);
+                    setLevelMsg("⏳ Procesando envío masivo...");
+                    const r = await fetch('/api/admin/levels/sync-and-notify', { method: 'POST' });
+                    const d = await r.json();
+                    setLevelSending(false);
+                    setLevelMsg(d.ok ? `✅ Completado: ${d.sent} enviados, ${d.errors} errores de ${d.total} usuarios.` : `❌ ${d.error}`);
+                  }}
+                  className="w-full py-3 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400 font-bold rounded-xl transition disabled:opacity-50"
+                >
+                  {levelSending ? "⏳ Enviando a todos los usuarios..." : "🚀 Iniciar Envío Masivo"}
+                </button>
               </div>
             </section>
           ) : (
