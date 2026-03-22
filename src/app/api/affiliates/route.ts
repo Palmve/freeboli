@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserId } from "@/lib/current-user";
 import { getSetting } from "@/lib/site-settings";
 import {
-  AFFILIATE_COMMISSION_PERCENT,
+  AFFILIATE_FAUCET_PERCENT,
+  AFFILIATE_GAME_PERCENT,
   AFFILIATE_ACHIEVEMENT_PERCENT,
   REFERRAL_VERIFIED_BONUS,
   REFERRAL_MIN_BETS,
@@ -113,7 +114,8 @@ export async function GET() {
 
   const totalBonusPoints = (bonusMov ?? []).reduce((s, m) => s + Number(m.points), 0);
 
-  const commissionPercent = await getSetting<number>("AFFILIATE_COMMISSION_PERCENT", AFFILIATE_COMMISSION_PERCENT);
+  const faucetPercent = await getSetting<number>("AFFILIATE_FAUCET_PERCENT", AFFILIATE_FAUCET_PERCENT);
+  const gamePercent = await getSetting<number>("AFFILIATE_GAME_PERCENT", AFFILIATE_GAME_PERCENT);
   const achievementPercent = await getSetting<number>("AFFILIATE_ACHIEVEMENT_PERCENT", AFFILIATE_ACHIEVEMENT_PERCENT);
   const verifiedBonus = await getSetting<number>("REFERRAL_VERIFIED_BONUS", REFERRAL_VERIFIED_BONUS);
 
@@ -123,7 +125,8 @@ export async function GET() {
     totalVerified,
     totalCommissions,
     totalBonusPoints,
-    commissionPercent,
+    faucetPercent,
+    gamePercent,
     achievementPercent,
     verifiedBonus,
     minBets,

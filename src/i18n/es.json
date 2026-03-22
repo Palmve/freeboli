@@ -286,7 +286,7 @@
   "affiliates": {
     "title": "Plan de afiliados",
     "benefits_title": "Gana invitando amigos",
-    "benefit_commission": "<strong>{0}%</strong> de comisión permanente sobre los puntos que tus referidos ganen en el faucet y juegos.",
+    "benefit_commission": "<strong>{0}%</strong> de comisión sobre el faucet y <strong>{1}%</strong> sobre las apuestas de tus referidos.",
     "benefit_bonus": "<strong>{0} puntos</strong> de bonus por cada referido que: verifique su correo, juegue al menos <strong>{1}</strong> partidas de HI-LO, y lleve al menos <strong>{2}</strong> días registrado.",
     "benefit_achievements": "<strong>{0}%</strong> de los logros que tus referidos reclamen.",
     "referral_link_title": "Tu enlace de referido",

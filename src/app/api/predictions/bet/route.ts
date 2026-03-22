@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
 import { getActiveRoundWithOdds, PredictionAsset, resolvePendingRounds } from "@/lib/predictions";
 import { getSetting } from "@/lib/site-settings";
+import { AFFILIATE_GAME_PERCENT } from "@/lib/config";
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
@@ -94,6 +95,33 @@ export async function POST(req: Request) {
   }
 
   const newPoints = Number(betResult[0].result_balance);
+
+  // --- Afiliados: Comisión del 2% de la apuesta ---
+  const { data: ref } = await supabase
+    .from("referrals")
+    .select("referrer_id")
+    .eq("referred_id", user.id)
+    .single();
+
+  const gameCommPercent = await getSetting<number>("AFFILIATE_GAME_PERCENT", AFFILIATE_GAME_PERCENT);
+
+  if (ref?.referrer_id && gameCommPercent > 0) {
+    const commission = Math.floor((amount * gameCommPercent) / 100);
+    if (commission > 0) {
+      await supabase.rpc("atomic_add_points", {
+        target_user_id: ref.referrer_id,
+        amount_to_add: commission
+      });
+
+      await supabase.from("movements").insert({
+        user_id: ref.referrer_id,
+        type: "comision_afiliado",
+        points: commission,
+        reference: user.id,
+        metadata: { source: "prediction", referred_user: user.id, bet_amount: amount, round_id: roundData.id },
+      });
+    }
+  }
 
   return NextResponse.json({
     success: true,

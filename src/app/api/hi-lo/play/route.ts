@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
 import { playHiLo } from "@/lib/hilo";
-import { AFFILIATE_COMMISSION_PERCENT, MAX_BET_POINTS, MAX_WIN_POINTS, MAX_DAILY_WIN_POINTS } from "@/lib/config";
+import { AFFILIATE_GAME_PERCENT, MAX_BET_POINTS, MAX_WIN_POINTS, MAX_DAILY_WIN_POINTS } from "@/lib/config";
 import { getSetting } from "@/lib/site-settings";
 import { alertLargeWin, alertDailyLimitReached } from "@/lib/telegram";
 
@@ -219,10 +219,13 @@ export async function POST(req: Request) {
     .select("referrer_id")
     .eq("referred_id", userId)
     .single();
-  if (ref?.referrer_id && AFFILIATE_COMMISSION_PERCENT > 0 && result.payout > 0) {
-    const commission = Math.floor((result.payout * AFFILIATE_COMMISSION_PERCENT) / 100);
+
+  const gameCommPercent = await getSetting<number>("AFFILIATE_GAME_PERCENT", AFFILIATE_GAME_PERCENT);
+
+  if (ref?.referrer_id && gameCommPercent > 0) {
+    const commission = Math.floor((bet * gameCommPercent) / 100);
     if (commission > 0) {
-      // 3. Acreditar comisión de afiliado de forma atómica
+      // Acreditar comisión de afiliado de forma atómica
       await supabase.rpc("atomic_add_points", {
           target_user_id: ref.referrer_id,
           amount_to_add: commission
@@ -233,7 +236,7 @@ export async function POST(req: Request) {
         type: "comision_afiliado",
         points: commission,
         reference: userId,
-        metadata: { source: "hi_lo", referred_user: userId },
+        metadata: { source: "hi_lo", referred_user: userId, bet_amount: bet },
       });
     }
   }

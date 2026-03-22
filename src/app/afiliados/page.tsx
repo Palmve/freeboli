@@ -27,7 +27,8 @@ interface AffiliateData {
   totalVerified: number;
   totalCommissions: number;
   totalBonusPoints: number;
-  commissionPercent: number;
+  faucetPercent: number;
+  gamePercent: number;
   achievementPercent: number;
   verifiedBonus: number;
   minBets: number;
@@ -225,7 +226,9 @@ export default function AfiliadosPage() {
         <ul className="space-y-2 text-sm text-slate-300">
           <li className="flex items-start gap-2">
             <span className="text-green-400 mt-0.5">&#10003;</span>
-            <span dangerouslySetInnerHTML={{ __html: t("affiliates.benefit_commission").replace("{0}", (data?.commissionPercent ?? 50).toString()) }} />
+            <span dangerouslySetInnerHTML={{ __html: t("affiliates.benefit_commission")
+                .replace("{0}", (data?.faucetPercent ?? 10).toString())
+                .replace("{1}", (data?.gamePercent ?? 2).toString()) }} />
           </li>
           <li className="flex items-start gap-2">
             <span className="text-green-400 mt-0.5">&#10003;</span>

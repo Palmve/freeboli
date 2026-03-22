@@ -9,7 +9,7 @@ import {
   FAUCET_COOLDOWN_HOURS,
   MAX_SESSIONS_PER_IP,
   POINTS_PER_BOLIS,
-  AFFILIATE_COMMISSION_PERCENT,
+  AFFILIATE_FAUCET_PERCENT,
   CAPTCHA_INTERVAL,
   FAUCET_ENGAGEMENT_EVERY,
 } from "@/lib/config";
@@ -27,7 +27,7 @@ import {
 async function getConfig() {
   const base = await getSetting<number>("FAUCET_POINTS", FAUCET_POINTS);
   const cooldown = await getSetting<number>("FAUCET_COOLDOWN_HOURS", FAUCET_COOLDOWN_HOURS);
-  const commission = await getSetting<number>("AFFILIATE_COMMISSION_PERCENT", AFFILIATE_COMMISSION_PERCENT);
+  const commission = await getSetting<number>("AFFILIATE_FAUCET_PERCENT", AFFILIATE_FAUCET_PERCENT);
   const captchaEvery = await getSetting<number>("CAPTCHA_INTERVAL", CAPTCHA_INTERVAL);
   const engagementEvery = await getSetting<number>("FAUCET_ENGAGEMENT_EVERY", FAUCET_ENGAGEMENT_EVERY);
   const maxSessionsPerIp = await getSetting<number>("MAX_SESSIONS_PER_IP", MAX_SESSIONS_PER_IP);

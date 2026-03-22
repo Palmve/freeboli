@@ -13,7 +13,14 @@ export const BOLIS_MINT = "612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha";
 
 export const MAX_SESSIONS_PER_IP = Number(process.env.NEXT_PUBLIC_MAX_SESSIONS_PER_IP) || 3;
 
+/** @deprecated Usar AFFILIATE_FAUCET_PERCENT o AFFILIATE_GAME_PERCENT */
 export const AFFILIATE_COMMISSION_PERCENT = Number(process.env.NEXT_PUBLIC_AFFILIATE_COMMISSION_PERCENT) || 50;
+
+/** % de comisión sobre reclamos del faucet */
+export const AFFILIATE_FAUCET_PERCENT = Number(process.env.NEXT_PUBLIC_AFFILIATE_FAUCET_PERCENT) || 10;
+/** % de comisión sobre apuestas en juegos (Casino) */
+export const AFFILIATE_GAME_PERCENT = Number(process.env.NEXT_PUBLIC_AFFILIATE_GAME_PERCENT) || 2;
+
 /** % de comisión sobre logros reclamados por el referido */
 export const AFFILIATE_ACHIEVEMENT_PERCENT = Number(process.env.NEXT_PUBLIC_AFFILIATE_ACHIEVEMENT_PERCENT) || 10;
 /** Bonus único cuando un referido verifica su email */
