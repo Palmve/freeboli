@@ -35,11 +35,11 @@ interface CaptchaInfo {
 }
 
 const HOURLY_TABLE = [
-  { range: "1 – 3", mult: "x1.0", pts: 100 },
-  { range: "4 – 6", mult: "x1.5", pts: 150 },
-  { range: "7 – 12", mult: "x2.0", pts: 200 },
-  { range: "13 – 24", mult: "x2.5", pts: 250 },
-  { range: "25+", mult: "x3.0", pts: 300 },
+  { range: "1 – 2", mult: "x1.0", pts: 100 },
+  { range: "3 – 4", mult: "x1.5", pts: 150 },
+  { range: "5 – 6", mult: "x2.0", pts: 200 },
+  { range: "7 – 8", mult: "x2.5", pts: 250 },
+  { range: "9+", mult: "x3.0", pts: 300 },
 ];
 
 const DAILY_TABLE = [
