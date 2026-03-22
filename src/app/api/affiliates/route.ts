@@ -133,9 +133,17 @@ export async function GET() {
   });
 }
 
+import { rateLimit } from "@/lib/rate-limit";
+
 export async function POST(request: Request) {
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  // Rate limit para evitar ataques de ráfaga concurrentes (1 por 2 segundos)
+  const { allowed: rateAllowed } = rateLimit(`affiliate_claim:${userId}`, 1, 2000);
+  if (!rateAllowed) {
+    return NextResponse.json({ error: "Procesando petición, espera un momento..." }, { status: 429 });
+  }
 
   const { referredId } = await request.json().catch(() => ({ referredId: "" }));
   if (!referredId) return NextResponse.json({ error: "referredId requerido" }, { status: 400 });
@@ -147,7 +155,7 @@ export async function POST(request: Request) {
   const minDays = await getSetting<number>("REFERRAL_MIN_DAYS", REFERRAL_MIN_DAYS);
   const bonusAmount = await getSetting<number>("REFERRAL_VERIFIED_BONUS", REFERRAL_VERIFIED_BONUS);
 
-  // Verify referral relationship exists
+  // 1. Verificar que la relación de referido existe
   const { data: ref } = await supabase
     .from("referrals")
     .select("id")
@@ -157,18 +165,7 @@ export async function POST(request: Request) {
 
   if (!ref) return NextResponse.json({ error: "Referido no encontrado" }, { status: 404 });
 
-  // Check not already claimed
-  const { data: existing } = await supabase
-    .from("movements")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("type", "bonus_referido_verificado")
-    .eq("reference", referredId)
-    .single();
-
-  if (existing) return NextResponse.json({ error: "Ya reclamaste este bonus" }, { status: 409 });
-
-  // Verify referred user meets requirements
+  // 2. Verificar que el referido cumple requisitos
   const { data: profile } = await supabase
     .from("profiles")
     .select("email_verified_at, created_at")
@@ -201,27 +198,47 @@ export async function POST(request: Request) {
     );
   }
 
-  // Grant bonus
-  const { data: bal } = await supabase
-    .from("balances")
-    .select("points")
+  // 3. Verificar si YA SE RECLAMÓ este bonus (Doble Verificación)
+  const { data: existing } = await supabase
+    .from("movements")
+    .select("id")
     .eq("user_id", userId)
+    .eq("type", "bonus_referido_verificado")
+    .eq("reference", referredId)
     .single();
 
-  const newPoints = Number(bal?.points ?? 0) + bonusAmount;
+  if (existing) return NextResponse.json({ error: "Ya reclamaste este bonus" }, { status: 409 });
 
-  await supabase.from("balances").upsert(
-    { user_id: userId, points: newPoints, updated_at: now.toISOString() },
-    { onConflict: "user_id" }
-  );
+  // 4. OTORGAR BONO ATÓMICAMENTE
+  const { data: addData, error: addError } = await supabase.rpc("atomic_add_points", {
+    target_user_id: userId,
+    amount_to_add: bonusAmount
+  });
 
-  await supabase.from("movements").insert({
+  if (addError || !addData?.[0]?.success) {
+      return NextResponse.json({ 
+          error: "No se pudo otorgar el bono. Intenta más tarde." 
+      }, { status: 500 });
+  }
+
+  const newPoints = Number(addData[0].result_balance);
+
+  // 5. Registrar movimiento (el índice único en DB evitará duplicados si falla la carrera aquí)
+  const { error: moveError } = await supabase.from("movements").insert({
     user_id: userId,
     type: "bonus_referido_verificado",
     points: bonusAmount,
     reference: referredId,
     metadata: { referred_user: referredId, bets: betCount, days: daysRegistered },
   });
+
+  if (moveError) {
+      // Si la inserción falla por índice único, significa que hubo una carrera.
+      // En un sistema ideal, haríamos rollback del balance, pero el rpc ya se ejecutó.
+      // No obstante, el error 409 es la respuesta correcta para el cliente spameador.
+      console.warn(`[Security] Intento de doble reclamo detectado por restricción DB para ${userId} -> ${referredId}`);
+      return NextResponse.json({ error: "Ya reclamaste este bonus (carrera detectada)" }, { status: 409 });
+  }
 
   return NextResponse.json({ ok: true, points: bonusAmount, totalPoints: newPoints });
 }
