@@ -84,12 +84,25 @@ export const dynamic = "force-dynamic";
 export default async function AdminUsuariosPage() {
   const supabase = await createClient();
 
-  const [profilesRes, balancesRes, movementsRes, faucetMovsRes, betsRes, referralsRes, sessionIpsRes, allGlobalMovementsRes] = await Promise.all([
-    supabase
+  // Intentamos obtener perfiles con last_ip
+  let profilesRes: any = await supabase
+    .from("profiles")
+    .select("id, email, name, created_at, email_verified_at, status, last_ip")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  let migrationWarning = null;
+  if (profilesRes.error && (profilesRes.error.message.includes("last_ip") || profilesRes.error.code === "PGRST204" || profilesRes.error.message.includes("does not exist"))) {
+    // Si la columna no existe, reintentamos sin ella
+    profilesRes = await supabase
       .from("profiles")
-      .select("id, email, name, created_at, email_verified_at, status, last_ip")
+      .select("id, email, name, created_at, email_verified_at, status")
       .order("created_at", { ascending: false })
-      .limit(200),
+      .limit(200);
+    migrationWarning = "La columna 'last_ip' no existe en la DB. Por favor ejecuta la migración 016 o créala manualmente.";
+  }
+
+  const [balancesRes, movementsRes, faucetMovsRes, betsRes, referralsRes, sessionIpsRes, allGlobalMovementsRes] = await Promise.all([
     supabase.from("balances").select("user_id, points"),
     supabase
       .from("movements")
@@ -109,7 +122,7 @@ export default async function AdminUsuariosPage() {
   ]);
 
   const profiles = profilesRes.data ?? [];
-  const dbError = profilesRes.error ? `Error DB: ${profilesRes.error.message}` : null;
+  const dbError = profilesRes.error ? `Error DB: ${profilesRes.error.message}` : migrationWarning;
   const balanceByUser: Record<string, number> = {};
   (balancesRes.data ?? []).forEach((b) => {
     balanceByUser[b.user_id] = Number(b.points) || 0;
@@ -203,7 +216,7 @@ export default async function AdminUsuariosPage() {
 
   // 4. Final Mapping
   const now = new Date();
-  const users: UserRow[] = profiles.map((p) => {
+  const users: UserRow[] = profiles.map((p: any) => {
     const daysRegistered = Math.floor((now.getTime() - new Date(p.created_at).getTime()) / (24 * 60 * 60 * 1000));
     const faucetClaims = faucetByUser[p.id] ?? 0;
     const balance = balanceByUser[p.id] ?? 0;
