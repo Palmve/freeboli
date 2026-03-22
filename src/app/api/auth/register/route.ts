@@ -64,6 +64,15 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email) || email.length > 255) {
+    return NextResponse.json(
+      { error: "El formato del correo electrónico es inválido o demasiado largo." },
+      { status: 400 }
+    );
+  }
+
   if (password.length < 8) {
     return NextResponse.json(
       { error: "La contraseña debe tener al menos 8 caracteres." },

@@ -11,8 +11,8 @@ export async function POST(req: Request) {
   }
 
   const { pin } = await req.json().catch(() => ({ pin: "" }));
-  if (!pin || typeof pin !== "string" || pin.length !== 6) {
-    return NextResponse.json({ error: "Formato de PIN inválido" }, { status: 400 });
+  if (!pin || typeof pin !== "string" || !/^\d{6}$/.test(pin)) {
+    return NextResponse.json({ error: "Formato de PIN inválido (deben ser 6 dígitos)" }, { status: 400 });
   }
 
   const supabase = await createClient();
