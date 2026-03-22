@@ -20,7 +20,7 @@ const STATUS_CONFIG: Record<UserStatus, { label: string; bg: string; text: strin
 
 const STATUS_OPTIONS: UserStatus[] = ["normal", "evaluar", "suspendido", "bloqueado"];
 
-type SortKey = "email" | "created_at" | "balance" | "faucetClaims" | "hiLoPlays" | "hiLoAmount" | "predPlays" | "predAmount" | "referralCount" | "sameIpUsers" | "rankingPos";
+type SortKey = "email" | "created_at" | "balance" | "faucetClaims" | "hiLoPlays" | "hiLoAmount" | "predPlays" | "predAmount" | "referralCount" | "referralEarnings" | "sameIpUsers" | "rankingPos";
 
 export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
   const [historyUserId, setHistoryUserId] = useState<string | null>(null);
@@ -129,6 +129,7 @@ export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
           <thead>
             <tr className="text-left text-slate-400 border-b border-slate-700 bg-slate-800/30">
               <Th label="Email" colKey="email" align="text-left" />
+              <th className="p-2 text-center text-[10px] uppercase font-bold text-slate-500">Última IP</th>
               <Th label="Rank" colKey="rankingPos" />
               <Th label="Reg" colKey="created_at" align="text-left" />
               <Th label="Balance" colKey="balance" align="text-right" />
@@ -139,6 +140,7 @@ export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
               <Th label="Prd Pts" colKey="predAmount" />
               <Th label="Prd #C" colKey="predPlays" />
               <Th label="Refs" colKey="referralCount" />
+              <Th label="Pts Refs" colKey="referralEarnings" />
               <Th label="IPs" colKey="sameIpUsers" />
               <th className="p-2 text-center">Status</th>
               <th className="p-2 w-10"></th>
@@ -151,6 +153,7 @@ export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
               return (
                 <tr key={u.id} className="border-t border-slate-700/50 hover:bg-slate-800/80 transition-colors">
                   <td className="p-2 text-slate-300 text-xs truncate max-w-[120px]">{u.email ?? "—"}</td>
+                  <td className="p-2 text-center text-[10px] text-slate-500 font-mono">{u.lastIp || "—"}</td>
                   <td className="p-2 text-center font-bold text-amber-500 text-xs">{u.rankingPos ?? "-"}º</td>
                   <td className="p-2 text-slate-400 text-xs">{new Date(u.created_at).toLocaleDateString()}</td>
                   <td className="p-2 text-right font-mono text-xs text-white">{u.balance.toLocaleString()}</td>
@@ -162,7 +165,8 @@ export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
                   <td className="p-2 text-center text-xs text-slate-400">{u.hiLoPlays}</td>
                   <td className="p-2 text-center text-xs font-mono text-indigo-400">{u.predAmount.toLocaleString()}</td>
                   <td className="p-2 text-center text-xs text-slate-400">{u.predPlays}</td>
-                  <td className="p-2 text-center text-xs">{u.referralCount}</td>
+                  <td className="p-2 text-center text-xs text-slate-400">{u.referralCount}</td>
+                  <td className="p-2 text-center text-xs text-green-400 font-mono">{u.referralEarnings.toLocaleString()}</td>
                   <td className="p-2 text-center text-xs">
                     <span className={u.sameIpUsers > 3 ? "text-red-400 font-bold" : "text-slate-400"}>{u.sameIpUsers}</span>
                   </td>
@@ -336,6 +340,10 @@ export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
 
                 <div className="text-slate-500 font-medium">Afiliados Traídos</div>
                 <div className="text-white">{detailUser.referralCount}</div>
+                <div className="text-slate-500 font-medium">Ganancias Refs</div>
+                <div className="text-green-400 font-mono">{detailUser.referralEarnings.toLocaleString()} pts</div>
+                <div className="text-slate-500 font-medium">Última IP Conocida</div>
+                <div className="text-white font-mono">{detailUser.lastIp || "—"}</div>
                 <div className="text-slate-500 font-medium">Usuarios Misma IP</div>
                 <div className={detailUser.sameIpUsers > 3 ? "text-red-400 font-bold" : "text-white"}>{detailUser.sameIpUsers}</div>
                 <div className="text-slate-500 font-medium">Email Verificado</div>

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserId, getCurrentUser, isUserBlocked } from "@/lib/current-user";
-import { getRequestIpHash } from "@/lib/ip";
+import { getRequestIp, getRequestIpHash } from "@/lib/ip";
+import { getSetting } from "@/lib/site-settings";
 import { rateLimit } from "@/lib/rate-limit";
 import {
   FAUCET_POINTS,
@@ -21,7 +22,7 @@ import {
   DEFAULT_HOURLY_TIERS,
   DEFAULT_DAILY_TIERS,
 } from "@/lib/streaks";
-import { getSetting } from "@/lib/site-settings";
+// ... (rest of imports)
 
 async function getConfig() {
   const base = await getSetting<number>("FAUCET_POINTS", FAUCET_POINTS);
@@ -236,6 +237,13 @@ export async function POST(request: Request) {
       }
     }
   }
+
+  // Update last_ip
+  const ip = await getRequestIp();
+  await supabase
+    .from("profiles")
+    .update({ last_ip: ip })
+    .eq("id", userId);
 
   return NextResponse.json({
     ok: true,

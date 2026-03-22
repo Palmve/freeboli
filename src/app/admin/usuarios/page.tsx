@@ -16,7 +16,9 @@ export interface UserRow {
   faucetClaims: number;
   daysRegistered: number;
   referralCount: number;
+  referralEarnings: number; // Nueva columna
   sameIpUsers: number;
+  lastIp: string | null; // Nueva columna
   status: UserStatus;
   autoStatus: UserStatus;
   flags: string[];
@@ -83,7 +85,7 @@ export default async function AdminUsuariosPage() {
   const [profilesRes, balancesRes, movementsRes, faucetMovsRes, betsRes, referralsRes, sessionIpsRes] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, email, name, created_at, email_verified_at, status")
+      .select("id, email, name, created_at, email_verified_at, status, last_ip")
       .order("created_at", { ascending: false })
       .limit(200),
     supabase.from("balances").select("user_id, points"),
@@ -101,7 +103,7 @@ export default async function AdminUsuariosPage() {
       .in("type", ["apuesta_hi_lo", "apuesta_prediccion"]),
     supabase.from("referrals").select("referrer_id"),
     supabase.from("session_ips").select("user_id, ip_hash"),
-    supabase.from("movements").select("user_id, points").in("type", ["faucet", "apuesta_hi_lo", "apuesta_prediccion", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado", "premio_ranking"]),
+    supabase.from("movements").select("user_id, type, points").in("type", ["faucet", "apuesta_hi_lo", "apuesta_prediccion", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado", "premio_ranking"]),
   ]);
 
   const profiles = profilesRes.data ?? [];
@@ -151,23 +153,31 @@ export default async function AdminUsuariosPage() {
       predAmount[uid] = (predAmount[uid] ?? 0) + pts;
     }
   });
-
-  // Process Global Ranking
-  const earningsByUser: Record<string, number> = {};
-  (sessionIpsRes.data ? arguments[7] : [])?.data?.forEach((m: any) => {
-    earningsByUser[m.user_id] = (earningsByUser[m.user_id] ?? 0) + Math.abs(Number(m.points) || 0);
-  });
+  // 1. Process Referral Earnings & Global Statistics (from 8th Promise result)
+  const referralEarningsByUser: Record<string, number> = {};
+  const globalUserEarnings: Record<string, number> = {};
+  const allMixedMovements = sessionIpsRes.data ? (sessionIpsRes as any).data : (arguments[0] as any)?.[7]?.data ?? []; 
   
-  // Actually, Promise.all returned an array, let's just grab the 8th result. 
-  // Wait, I didn't destructure the 8th result, I will just re-fetch ranking separatedly to avoid Promise array index issues here. So I will map it properly.
+  (allMixedMovements || []).forEach((m: any) => {
+    const uid = m.user_id;
+    const pts = Math.abs(Number(m.points) || 0);
+    globalUserEarnings[uid] = (globalUserEarnings[uid] ?? 0) + pts;
+    if (m.type === "comision_afiliado" || m.type === "bonus_referido_verificado") {
+      referralEarningsByUser[uid] = (referralEarningsByUser[uid] ?? 0) + pts;
+    }
+  });
 
-  // Count referrals per referrer
+  const rankingSorted = Object.entries(globalUserEarnings).sort((a, b) => b[1] - a[1]);
+  const userRankMap: Record<string, number> = {};
+  rankingSorted.forEach(([id], index) => { userRankMap[id] = index + 1; });
+
+  // 2. Count referrals per referrer
   const referralsByUser: Record<string, number> = {};
   (referralsRes.data ?? []).forEach((r) => {
     referralsByUser[r.referrer_id] = (referralsByUser[r.referrer_id] ?? 0) + 1;
   });
 
-  // Count users per IP, then max shared IP users per user
+  // 3. IP Analysis
   const ipsByUser: Record<string, Set<string>> = {};
   const usersByIp: Record<string, Set<string>> = {};
   (sessionIpsRes.data ?? []).forEach((s) => {
@@ -188,20 +198,7 @@ export default async function AdminUsuariosPage() {
     return max;
   }
 
-  // Since I hit a Promise indexing snag above, let's extract the Ranking DB promise explicitly:
-  const rankingMovsRes = arguments[0][7]; // using implicit arguments indexing? No, I will just do it from scratch:
-  const allGlobalMovements = Array.isArray(sessionIpsRes) ? [] : arguments[0] && Array.isArray(arguments[0]) ? arguments[0][7]?.data : []; // safely fallback
-  // Wait, in JS the Promise.all returns an array mapped to the variables. I added an 8th call so it's the 8th element in the outer scope.
-  // Let me just execute a quick DB call for ranking.
-  const { data: globalRanks } = await supabase.from("movements").select("user_id, points").in("type", ["faucet", "apuesta_hi_lo", "apuesta_prediccion", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado", "premio_ranking"]);
-  const globalUserEarnings: Record<string, number> = {};
-  (globalRanks ?? []).forEach((m) => {
-    globalUserEarnings[m.user_id] = (globalUserEarnings[m.user_id] ?? 0) + Math.abs(Number(m.points) || 0);
-  });
-  const rankingSorted = Object.entries(globalUserEarnings).sort((a, b) => b[1] - a[1]);
-  const userRankMap: Record<string, number> = {};
-  rankingSorted.forEach(([id], index) => { userRankMap[id] = index + 1; });
-
+  // 4. Final Mapping
   const now = new Date();
   const users: UserRow[] = profiles.map((p) => {
     const daysRegistered = Math.floor((now.getTime() - new Date(p.created_at).getTime()) / (24 * 60 * 60 * 1000));
@@ -210,6 +207,7 @@ export default async function AdminUsuariosPage() {
     const totalDeposito = depositoByUser[p.id] ?? 0;
     const sameIpUsers = getMaxSharedIp(p.id);
     const referralCount = referralsByUser[p.id] ?? 0;
+    const referralEarnings = referralEarningsByUser[p.id] ?? 0;
     const emailVerified = !!p.email_verified_at;
 
     const hp = hiLoPlays[p.id] ?? 0;
@@ -222,7 +220,6 @@ export default async function AdminUsuariosPage() {
 
     const dbStatus = (p.status as UserStatus) || "normal";
     const effectiveStatus = dbStatus !== "normal" ? dbStatus : auto.status;
-
     const level = getUserLevel({ betCount: hp + pp, faucetClaims, referralCount, emailVerified });
 
     return {
@@ -237,7 +234,9 @@ export default async function AdminUsuariosPage() {
       faucetClaims,
       daysRegistered,
       referralCount,
+      referralEarnings,
       sameIpUsers,
+      lastIp: (p as any).last_ip ?? null,
       status: effectiveStatus,
       autoStatus: auto.status,
       flags: auto.flags,
@@ -249,6 +248,7 @@ export default async function AdminUsuariosPage() {
       rankingPos: userRankMap[p.id] ?? null,
     };
   });
+
 
   return (
     <div className="space-y-4">

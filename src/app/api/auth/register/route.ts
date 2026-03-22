@@ -205,6 +205,7 @@ export async function POST(req: Request) {
       public_id: publicId,
       referral_code: String(publicId),
       terms_accepted_at: new Date().toISOString(),
+      last_ip: ip,
     })
     .select("id")
     .single();
