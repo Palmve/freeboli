@@ -109,6 +109,14 @@ export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
     </th>
   );
 
+  if (users.length === 0) {
+    return (
+      <div className="card p-10 text-center text-slate-500 italic">
+        No se encontraron usuarios registrados aún.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Leyenda */}
@@ -206,6 +214,7 @@ export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
             <option value="created_at">Fecha Reg</option>
             <option value="balance">Balance Global</option>
             <option value="rankingPos">Posición Ranking</option>
+            <option value="referralEarnings">Ganancias Refs</option>
             <option value="hiLoAmount">Volumen HiLo</option>
             <option value="predAmount">Volumen Predic</option>
             <option value="faucetClaims">Faucet Claims</option>
@@ -220,7 +229,7 @@ export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
           const st = getStatus(u);
           const cfg = STATUS_CONFIG[st];
           return (
-            <div key={u.id} className="card p-3 border border-slate-700/50 bg-slate-800/40 relative">
+            <div key={u.id} className="rounded-xl p-3 border border-slate-700/50 bg-slate-800/40 relative shadow-lg">
               <div className="flex justify-between items-start border-b border-slate-700/50 pb-2 mb-2">
                 <div>
                   <h3 className="text-sm font-bold text-white truncate max-w-[200px]">{u.email ?? "—"}</h3>

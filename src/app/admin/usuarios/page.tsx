@@ -82,7 +82,7 @@ function computeAutoStatus(u: {
 export default async function AdminUsuariosPage() {
   const supabase = await createClient();
 
-  const [profilesRes, balancesRes, movementsRes, faucetMovsRes, betsRes, referralsRes, sessionIpsRes] = await Promise.all([
+  const [profilesRes, balancesRes, movementsRes, faucetMovsRes, betsRes, referralsRes, sessionIpsRes, allGlobalMovementsRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, email, name, created_at, email_verified_at, status, last_ip")
@@ -156,7 +156,7 @@ export default async function AdminUsuariosPage() {
   // 1. Process Referral Earnings & Global Statistics (from 8th Promise result)
   const referralEarningsByUser: Record<string, number> = {};
   const globalUserEarnings: Record<string, number> = {};
-  const allMixedMovements = sessionIpsRes.data ? (sessionIpsRes as any).data : (arguments[0] as any)?.[7]?.data ?? []; 
+  const allMixedMovements = allGlobalMovementsRes.data ?? []; 
   
   (allMixedMovements || []).forEach((m: any) => {
     const uid = m.user_id;
