@@ -7,6 +7,7 @@ import { isDisposableEmail } from "@/lib/disposable-emails";
 import { headers } from "next/headers";
 import { alertNewUser } from "@/lib/telegram";
 import { getSetting } from "@/lib/site-settings";
+import { getRequestIpHash } from "@/lib/ip";
 
 function getIpFromHeaders(h: Headers): string {
   const forwarded = h.get("x-forwarded-for");
@@ -16,6 +17,7 @@ function getIpFromHeaders(h: Headers): string {
 export async function POST(req: Request) {
   const h = await headers();
   const ip = getIpFromHeaders(h);
+  const ipHash = await getRequestIpHash();
 
   const burstMax = await getSetting<number>("REGISTER_BURST_MAX", 3);
   const burstWindowMin = await getSetting<number>("REGISTER_BURST_WINDOW_MINUTES", 15);
@@ -45,6 +47,24 @@ export async function POST(req: Request) {
 
   if (_hp) {
     return NextResponse.json({ ok: true, userId: "ok" });
+  }
+
+  const supabase = await createClient();
+
+  // 0. Bloqueo de IP de Usuarios Suspendidos (Anti-Sybil / Anti-Abuso)
+  // Verifica si esta IP ha sido usada por una cuenta que ya está bloqueada/suspendida.
+  const { data: bannedIps } = await supabase
+    .from("session_ips")
+    .select("user_id, profiles!inner(status)")
+    .eq("ip_hash", ipHash)
+    .in("profiles.status", ["suspended", "blocked"]);
+
+  if (bannedIps && bannedIps.length > 0) {
+    console.warn(`[Security] Intento de registro bloqueado por IP BAN para ${email} (IP Hash: ${ipHash})`);
+    return NextResponse.json(
+      { error: "Esta conexión está restringida debido a una infracción de los términos en una cuenta asociada. Si crees que es un error, contacta a soporte." },
+      { status: 403 }
+    );
   }
 
   if (_ts && typeof _ts === "number") {
@@ -86,8 +106,6 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-
-  const supabase = await createClient();
   const { data: existing } = await supabase
     .from("profiles")
     .select("id")
