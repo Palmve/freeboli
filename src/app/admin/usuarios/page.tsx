@@ -79,6 +79,8 @@ function computeAutoStatus(u: {
   return { status: "evaluar", flags };
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminUsuariosPage() {
   const supabase = await createClient();
 
@@ -107,6 +109,7 @@ export default async function AdminUsuariosPage() {
   ]);
 
   const profiles = profilesRes.data ?? [];
+  const dbError = profilesRes.error ? `Error DB: ${profilesRes.error.message}` : null;
   const balanceByUser: Record<string, number> = {};
   (balancesRes.data ?? []).forEach((b) => {
     balanceByUser[b.user_id] = Number(b.points) || 0;
@@ -253,7 +256,7 @@ export default async function AdminUsuariosPage() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-white">Usuarios</h2>
-      <AdminUsuariosTable users={users} />
+      <AdminUsuariosTable users={users} dbError={dbError} />
     </div>
   );
 }

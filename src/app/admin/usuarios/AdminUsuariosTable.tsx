@@ -22,7 +22,7 @@ const STATUS_OPTIONS: UserStatus[] = ["normal", "evaluar", "suspendido", "bloque
 
 type SortKey = "email" | "created_at" | "balance" | "faucetClaims" | "hiLoPlays" | "hiLoAmount" | "predPlays" | "predAmount" | "referralCount" | "referralEarnings" | "sameIpUsers" | "rankingPos";
 
-export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
+export default function AdminUsuariosTable({ users, dbError }: { users: UserRow[], dbError?: string | null }) {
   const [historyUserId, setHistoryUserId] = useState<string | null>(null);
   const [historyEmail, setHistoryEmail] = useState("");
   const [movements, setMovements] = useState<Movement[]>([]);
@@ -108,6 +108,15 @@ export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
       {label} <SortIcon colKey={colKey} />
     </th>
   );
+
+  if (dbError) {
+    return (
+      <div className="bg-red-500/10 border border-red-500/30 p-6 rounded-xl text-red-500 text-center font-bold">
+        ⚠️ {dbError}
+        <p className="text-xs mt-2 font-normal opacity-80">Por favor, verifica la consola o la base de datos (Supabase).</p>
+      </div>
+    );
+  }
 
   if (users.length === 0) {
     return (
