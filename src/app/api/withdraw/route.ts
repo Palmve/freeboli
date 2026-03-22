@@ -124,9 +124,8 @@ export async function POST(req: Request) {
               const { Keypair } = await import("@solana/web3.js");
               const bs58 = (await import("bs58")).default;
               const masterKp = Keypair.fromSecretKey(bs58.decode(masterSecretKey));
+              // Verificar saldo de la Master Wallet antes de intentar el envío
               const masterBalances = await getOnChainBalances(masterKp.publicKey.toBase58());
-              
-              console.log(`[AutoWithdraw] Wallet: ${masterKp.publicKey.toBase58()}, SOL: ${masterBalances.sol}, BOLIS: ${masterBalances.bolis}`);
 
               if (masterBalances.bolis >= bolisAmount) {
                   if (masterBalances.sol < 0.001) {
@@ -195,8 +194,6 @@ export async function POST(req: Request) {
     withdrawalId: withdrawalId,
     balance: newBalance,
     autoProcessed: !!txHash,
-    isAutoEligible: isAutoEligible,
     bolisAmount: bolisAmount,
-    autoError: autoError
   });
 }
