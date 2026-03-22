@@ -100,6 +100,14 @@ export default function DepositarPage() {
         </p>
         <p className="text-sm text-slate-400" dangerouslySetInnerHTML={{ __html: t("deposit.min_deposit_hint").replace("{0}", String(minDepositBolis)).replace("{1}", String(MIN_WITHDRAW_POINTS.toLocaleString())) }} />
         
+        <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-200">
+           <p dangerouslySetInnerHTML={{ __html: t("deposit.warning") }} />
+        </div>
+
+        <p className="text-sm text-slate-300" dangerouslySetInnerHTML={{ 
+          __html: t("deposit.swap_link").replace("{0}", "https://dexscreener.com/solana/adtp1djcsfehs4dc7224n67ejtgxawhzj8w7gwtjgwe8") 
+        }} />
+        
         {info?.address ? (
           <div className="space-y-4">
             <p className="text-sm text-slate-400">{t("deposit.address_label")}</p>

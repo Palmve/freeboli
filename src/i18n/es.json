@@ -432,6 +432,8 @@
     "title": "Depositar BOLIS",
     "desc": "Tienes una <strong>dirección exclusiva</strong> para tus depósitos. Envía BOLIS (token en Solana) a esta dirección desde Phantom o cualquier wallet; los puntos se acreditarán automáticamente. No hace falta memo ni verificar firma.",
     "rate": "{0} puntos = 1 BOLIS",
+    "warning": "⚠️ <strong>IMPORTANTE:</strong> Envía <strong>ÚNICAMENTE BOLIS</strong> (Token SPL). Si envías SOL nativo u otros tokens, los puntos <strong>NO</strong> se acreditarán automáticamente y podrías perder el acceso a esos fondos.",
+    "swap_link": "¿No tienes BOLIS? Intercambia SOL por BOLIS en <a href='{0}' target='_blank' class='text-amber-400 underline hover:text-amber-300'>Dexscreener</a>.",
     "min_deposit_hint": "Para poder retirar, deposita al menos <strong>{0} BOLIS</strong> (equivale a {1} puntos).",
     "address_label": "Tu dirección de depósito (escanea el QR o copia la dirección):",
     "qr_alt": "QR dirección de depósito",

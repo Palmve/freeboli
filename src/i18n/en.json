@@ -432,6 +432,8 @@
     "title": "Deposit BOLIS",
     "desc": "You have an <strong>exclusive address</strong> for your deposits. Send BOLIS (Solana token) to this address from Phantom or any wallet; points will be credited automatically. No memo or signature verification required.",
     "rate": "{0} points = 1 BOLIS",
+    "warning": "⚠️ <strong>IMPORTANT:</strong> Send <strong>ONLY BOLIS</strong> (SPL Token). If you send native SOL or other tokens, points will <strong>NOT</strong> be credited automatically and you might lose access to those funds.",
+    "swap_link": "Need BOLIS? Swap SOL for BOLIS on <a href='{0}' target='_blank' class='text-amber-400 underline hover:text-amber-300'>Dexscreener</a>.",
     "min_deposit_hint": "To be able to withdraw, deposit at least <strong>{0} BOLIS</strong> (equivalent to {1} points).",
     "address_label": "Your deposit address (scan the QR or copy the address):",
     "qr_alt": "Deposit address QR",
