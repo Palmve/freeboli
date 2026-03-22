@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
   const minBet = await getSetting<number>("PREDICTION_MIN_BET", 10);
   const maxBetKey = `${asset}_MAX_BET`;
-  const maxBet = await getSetting<number>(maxBetKey, 10000);
+  const maxBet = await getSetting<number>(maxBetKey, 100000);
   
   // Cutoff dinámico: 10 min rounds (60s defecto), 1 hour (600s defecto), micro (60s)
   let cutoffKey = "PREDICTION_CUTOFF_SECONDS";
