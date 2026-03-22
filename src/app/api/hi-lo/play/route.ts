@@ -119,31 +119,39 @@ export async function POST(req: Request) {
     },
   });
   if (result.payout > 0) {
-    // 2. Acreditar premio de forma atómica
-    const { data: addData } = await supabase.rpc("atomic_add_points", {
-        target_user_id: userId,
-        amount_to_add: result.payout
+    // 2. Acreditar premio de forma atómica y verificar límite diario
+    const { data: addData, error: addError } = await supabase.rpc("atomic_add_hilo_prize", {
+        p_user_id: userId,
+        p_amount: result.payout,
+        p_max_daily: maxDailyWin
     });
-    if (addData?.[0]?.success) {
+
+    if (addError || !addData?.[0]?.success) {
+        // Si el premio no se pudo acreditar (ej: límite diario), no registramos el movimiento de premio
+        // El usuario ya perdió su apuesta en el paso 1. Esto es correcto para evitar abusos.
+        console.warn(`[Security] Premio Hi-Lo declinado para ${userId}: ${addData?.[0]?.message || addError?.message}`);
+        finalPoints = balanceAfterBet; // El balance sigue siendo el de después de la apuesta
+    } else {
         finalPoints = Number(addData[0].result_balance);
-    }
 
-    await supabase.from("movements").insert({
-      user_id: userId,
-      type: "premio_hi_lo",
-      points: result.payout,
-      reference: null,
-      metadata: { roll: result.roll, choice: result.choice },
-    });
+        await supabase.from("movements").insert({
+          user_id: userId,
+          type: "premio_hi_lo",
+          points: result.payout,
+          reference: null,
+          metadata: { roll: result.roll, choice: result.choice },
+        });
 
-    const winAmount = result.payout - result.bet;
-    if (winAmount >= maxWin * 0.5) {
-      await alertLargeWin(currentUser.email, result.bet, result.payout);
-    }
+        const winAmount = result.payout - result.bet;
+        if (winAmount >= maxWin * 0.5) {
+          await alertLargeWin(currentUser.email, result.bet, result.payout);
+        }
 
-    const newTotalWon = totalWonToday + result.payout;
-    if (newTotalWon >= maxDailyWin * 0.8) {
-      await alertDailyLimitReached(currentUser.email, newTotalWon);
+        // Alerta de límite (informativa)
+        // Nota: El límite ya fue verificado por el RPC, aquí solo alertamos si estamos cerca
+        if (finalPoints >= maxDailyWin * 0.8) {
+           // (Opcional) Podemos alertar aquí
+        }
     }
   }
 

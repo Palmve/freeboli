@@ -176,13 +176,10 @@ export async function resolvePendingRounds() {
 
           // Registrar movimiento y actualizar balance solo si ganó o empató
           if (payout > 0) {
-            const { data: bal } = await supabase.from("balances").select("points").eq("user_id", bet.user_id).single();
-            const currentPoints = Number(bal?.points ?? 0);
-            await supabase.from("balances").upsert({ 
-                user_id: bet.user_id, 
-                points: currentPoints + payout,
-                updated_at: new Date().toISOString()
-            }, { onConflict: "user_id" });
+            await supabase.rpc("atomic_add_points", {
+                target_user_id: bet.user_id,
+                amount_to_add: payout
+            });
 
             await supabase.from("movements").insert({
                 user_id: bet.user_id,

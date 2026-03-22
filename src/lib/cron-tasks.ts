@@ -80,17 +80,10 @@ export async function processDeposits() {
           const pointsToAdd = bolisToPoints(result.amount);
           if (pointsToAdd <= 0) continue;
 
-          const { data: balanceRow } = await supabase
-            .from("balances")
-            .select("points")
-            .eq("user_id", user.id)
-            .single();
-          const newPoints = Number(balanceRow?.points ?? 0) + pointsToAdd;
-
-          await supabase.from("balances").upsert(
-            { user_id: user.id, points: newPoints, updated_at: new Date().toISOString() },
-            { onConflict: "user_id" }
-          );
+          await supabase.rpc("atomic_add_points", {
+            target_user_id: user.id,
+            amount_to_add: pointsToAdd
+          });
           await supabase.from("movements").insert({
             user_id: user.id,
             type: "deposito_bolis",
@@ -216,9 +209,10 @@ export async function awardPrizes() {
       const [userId] = sorted[prize.rank - 1];
       const points = await getSetting<number>(prize.settingKey, prize.fallback);
       await supabase.from("prize_awards").insert({ user_id: userId, period: cfg.period, period_key: cfg.periodKey, rank: prize.rank, points });
-      const { data: bal } = await supabase.from("balances").select("points").eq("user_id", userId).single();
-      const currentPts = Number(bal?.points ?? 0);
-      await supabase.from("balances").upsert({ user_id: userId, points: currentPts + points }, { onConflict: "user_id" });
+      await supabase.rpc("atomic_add_points", {
+        target_user_id: userId,
+        amount_to_add: points
+      });
       await supabase.from("movements").insert({ user_id: userId, type: "premio_ranking", points, reference: `${cfg.period}:${cfg.periodKey}:rank${prize.rank}` });
       results.push(`${cfg.period}/${cfg.periodKey} #${prize.rank}: ${points} pts -> ${userId.slice(0, 8)}`);
     }

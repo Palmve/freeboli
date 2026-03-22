@@ -76,64 +76,27 @@ export async function POST(req: Request) {
 
   const supabase = await createClient();
 
-  // Verificar límite de 5 apuestas máximas por ronda para este usuario
-  const { count: userBetCount, error: countError } = await supabase
-    .from("prediction_bets")
-    .select("*", { count: "exact", head: true })
-    .eq("round_id", roundData.id)
-    .eq("user_id", user.id);
-
-  if (countError) {
-    return NextResponse.json({ error: "Error al verificar tu historial de apuestas." }, { status: 500 });
-  }
-
-  if (userBetCount !== null && userBetCount >= 5) {
-    return NextResponse.json({ error: "Límite alcanzado: Solo se permiten 5 apuestas por ronda." }, { status: 400 });
-  }
-
-  // 1. Descuento atómico de la apuesta (Evita Race Condition)
-  const { data: subData, error: subError } = await supabase.rpc("atomic_subtract_points", {
-    target_user_id: user.id,
-    amount_to_subtract: amount,
+  // 1. Ejecutar apuesta de forma atómica (Verifica saldo y límite de 5 apuestas por ronda)
+  const { data: betResult, error: betError } = await supabase.rpc("place_prediction_bet", {
+    p_user_id: user.id,
+    p_round_id: roundData.id,
+    p_amount: amount,
+    p_prediction: prediction,
+    p_type: type,
+    p_odds: odds,
+    p_payout: potentialPayout
   });
 
-  if (subError || !subData?.[0]?.success) {
+  if (betError || !betResult?.[0]?.success) {
     return NextResponse.json({ 
-        error: subError?.message || "Saldo insuficiente o error en la transaccion." 
+        error: betResult?.[0]?.message || betError?.message || "Error al procesar la apuesta." 
     }, { status: 400 });
   }
 
-  const newPoints = Number(subData[0].result_balance);
-
-  await supabase.from("movements").insert({
-    user_id: user.id,
-    type: "apuesta_prediccion",
-    points: -amount,
-    metadata: { round_id: roundData.id, asset, type, prediction, odds },
-  });
-
-  const { data: bet, error } = await supabase
-    .from("prediction_bets")
-    .insert({
-      round_id: roundData.id,
-      user_id: user.id,
-      type,
-      amount,
-      prediction,
-      odds_at_bet: odds,
-      potential_payout: potentialPayout,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Error inserting bet:", error);
-    return NextResponse.json({ error: "Error al registrar la apuesta." }, { status: 500 });
-  }
+  const newPoints = Number(betResult[0].result_balance);
 
   return NextResponse.json({
     success: true,
-    bet,
     newBalance: newPoints,
   });
 }
