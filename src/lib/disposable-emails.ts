@@ -38,6 +38,8 @@ const DISPOSABLE_DOMAINS = new Set([
   "correotemporal.org",
   "tuautobus.com",
   "grfrfewfew.com",
+  "sharebot.net",
+  "sharebot.io",
 ]);
 
 export function isDisposableEmail(email: string): boolean {

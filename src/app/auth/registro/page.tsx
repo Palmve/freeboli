@@ -20,6 +20,8 @@ export default function RegistroPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [captcha, setCaptcha] = useState<{ question: string; token: string } | null>(null);
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,12 +35,26 @@ export default function RegistroPage() {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, referrerCode: referral || undefined, _hp: hp, _ts: formTs }),
+      body: JSON.stringify({ 
+        email, 
+        password, 
+        referrerCode: referral || undefined, 
+        _hp: hp, 
+        _ts: formTs,
+        captchaAnswer,
+        captchaToken: captcha?.token
+      }),
     });
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Error al registrar.");
+      if (data.requireCaptcha) {
+        setCaptcha(data.captcha);
+        setCaptchaAnswer("");
+        setError(data.error || "Se requiere CAPTCHA.");
+      } else {
+        setError(data.error || "Error al registrar.");
+      }
       return;
     }
     setMessage("Cuenta creada. Redirigiendo…");
@@ -107,6 +123,30 @@ export default function RegistroPage() {
             className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white"
           />
         </div>
+        {/* CAPTCHA */}
+        {captcha && (
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-4 animate-in fade-in slide-in-from-top-4 duration-300">
+            <label className="block text-sm font-medium text-blue-300 mb-2">
+              Verificación de Seguridad
+            </label>
+            <div className="flex items-center gap-4">
+              <div className="bg-slate-800 px-4 py-2 rounded-lg font-mono text-xl text-white border border-slate-700">
+                {captcha.question}
+              </div>
+              <input
+                type="number"
+                required
+                value={captchaAnswer}
+                onChange={(e) => setCaptchaAnswer(e.target.value)}
+                placeholder="?"
+                className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              />
+            </div>
+            <p className="text-xs text-blue-400/70 mt-2">
+              Resuelve esta operación para confirmar que eres humano.
+            </p>
+          </div>
+        )}
         {/* Terms acceptance */}
         <div className="flex items-start gap-2">
           <input

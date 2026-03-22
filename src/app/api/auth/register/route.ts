@@ -8,6 +8,7 @@ import { headers } from "next/headers";
 import { alertNewUser } from "@/lib/telegram";
 import { getSetting } from "@/lib/site-settings";
 import { getRequestIpHash } from "@/lib/ip";
+import { generateCaptcha, verifyCaptcha } from "@/lib/captcha";
 
 function getIpFromHeaders(h: Headers): string {
   const forwarded = h.get("x-forwarded-for");
@@ -25,6 +26,7 @@ export async function POST(req: Request) {
   const dailyWindowHours = await getSetting<number>("REGISTER_DAILY_WINDOW_HOURS", 24);
   const minSeconds = await getSetting<number>("REGISTER_MIN_SECONDS", 3);
   const enableDisposableBlock = await getSetting<number>("ENABLE_DISPOSABLE_BLOCK", 1);
+  const requireCaptcha = await getSetting<number>("REGISTER_CAPTCHA_REQUIRED", 1);
 
   const burst = rateLimit(`register:${ip}`, burstMax, burstWindowMin * 60 * 1000);
   if (!burst.allowed) {
@@ -43,7 +45,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const { email, password, referrerCode, _hp, _ts } = body;
+  const { email, password, referrerCode, _hp, _ts, captchaAnswer, captchaToken } = body;
 
   if (_hp) {
     return NextResponse.json({ ok: true, userId: "ok" });
@@ -52,7 +54,6 @@ export async function POST(req: Request) {
   const supabase = await createClient();
 
   // 0. Bloqueo de IP de Usuarios Suspendidos (Anti-Sybil / Anti-Abuso)
-  // Verifica si esta IP ha sido usada por una cuenta que ya está bloqueada/suspendida.
   const { data: bannedIps } = await supabase
     .from("session_ips")
     .select("user_id, profiles!inner(status)")
@@ -65,6 +66,48 @@ export async function POST(req: Request) {
       { error: "Esta conexión está restringida debido a una infracción de los términos en una cuenta asociada. Si crees que es un error, contacta a soporte." },
       { status: 403 }
     );
+  }
+
+  // 0.5 Smart CAPTCHA Check (UX Optimizado)
+  // Dominios "confiables" que no ven captcha a menos que haya spam previo.
+  const trustedDomains = ["gmail.com", "outlook.com", "hotmail.com", "icloud.com", "yahoo.com", "proton.me", "protonmail.com"];
+  const userDomain = email.split("@")[1]?.toLowerCase().trim();
+  const isTrustedDomain = trustedDomains.includes(userDomain);
+
+  if (requireCaptcha === 1) {
+    // Solo forzamos CAPTCHA si:
+    // 1. El dominio NO es confiable.
+    // 2. O si el usuario YA envió un intento (captchaToken presente).
+    // 3. O si la IP ya tiene cuentas asociadas (aunque no estén baneadas, para evitar bots).
+    const { count: ipUsage } = await supabase
+      .from("session_ips")
+      .select("user_id", { count: "exact", head: true })
+      .eq("ip_hash", ipHash);
+
+    const shouldForceCaptcha = !isTrustedDomain || (ipUsage && ipUsage > 0) || !!captchaToken;
+
+    if (shouldForceCaptcha) {
+      if (!captchaToken || captchaAnswer == null) {
+        const challenge = generateCaptcha(0); 
+        return NextResponse.json({ 
+          requireCaptcha: true, 
+          captcha: challenge,
+          error: isTrustedDomain 
+            ? "Verificación adicional requerida por seguridad." 
+            : "Se requiere CAPTCHA para dominios de correo no verificados."
+        }, { status: 403 });
+      }
+
+      const verify = verifyCaptcha(Number(captchaAnswer), captchaToken);
+      if (!verify.valid) {
+        const challenge = generateCaptcha(1);
+        return NextResponse.json({ 
+          requireCaptcha: true, 
+          captcha: challenge,
+          error: "Captcha incorrecto o expirado." 
+        }, { status: 403 });
+      }
+    }
   }
 
   if (_ts && typeof _ts === "number") {
