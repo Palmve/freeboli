@@ -164,21 +164,36 @@ export async function sendBolisToWallet(
   const conn = new Connection(RPC);
   const mint = new PublicKey(BOLIS_MINT);
   const destPubkey = new PublicKey(destinationWallet);
+  
+  // Usar getOrCreateAssociatedTokenAccount para asegurar que el destino tiene cuenta de tokens
+  // El pagador de la creación es el treasury (kp)
+  const { getOrCreateAssociatedTokenAccount, createTransferInstruction } = await import("@solana/spl-token");
+  
   const sourceAta = await getAssociatedTokenAddress(mint, kp.publicKey);
-  const destAta = await getAssociatedTokenAddress(mint, destPubkey);
+  
+  // Aseguramos la creación de la ATA de destino
+  const destAtaAccount = await getOrCreateAssociatedTokenAccount(
+    conn,
+    kp,
+    mint,
+    destPubkey
+  );
+
   const decimals = 6;
   const amountRaw = BigInt(Math.round(amountBolis * 10 ** decimals));
   const ix = createTransferInstruction(
     sourceAta,
-    destAta,
+    destAtaAccount.address,
     kp.publicKey,
     amountRaw
   );
+  
   const tx = new Transaction().add(ix);
   const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
   tx.recentBlockhash = blockhash;
   tx.feePayer = kp.publicKey;
   tx.sign(kp);
+  
   const sig = await conn.sendTransaction(tx, [kp], { skipPreflight: false });
   await conn.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight });
   return sig;

@@ -81,16 +81,16 @@ export async function POST(req: Request) {
   const autoWithdraw = await getSetting<boolean>("WITHDRAWAL_AUTO_APPROVE", false);
   const bolisAmount = points / POINTS_PER_BOLIS;
 
-  // Límite de 1000 BOLIS para retiros automáticos según requerimiento
-  const isAutoEligible = autoWithdraw && bolisAmount <= 1000;
+  // Límite de 100,000 puntos para retiros automáticos según requerimiento
+  const isAutoEligible = autoWithdraw && points <= 100000;
   let txHash = null;
 
   let autoError = null;
 
   if (isAutoEligible) {
       try {
-          console.log(`[AutoWithdraw] Iniciando procesamiento automático para ${bolisAmount} BOLIS (ID: ${withdrawalId})`);
-          const { sendBolisToUser, getOnChainBalances } = await import("@/lib/solana-payments");
+          console.log(`[AutoWithdraw] Iniciando procesamiento automático para ${points} pts / ${bolisAmount} BOLIS (ID: ${withdrawalId})`);
+          const { getOnChainBalances } = await import("@/lib/solana-payments");
           
           // Verificar saldo de la Master Wallet antes de intentar el envío
           const masterSecretKey = process.env.BOT_MASTER_SECRET_KEY || process.env.SOLANA_WALLET_PRIVATE_KEY_BASE58;
@@ -104,7 +104,7 @@ export async function POST(req: Request) {
 
               if (masterBalances.bolis >= bolisAmount) {
                   if (masterBalances.sol < 0.001) {
-                      throw new Error(`Master Wallet sin SOL para fees (${masterBalances.sol} SOL)`);
+                      throw new Error(`Master Wallet insuficiente de SOL para gas (${masterBalances.sol} SOL)`);
                   }
 
                   const { sendBolisToWallet } = await import("@/lib/solana");
@@ -139,21 +139,21 @@ export async function POST(req: Request) {
                       if (movError) console.error("[AutoWithdraw] Error actualizando movements:", movError.message);
                   }
               } else {
-                  const errMsg = `Saldo insuficiente en Master Wallet (${masterBalances.bolis} < ${bolisAmount}). Queda como 'pending'.`;
+                  const errMsg = `Saldo insuficiente en Master Wallet (${masterBalances.bolis} BOLIS < ${bolisAmount} requeridos). Queda como 'pending'.`;
                   console.warn(`[AutoWithdraw] ${errMsg}`);
                   autoError = errMsg;
               }
           } else {
-              const errMsg = "BOT_MASTER_SECRET_KEY no configurado.";
+              const errMsg = "Configuración faltante: BOT_MASTER_SECRET_KEY no configurado.";
               console.error(`[AutoWithdraw] ${errMsg}`);
               autoError = errMsg;
           }
       } catch (err: any) {
-          autoError = err.message;
+          autoError = `Error en ejecución de Solana: ${err.message}`;
           console.error("[AutoWithdraw] Error crítico:", err.message);
       }
-  } else if (autoWithdraw && bolisAmount > 1000) {
-      console.log(`[AutoWithdraw] Retiro superior a 1000 BOLIS (${bolisAmount}). Requiere aprobación manual.`);
+  } else if (autoWithdraw && points > 100000) {
+      console.log(`[AutoWithdraw] Retiro superior a 100,000 pts (${points}). Requiere aprobación manual.`);
   }
 
   console.log(`[Withdraw] Finalizado. ID: ${withdrawalId}, Eligible: ${isAutoEligible}, Tx: ${txHash}, Error: ${autoError}`);
