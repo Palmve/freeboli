@@ -37,10 +37,18 @@ export default function RetirarPage() {
       .catch(() => setBalance(0));
   }, [session?.user, localUser]);
 
+  const isValidWallet = (w: string) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(w.trim());
+
   async function requestWithdraw(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setMessage("");
+
+    if (!isValidWallet(withdrawWallet)) {
+        setError("La dirección de billetera no parece ser de la red Solana. Por favor, verifícala.");
+        return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/withdraw", {
@@ -87,6 +95,8 @@ export default function RetirarPage() {
   }
   if (!REQUIRE_AUTH && !localUser && !session) return <div className="py-12 text-slate-400">{t("withdraw.loading")}</div>;
 
+  const isWalletInvalid = withdrawWallet.trim().length > 0 && !isValidWallet(withdrawWallet);
+
   return (
     <div className="mx-auto max-w-lg space-y-6 py-8 px-4 text-left">
       <h1 className="text-2xl font-bold text-white">{t("withdraw.title")}</h1>
@@ -127,14 +137,15 @@ export default function RetirarPage() {
               type="text"
               value={withdrawWallet}
               onChange={(e) => setWithdrawWallet(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-3 font-mono text-sm text-white focus:border-amber-500/50 outline-none transition"
+              className={`w-full rounded-xl border ${isWalletInvalid ? 'border-red-500/50' : 'border-slate-700'} bg-slate-800/80 px-4 py-3 font-mono text-sm text-white focus:border-amber-500/50 outline-none transition`}
               placeholder={t("withdraw.placeholder_wallet")}
               required
             />
+            {isWalletInvalid && <p className="text-[10px] text-red-400 mt-1 font-bold italic">Dirección de red Solana no válida</p>}
           </div>
           <button
             type="submit"
-            disabled={loading || balance == null || balance < MIN_WITHDRAW_POINTS}
+            disabled={loading || balance == null || balance < MIN_WITHDRAW_POINTS || isWalletInvalid}
             className="btn-primary w-full disabled:opacity-50 font-black uppercase tracking-widest py-4 text-sm shadow-lg shadow-amber-500/20 transition transform active:scale-[0.98]"
           >
             {loading ? t("withdraw.sending") : t("withdraw.btn_request")}

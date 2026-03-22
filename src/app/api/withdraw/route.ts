@@ -5,6 +5,7 @@ import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
 import { rateLimit } from "@/lib/rate-limit";
 import { alertWithdrawalRequest } from "@/lib/telegram";
 import { getSetting } from "@/lib/site-settings";
+import { PublicKey } from "@solana/web3.js";
 
 export async function POST(req: Request) {
   const currentUser = await getCurrentUser();
@@ -28,9 +29,21 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const points = Number(body.points);
   const wallet = typeof body.wallet === "string" ? body.wallet.trim() : "";
+
+  // 1. Validar Puntos y Billetera (Formato Básico y Red Solana)
   if (!Number.isInteger(points) || points < MIN_WITHDRAW_POINTS || !wallet || wallet.length < 32) {
     return NextResponse.json(
-      { error: `Mínimo ${MIN_WITHDRAW_POINTS.toLocaleString()} puntos y wallet válida.` },
+      { error: `Datos inválidos. Mínimo ${MIN_WITHDRAW_POINTS.toLocaleString()} puntos.` },
+      { status: 400 }
+    );
+  }
+
+  try {
+    // Verificación estricta de la dirección de Solana
+    new PublicKey(wallet);
+  } catch (e) {
+    return NextResponse.json(
+      { error: "La dirección introducida no es una billetera válida de la red Solana. Por favor, revísala." },
       { status: 400 }
     );
   }
