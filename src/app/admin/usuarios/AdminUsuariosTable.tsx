@@ -269,67 +269,21 @@ export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
           aria-modal="true"
         >
           <div
-            className="w-full max-w-md rounded-xl bg-slate-800 shadow-xl"
+            className="w-full max-w-md rounded-xl bg-slate-800 shadow-xl max-h-[90vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-slate-700 p-4">
-              <h3 className="font-semibold text-white">{detailUser.email ?? detailUser.id}</h3>
+            <div className="flex items-center justify-between border-b border-slate-700 p-4 shrink-0">
+              <h3 className="font-semibold text-white truncate pr-4">{detailUser.email ?? detailUser.id}</h3>
               <button onClick={() => setDetailUser(null)} className="text-slate-400 hover:text-white p-1">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <div className="p-4 space-y-4">
-              {/* User stats */}
-              <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm bg-slate-900/50 rounded-lg p-3">
-                <div className="text-slate-400">Nivel Global</div>
-                <div className={detailUser.level.color}>{detailUser.level.icon} {detailUser.level.name} (Nv.{detailUser.level.level})</div>
-                <div className="text-slate-400">Ranking FreeBoli</div>
-                <div className="text-amber-500 font-bold">{detailUser.rankingPos ? `#${detailUser.rankingPos}` : "Sin Ranking"}</div>
-                <div className="text-slate-400">Días registrado</div>
-                <div className="text-white">{detailUser.daysRegistered}</div>
-                <div className="text-slate-400">Balance Maestro</div>
-                <div className="text-white">{detailUser.balance.toLocaleString()} pts</div>
-                <div className="text-slate-400">Depósitos Fiat/Cripto</div>
-                <div className="text-green-400">+{detailUser.totalDeposito.toLocaleString()}</div>
-                <div className="text-slate-400">Retiros Verificados</div>
-                <div className="text-amber-400">-{detailUser.totalRetiro.toLocaleString()}</div>
-                
-                <div className="col-span-2 border-t border-slate-700 my-1 pb-1"></div>
-
-                <div className="text-slate-400">Faucet Reclamos</div>
-                <div className="text-white">{detailUser.faucetClaims}</div>
-                <div className="text-slate-400">Hi-Lo (Jugadas / Puntos)</div>
-                <div className={detailUser.hiLoPlays > 0 ? "text-sky-400" : "text-slate-500"}>{detailUser.hiLoPlays} jgs / {detailUser.hiLoAmount.toLocaleString()} pts</div>
-                <div className="text-slate-400">Predicción (Jugadas / Puntos)</div>
-                <div className={detailUser.predPlays > 0 ? "text-indigo-400" : "text-slate-500"}>{detailUser.predPlays} jgs / {detailUser.predAmount.toLocaleString()} pts</div>
-
-                <div className="col-span-2 border-t border-slate-700 my-1 pb-1"></div>
-
-                <div className="text-slate-400">Afiliados Reclutados</div>
-                <div className="text-white">{detailUser.referralCount}</div>
-                <div className="text-slate-400">IPs Fraudulentas</div>
-                <div className={detailUser.sameIpUsers > 3 ? "text-red-400 font-bold" : "text-white"}>{detailUser.sameIpUsers}</div>
-                <div className="text-slate-400">Email Autenticado</div>
-                <div className={detailUser.emailVerified ? "text-green-400" : "text-red-400 font-bold"}>{detailUser.emailVerified ? "Sí" : "No Verificado"}</div>
-              </div>
-
-              {/* Flags */}
-              {detailUser.flags.length > 0 && (
-                <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 p-3 shadow-inner">
-                  <p className="text-sm font-bold text-yellow-400 mb-1 flex items-center gap-1">⚠️ Banderas de Alerta:</p>
-                  <ul className="text-xs text-yellow-300 space-y-1">
-                    {detailUser.flags.map((f, i) => (
-                      <li key={i}>• {f}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Status selector */}
-              <div>
-                <p className="text-sm font-medium text-slate-300 mb-2">Bloqueo o Suspensión (Acción Rápida):</p>
+            <div className="p-4 space-y-5 overflow-y-auto scrollbar-hide">
+              {/* Status selector (Prioridad en móvil) */}
+              <div className="bg-slate-900/40 p-3 rounded-xl border border-slate-700/50">
+                <p className="text-sm font-bold text-amber-400 mb-3 uppercase tracking-wider">Cambiar Estado:</p>
                 <div className="grid grid-cols-2 gap-2">
                   {STATUS_OPTIONS.map((s) => {
                     const c = STATUS_CONFIG[s];
@@ -341,8 +295,10 @@ export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
                           updateStatus(detailUser.id, s);
                           setDetailUser({ ...detailUser, status: s });
                         }}
-                        className={`rounded-lg px-3 py-2 text-sm font-bold transition-all shadow-md active:scale-95 ${c.bg} ${c.text} ${
-                          current === s ? "ring-2 ring-white/70 scale-[1.02]" : "opacity-60 hover:opacity-100"
+                        className={`rounded-lg px-3 py-2.5 text-xs font-bold transition-all shadow-md active:scale-95 border-2 ${
+                          current === s 
+                            ? "border-white bg-white/20 " + c.text 
+                            : "border-transparent opacity-60 hover:opacity-100 " + c.bg + " " + c.text
                         }`}
                       >
                         {c.label}
@@ -351,6 +307,52 @@ export default function AdminUsuariosTable({ users }: { users: UserRow[] }) {
                   })}
                 </div>
               </div>
+
+              {/* User stats */}
+              <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs bg-slate-900/50 rounded-xl p-4 border border-slate-700/30">
+                <div className="text-slate-500 font-medium">Nivel Global</div>
+                <div className={detailUser.level.color + " font-bold"}>{detailUser.level.icon} {detailUser.level.name} (Nv.{detailUser.level.level})</div>
+                <div className="text-slate-500 font-medium">Ranking FreeBoli</div>
+                <div className="text-amber-500 font-bold">{detailUser.rankingPos ? `#${detailUser.rankingPos}` : "Sin Ranking"}</div>
+                <div className="text-slate-500 font-medium">Días registrado</div>
+                <div className="text-white">{detailUser.daysRegistered} d</div>
+                <div className="text-slate-500 font-medium">Balance Maestro</div>
+                <div className="text-white font-mono">{detailUser.balance.toLocaleString()} pts</div>
+                <div className="text-slate-500 font-medium">Depósitos Realizados</div>
+                <div className="text-green-400 font-mono">+{detailUser.totalDeposito.toLocaleString()}</div>
+                <div className="text-slate-500 font-medium">Retiros Ejecutados</div>
+                <div className="text-amber-400 font-mono">-{detailUser.totalRetiro.toLocaleString()}</div>
+                
+                <div className="col-span-2 border-t border-slate-700/50 my-1 pb-1"></div>
+
+                <div className="text-slate-500 font-medium">Faucet Reclamos</div>
+                <div className="text-white">{detailUser.faucetClaims}</div>
+                <div className="text-slate-500 font-medium">Hi-Lo (Jgs / Pts)</div>
+                <div className={detailUser.hiLoPlays > 0 ? "text-sky-400" : "text-slate-500"}>{detailUser.hiLoPlays} / {detailUser.hiLoAmount.toLocaleString()}</div>
+                <div className="text-slate-500 font-medium">Predic (Jgs / Pts)</div>
+                <div className={detailUser.predPlays > 0 ? "text-indigo-400" : "text-slate-500"}>{detailUser.predPlays} / {detailUser.predAmount.toLocaleString()}</div>
+
+                <div className="col-span-2 border-t border-slate-700/50 my-1 pb-1"></div>
+
+                <div className="text-slate-500 font-medium">Afiliados Traídos</div>
+                <div className="text-white">{detailUser.referralCount}</div>
+                <div className="text-slate-500 font-medium">Usuarios Misma IP</div>
+                <div className={detailUser.sameIpUsers > 3 ? "text-red-400 font-bold" : "text-white"}>{detailUser.sameIpUsers}</div>
+                <div className="text-slate-500 font-medium">Email Verificado</div>
+                <div className={detailUser.emailVerified ? "text-green-400" : "text-red-400 font-bold"}>{detailUser.emailVerified ? "SÍ" : "NO"}</div>
+              </div>
+
+              {/* Flags */}
+              {detailUser.flags.length > 0 && (
+                <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/30 p-3 shadow-inner">
+                  <p className="text-xs font-bold text-yellow-400 mb-1 flex items-center gap-1">⚠️ BANDERAS DE ALERTA:</p>
+                  <ul className="text-[10px] text-yellow-300 space-y-1">
+                    {detailUser.flags.map((f, i) => (
+                      <li key={i}>• {f}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </div>
