@@ -236,7 +236,7 @@ export default async function AdminUsuariosPage() {
 
     const dbStatus = (p.status as UserStatus) || "normal";
     const effectiveStatus = dbStatus !== "normal" ? dbStatus : auto.status;
-    const level = getUserLevel({ betCount: hp + pp, faucetClaims, referralCount, emailVerified });
+    const level = getUserLevel({ betCount: hp + pp, faucetClaims, predictionCount: pp, daysSinceJoined: daysRegistered ?? 0, emailVerified });
 
     return {
       id: p.id,

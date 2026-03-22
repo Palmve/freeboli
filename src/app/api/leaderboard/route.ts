@@ -110,7 +110,7 @@ export async function GET(request: Request) {
     const betCount = betCountMap[userId] ?? 0;
     const faucetClaims = faucetCountMap[userId] ?? 0;
     const referralCount = refCountMap[userId] ?? 0;
-    const level = getUserLevel({ betCount, faucetClaims, referralCount, emailVerified: p.emailVerified });
+    const level = getUserLevel({ betCount, faucetClaims, predictionCount: 0, daysSinceJoined: 0, emailVerified: p.emailVerified });
     return {
       rank: rank + 1,
       userId,

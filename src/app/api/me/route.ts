@@ -11,17 +11,21 @@ export async function GET() {
 
   const supabase = await createClient();
 
-  const [profileRes, faucetRes, betsRes, referralsRes] = await Promise.all([
-    supabase.from("profiles").select("email_verified_at, public_id, referral_code").eq("id", user.id).single(),
+  const [profileRes, faucetRes, betsRes] = await Promise.all([
+    supabase.from("profiles").select("email_verified_at, public_id, referral_code, created_at").eq("id", user.id).single(),
     supabase.from("movements").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("type", "faucet"),
     supabase.from("movements").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("type", "apuesta_hi_lo"),
-    supabase.from("referrals").select("id", { count: "exact", head: true }).eq("referrer_id", user.id),
   ]);
+
+  const daysSinceJoined = profileRes.data?.created_at
+    ? Math.floor((Date.now() - new Date(profileRes.data.created_at).getTime()) / 86400000)
+    : 0;
 
   const stats = {
     betCount: betsRes.count ?? 0,
     faucetClaims: faucetRes.count ?? 0,
-    referralCount: referralsRes.count ?? 0,
+    predictionCount: 0,
+    daysSinceJoined,
     emailVerified: !!profileRes.data?.email_verified_at,
   };
 

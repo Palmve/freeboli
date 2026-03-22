@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const supabase = await createClient();
   const { data: profiles, error } = await supabase
     .from("profiles")
-    .select("id, email, name, hilo_bet_count, faucet_claim_count, prediction_count, max_daily_streak, email_verified_at");
+    .select("id, email, name, hilo_bet_count, faucet_claim_count, prediction_count, email_verified_at, created_at");
 
   if (error || !profiles) {
     return NextResponse.json({ error: "Error al obtener perfiles." }, { status: 500 });
@@ -32,12 +32,14 @@ export async function POST(req: Request) {
     try {
       // 1. Calcular nivel actual con la nueva lógica
       const levels = await import("@/lib/levels");
+      const daysSinceJoined = p.created_at
+        ? Math.floor((Date.now() - new Date(p.created_at).getTime()) / 86400000)
+        : 0;
       const currentLevel = levels.getUserLevel({
         betCount: p.hilo_bet_count ?? 0,
         faucetClaims: p.faucet_claim_count ?? 0,
         predictionCount: p.prediction_count ?? 0,
-        maxConsecutiveDays: p.max_daily_streak ?? 0,
-        referralCount: 0, // No necesitamos referidos exactos para el resumen básico aquí si queremos rapidez
+        daysSinceJoined,
         emailVerified: !!p.email_verified_at
       });
 
