@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
 import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
 import { rateLimit } from "@/lib/rate-limit";
-import { alertWithdrawalRequest } from "@/lib/telegram";
+import { alertWithdrawalRequest, alertSuspiciousActivity } from "@/lib/telegram";
 import { getSetting } from "@/lib/site-settings";
 import { fetchUserLevel } from "@/lib/levels";
 import { PublicKey } from "@solana/web3.js";
@@ -55,6 +55,16 @@ export async function POST(req: Request) {
   const wallet = typeof body.wallet === "string" ? body.wallet.trim() : "";
 
   const supabase = await createClient();
+
+  // 0. Verificación de habilitación GLOBAL de retiros
+  const withdrawalsEnabled = await getSetting<number>("WITHDRAWALS_ENABLED", 1);
+  if (withdrawalsEnabled === 0) {
+    return NextResponse.json(
+      { error: "Los retiros se encuentran temporalmente deshabilitados por mantenimiento o seguridad. Inténtalo más tarde." },
+      { status: 503 }
+    );
+  }
+
   const userLevel = await fetchUserLevel(supabase, userId);
   const maxWithdrawBolis = userLevel.benefits.maxWithdrawBolis;
   const requestedBolis = points / POINTS_PER_BOLIS;
@@ -117,7 +127,17 @@ export async function POST(req: Request) {
       details: { recentCount: recentWithdrawals, points, wallet },
       severity: "high",
     });
-    // No bloqueamos, pero marcamos para revisión del admin
+    
+    // Alerta vía Telegram
+    await alertSuspiciousActivity(
+      currentUser.email, 
+      `Frecuencia de retiro alta detectada (${recentWithdrawals} en 24h). Retiro de ${points.toLocaleString()} pts BLOQUEADO automáticamente.`
+    );
+
+    return NextResponse.json(
+      { error: "Tu solicitud de retiro ha sido bloqueada temporalmente por seguridad debido a la alta frecuencia de retiros en las últimas 24 horas. Por favor, contacta con soporte." },
+      { status: 403 }
+    );
   }
 
   // 1. Ejecutar solicitud de retiro de forma atómica (Evita Race Condition)
@@ -145,11 +165,13 @@ export async function POST(req: Request) {
     metadata: { wallet_destination: wallet, status: "pending" },
   });
 
-  const autoWithdraw = await getSetting<boolean>("WITHDRAWAL_AUTO_APPROVE", false);
+  const autoWithdrawGlobal = await getSetting<number>("WITHDRAWAL_AUTO_APPROVE_ENABLED", 1);
+  const autoWithdrawUserLevel = await getSetting<boolean>("WITHDRAWAL_AUTO_APPROVE", false);
   const bolisAmount = points / POINTS_PER_BOLIS;
 
   // Límite de 100,000 puntos para retiros automáticos según requerimiento
-  const isAutoEligible = autoWithdraw && points <= 100000;
+  // Además debe estar habilitado el auto-pago globalmente y para el nivel del usuario
+  const isAutoEligible = autoWithdrawGlobal === 1 && autoWithdrawUserLevel && points <= 100000;
   let txHash = null;
 
   let autoError = null;
@@ -218,7 +240,7 @@ export async function POST(req: Request) {
           autoError = `Error en ejecución de Solana: ${err.message}`;
           console.error("[AutoWithdraw] Error crítico:", err.message);
       }
-  } else if (autoWithdraw && points > 100000) {
+  } else if (autoWithdrawGlobal === 1 && autoWithdrawUserLevel && points > 100000) {
       console.log(`[AutoWithdraw] Retiro superior a 100,000 pts (${points}). Requiere aprobación manual.`);
   }
 

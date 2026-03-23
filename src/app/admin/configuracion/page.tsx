@@ -46,6 +46,8 @@ const FIELDS: SettingField[] = [
   { key: "ENABLE_DISPOSABLE_BLOCK", label: "Bloquear correos desechables", type: "number", description: "1 = bloquear dominios tempmail/guerrillamail etc.; 0 = permitir.", group: "Seguridad", defaultValue: "1" },
   { key: "WITHDRAW_RATE_MAX", label: "Retiros: máx. solicitudes por ventana", type: "number", description: "Máximo de solicitudes de retiro por usuario en la ventana.", group: "Seguridad", defaultValue: "5" },
   { key: "WITHDRAW_RATE_WINDOW_HOURS", label: "Retiros: ventana (horas)", type: "number", description: "Ventana en horas para el límite de solicitudes de retiro por usuario.", group: "Seguridad", defaultValue: "1" },
+  { key: "WITHDRAWALS_ENABLED", label: "Retiros habilitados (Global)", type: "number", description: "1 = permitir retiros; 0 = BLOQUEAR todos los retiros (Emergencia)", group: "Seguridad", defaultValue: "1" },
+  { key: "WITHDRAWAL_AUTO_APPROVE_ENABLED", label: "Retiros automáticos habilitados", type: "number", description: "1 = permitir pagos automáticos; 0 = forzar todas las solicitudes a Pendiente", group: "Seguridad", defaultValue: "0" },
   // Predicciones
   { key: "BTC_MAX_BET", label: "BTC: Apuesta máxima", type: "number", description: "Límite de puntos para BTC", group: "Predicciones (BTC)", defaultValue: "10000" },
   { key: "SOL_MAX_BET", label: "SOL: Apuesta máxima", type: "number", description: "Límite de puntos para SOL", group: "Predicciones (SOL)", defaultValue: "10000" },
