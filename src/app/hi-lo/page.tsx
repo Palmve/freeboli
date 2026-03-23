@@ -57,10 +57,7 @@ export default function HiLoPage() {
   const [tab, setTab] = useState<Tab>("manual");
 
   // Manual
-  const [bet, setBet] = useState(() => {
-    if (typeof window === "undefined") return "1";
-    return localStorage.getItem("hilo_last_bet") || "1";
-  });
+  const [bet, setBet] = useState("1");
   const [choice, setChoice] = useState<"hi" | "lo" | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
