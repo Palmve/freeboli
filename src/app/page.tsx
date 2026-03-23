@@ -201,27 +201,27 @@ export default function HomePage() {
         </div>
 
         {/* Barra visual de progresión de rangos */}
-        <div className="flex items-center justify-between gap-1 overflow-x-auto pb-2">
+        <div className="flex items-start justify-between gap-0 pt-4 overflow-x-auto pb-2 px-1">
           {[
-            { icon: "🥉", name: "Novato", color: "text-slate-400", bg: "bg-slate-800", ring: "ring-slate-600" },
-            { icon: "🥈", name: "Aprendiz", color: "text-sky-400", bg: "bg-sky-900/30", ring: "ring-sky-600" },
-            { icon: "🥇", name: "Jugador", color: "text-blue-400", bg: "bg-blue-900/30", ring: "ring-blue-600" },
-            { icon: "⭐", name: "Veterano", color: "text-purple-400", bg: "bg-purple-900/30", ring: "ring-purple-600" },
-            { icon: "💎", name: "Experto", color: "text-emerald-400", bg: "bg-emerald-900/30", ring: "ring-emerald-600" },
-            { icon: "👑", name: "Maestro", color: "text-amber-400", bg: "bg-amber-900/30", ring: "ring-amber-600" },
-            { icon: "🔥", name: "Leyenda", color: "text-red-400", bg: "bg-red-900/30", ring: "ring-red-600" },
+            { icon: "🥉", name: "Novato",   color: "text-slate-400",   bg: "bg-slate-800",      ring: "ring-slate-500" },
+            { icon: "🥈", name: "Aprendiz", color: "text-sky-400",     bg: "bg-sky-900/40",     ring: "ring-sky-500" },
+            { icon: "🥇", name: "Jugador",  color: "text-blue-400",    bg: "bg-blue-900/40",    ring: "ring-blue-500" },
+            { icon: "⭐", name: "Veterano", color: "text-purple-400",  bg: "bg-purple-900/40",  ring: "ring-purple-500" },
+            { icon: "💎", name: "Experto",  color: "text-emerald-400", bg: "bg-emerald-900/40", ring: "ring-emerald-500" },
+            { icon: "👑", name: "Maestro",  color: "text-amber-400",   bg: "bg-amber-900/40",   ring: "ring-amber-500" },
+            { icon: "🔥", name: "Leyenda",  color: "text-red-400",     bg: "bg-red-900/40",     ring: "ring-red-500" },
           ].map((lvl, i, arr) => (
-            <div key={lvl.name} className="flex items-center">
+            <div key={lvl.name} className="flex items-center flex-1 min-w-0">
               {/* Nodo del nivel */}
-              <div className={`flex flex-col items-center gap-1 min-w-[56px]`}>
-                <div className={`w-10 h-10 rounded-full ${lvl.bg} ring-2 ${lvl.ring} flex items-center justify-center text-xl shadow-lg`}>
+              <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full ${lvl.bg} ring-2 ${lvl.ring} flex items-center justify-center text-2xl sm:text-3xl shadow-lg shadow-black/30`}>
                   {lvl.icon}
                 </div>
-                <span className={`text-[10px] font-black ${lvl.color} text-center whitespace-nowrap`}>{lvl.name}</span>
+                <span className={`text-[9px] sm:text-[11px] font-black ${lvl.color} text-center whitespace-nowrap`}>{lvl.name}</span>
               </div>
-              {/* Conector */}
+              {/* Conector — solo entre nodos, no al final */}
               {i < arr.length - 1 && (
-                <div className="flex-1 h-0.5 bg-gradient-to-r from-slate-700 to-slate-600 mx-1 min-w-[12px]" />
+                <div className="flex-1 h-[2px] bg-gradient-to-r from-slate-600 to-slate-700 mx-1 sm:mx-2 mb-5" />
               )}
             </div>
           ))}
