@@ -91,7 +91,9 @@ export default function LevelProgressCard({ compact = false }: Props) {
       <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700 shadow-lg ${glow}`}>
         <span className="text-xl">{currentLevel.icon}</span>
         <div>
-          <div className={`text-xs font-bold ${currentLevel.color}`}>{currentLevel.name}</div>
+          <div className={`text-xs font-bold ${currentLevel.color}`}>
+            {t(`home.rank_${currentLevel.name === "Novato" ? "novice" : currentLevel.name === "Aprendiz" ? "apprentice" : currentLevel.name === "Jugador" ? "player" : currentLevel.name === "Veterano" ? "veteran" : currentLevel.name === "Experto" ? "expert" : currentLevel.name === "Maestro" ? "master" : "legend"}`)}
+          </div>
           <div className="h-1 w-16 bg-slate-700 rounded-full overflow-hidden mt-0.5">
             <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-700" style={{ width: `${xpPercent}%` }} />
           </div>
@@ -111,7 +113,7 @@ export default function LevelProgressCard({ compact = false }: Props) {
           <span className="text-4xl drop-shadow-lg">{currentLevel.icon}</span>
           <div>
             <div className={`text-lg font-extrabold tracking-wide ${currentLevel.color}`}>
-              {currentLevel.name}
+              {t(`home.rank_${currentLevel.name === "Novato" ? "novice" : currentLevel.name === "Aprendiz" ? "apprentice" : currentLevel.name === "Jugador" ? "player" : currentLevel.name === "Veterano" ? "veteran" : currentLevel.name === "Experto" ? "expert" : currentLevel.name === "Maestro" ? "master" : "legend"}`)}
             </div>
             <div className="text-xs text-slate-400">{t("levels.level_of", currentLevel.level, LEVELS.length)}</div>
           </div>
@@ -123,7 +125,9 @@ export default function LevelProgressCard({ compact = false }: Props) {
         ) : nextLevel && (
           <div className="text-right">
             <div className="text-xs text-slate-500">{t("levels.next_level")}</div>
-            <div className={`text-sm font-bold ${nextLevel.color}`}>{nextLevel.icon} {nextLevel.name}</div>
+            <div className={`text-sm font-bold ${nextLevel.color}`}>
+              {nextLevel.icon} {t(`home.rank_${nextLevel.name === "Novato" ? "novice" : nextLevel.name === "Aprendiz" ? "apprentice" : nextLevel.name === "Jugador" ? "player" : nextLevel.name === "Veterano" ? "veteran" : nextLevel.name === "Experto" ? "expert" : nextLevel.name === "Maestro" ? "master" : "legend"}`)}
+            </div>
           </div>
         )}
       </div>
@@ -132,7 +136,7 @@ export default function LevelProgressCard({ compact = false }: Props) {
       {nextLevel && (
         <div>
           <div className="flex justify-between text-xs text-slate-400 mb-1.5">
-            <span>{t("levels.progress_to")} <strong className={nextLevel.color}>{nextLevel.name}</strong></span>
+            <span>{t("levels.progress_to")} <strong className={nextLevel.color}>{t(`home.rank_${nextLevel.name === "Novato" ? "novice" : nextLevel.name === "Aprendiz" ? "apprentice" : nextLevel.name === "Jugador" ? "player" : nextLevel.name === "Veterano" ? "veteran" : nextLevel.name === "Experto" ? "expert" : nextLevel.name === "Maestro" ? "master" : "legend"}`)}</strong></span>
             <span className="font-mono font-bold text-white">{xpPercent}%</span>
           </div>
           <div className="h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
@@ -154,7 +158,7 @@ export default function LevelProgressCard({ compact = false }: Props) {
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="rounded-lg bg-slate-800/60 border border-slate-700 p-2 text-center">
           <div className="text-slate-400 mb-0.5">{t("levels.max_bet")}</div>
-          <div className="font-bold text-amber-400">{currentLevel.benefits.maxBetPoints.toLocaleString()} pts</div>
+          <div className="font-bold text-amber-400">{currentLevel.benefits.maxBetPoints.toLocaleString()} {t("account.balance_pts")}</div>
         </div>
         <div className="rounded-lg bg-slate-800/60 border border-slate-700 p-2 text-center">
           <div className="text-slate-400 mb-0.5">{t("levels.max_withdraw")}</div>
@@ -192,7 +196,7 @@ export default function LevelProgressCard({ compact = false }: Props) {
                   )}
                   {nextLevel.rewardPoints > 0 && (
                     <div className="text-xs text-emerald-400 flex items-center gap-1.5 mt-1">
-                      🎁 {t("levels.level_up_reward", `+${nextLevel.rewardPoints.toLocaleString()} pts`)}
+                      🎁 {t("levels.level_up_reward", `+${nextLevel.rewardPoints.toLocaleString()} ${t("account.balance_pts")}`)}
                     </div>
                   )}
                 </div>

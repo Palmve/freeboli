@@ -23,7 +23,7 @@ const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n);
 // Barra de stats de juego animada
 function StatBar({ value, label, icon }: { value: string; label: string; icon: string }) {
   return (
-    <div className="flex flex-col items-center text-center p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-amber-500/30 transition group">
+    <div className="flex flex-col items-center text-center p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-amber-500/30 transition group shadow-lg hover:shadow-xl hover:-translate-y-1">
       <span className="text-3xl mb-1 group-hover:scale-110 transition-transform">{icon}</span>
       <span className="text-2xl font-black text-white">{value}</span>
       <span className="text-xs text-slate-500 mt-0.5">{label}</span>
@@ -35,24 +35,24 @@ function StatBar({ value, label, icon }: { value: string; label: string; icon: s
 function GameCard({ icon, label, desc, href, color, border, glow }: typeof MISSIONS[0]) {
   return (
     <Link href={href}
-      className={`group relative overflow-hidden rounded-2xl border ${border} bg-slate-900 p-5 flex flex-col gap-3 transition-all duration-300 hover:shadow-xl ${glow} hover:-translate-y-1 active:translate-y-0`}
+      className={`group relative overflow-hidden rounded-2xl border ${border} bg-slate-900 p-5 flex flex-col gap-3 transition-all duration-300 hover:shadow-2xl ${glow} hover:-translate-y-2 active:translate-y-0`}
     >
       {/* Fondo degradado neón en hover */}
       <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
 
       <div className="relative flex items-start gap-3">
         {/* Icono con glow */}
-        <span className={`text-3xl p-2 rounded-xl bg-gradient-to-br ${color} bg-opacity-20 shadow-lg`}>{icon}</span>
+        <span className={`text-4xl p-2 rounded-xl bg-gradient-to-br ${color} bg-opacity-20 shadow-lg group-hover:scale-110 transition-transform duration-500`}>{icon}</span>
         <div className="flex-1">
           <div className="font-black text-white text-base group-hover:text-amber-300 transition">{label}</div>
           <div className="text-xs text-slate-400 mt-0.5 leading-relaxed">{desc}</div>
         </div>
-        <span className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all text-xl mt-1">→</span>
+        <span className="text-slate-600 group-hover:text-white group-hover:translate-x-2 transition-all duration-300 text-2xl mt-1 opacity-0 group-hover:opacity-100">→</span>
       </div>
 
       {/* Barra de "energía" decorativa */}
       <div className="relative h-1 bg-slate-800 rounded-full overflow-hidden">
-        <div className={`h-full bg-gradient-to-r ${color} rounded-full group-hover:w-full w-2/3 transition-all duration-700`} />
+        <div className={`h-full bg-gradient-to-r ${color} rounded-full group-hover:w-full w-2/3 transition-all duration-1000 ease-in-out`} />
       </div>
     </Link>
   );
@@ -185,41 +185,41 @@ export default function HomePage() {
           <span className="text-xs text-slate-600 font-mono">{t("home.missions_subtitle")}</span>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <GameCard 
-            icon="🚰" 
-            label={t("faucet.title")} 
-            desc={t("home.faucet_desc")} 
-            href="/faucet" 
-            color="from-blue-600 to-cyan-500" 
-            border="border-cyan-500/40" 
-            glow="hover:shadow-cyan-500/20" 
+          <GameCard
+            icon="🚰"
+            label={t("faucet.title")}
+            desc={t("home.faucet_desc")}
+            href="/faucet"
+            color="from-blue-600 to-cyan-500"
+            border="border-cyan-500/40"
+            glow="hover:shadow-cyan-500/20"
           />
-          <GameCard 
-            icon="📈" 
-            label={t("nav.prediction")} 
-            desc={t("home.btc_pred_desc")} 
-            href="/predicciones" 
-            color="from-amber-600 to-yellow-400" 
-            border="border-amber-500/40" 
-            glow="hover:shadow-amber-500/20" 
+          <GameCard
+            icon="📈"
+            label={t("nav.prediction")}
+            desc={t("home.btc_pred_desc")}
+            href="/predicciones"
+            color="from-amber-600 to-yellow-400"
+            border="border-amber-500/40"
+            glow="hover:shadow-amber-500/20"
           />
-          <GameCard 
-            icon="🎲" 
-            label={t("hilo.title")} 
-            desc={t("home.hilo_desc")} 
-            href="/hi-lo" 
-            color="from-purple-600 to-pink-500" 
-            border="border-purple-500/40" 
-            glow="hover:shadow-purple-500/20" 
+          <GameCard
+            icon="🎲"
+            label={t("hilo.title")}
+            desc={t("home.hilo_desc")}
+            href="/hi-lo"
+            color="from-purple-600 to-pink-500"
+            border="border-purple-500/40"
+            glow="hover:shadow-purple-500/20"
           />
-          <GameCard 
-            icon="🏆" 
-            label={t("nav.ranking")} 
-            desc={t("ranking.no_data_hint")} 
-            href="/clasificacion" 
-            color="from-emerald-600 to-teal-400" 
-            border="border-emerald-500/40" 
-            glow="hover:shadow-emerald-500/20" 
+          <GameCard
+            icon="🏆"
+            label={t("nav.ranking")}
+            desc={t("ranking.no_data_hint")}
+            href="/clasificacion"
+            color="from-emerald-600 to-teal-400"
+            border="border-emerald-500/40"
+            glow="hover:shadow-emerald-500/20"
           />
         </div>
       </section>
@@ -241,21 +241,23 @@ export default function HomePage() {
         {/* Barra visual de progresión de rangos */}
         <div className="flex items-start justify-between gap-0 pt-4 overflow-x-auto pb-2 px-1">
           {[
-            { icon: "🥉", name: t("home.rank_novice"),     color: "text-slate-400",   bg: "bg-slate-800",      ring: "ring-slate-500" },
-            { icon: "🥈", name: t("home.rank_apprentice"), color: "text-sky-400",     bg: "bg-sky-900/40",     ring: "ring-sky-500" },
-            { icon: "🥇", name: t("home.rank_player"),     color: "text-blue-400",    bg: "bg-blue-900/40",    ring: "ring-blue-500" },
-            { icon: "⭐", name: t("home.rank_veteran"),    color: "text-purple-400",  bg: "bg-purple-900/40",  ring: "ring-purple-500" },
-            { icon: "💎", name: t("home.rank_expert"),     color: "text-emerald-400", bg: "bg-emerald-900/40", ring: "ring-emerald-500" },
-            { icon: "👑", name: t("home.rank_master"),     color: "text-amber-400",   bg: "bg-amber-900/40",   ring: "ring-amber-500" },
-            { icon: "🔥", name: t("home.rank_legend"),     color: "text-red-400",     bg: "bg-red-900/40",     ring: "ring-red-500" },
+            { icon: "🥉", name: t("home.rank_novice"), color: "text-slate-400", bg: "bg-slate-800", ring: "ring-slate-500" },
+            { icon: "🥈", name: t("home.rank_apprentice"), color: "text-sky-400", bg: "bg-sky-900/40", ring: "ring-sky-500" },
+            { icon: "🥇", name: t("home.rank_player"), color: "text-blue-400", bg: "bg-blue-900/40", ring: "ring-blue-500" },
+            { icon: "⭐", name: t("home.rank_veteran"), color: "text-purple-400", bg: "bg-purple-900/40", ring: "ring-purple-500" },
+            { icon: "💎", name: t("home.rank_expert"), color: "text-emerald-400", bg: "bg-emerald-900/40", ring: "ring-emerald-500" },
+            { icon: "👑", name: t("home.rank_master"), color: "text-amber-400", bg: "bg-amber-900/40", ring: "ring-amber-500" },
+            { icon: "🔥", name: t("home.rank_legend"), color: "text-red-400", bg: "bg-red-900/40", ring: "ring-red-500" },
           ].map((lvl, i, arr) => (
             <div key={lvl.name} className="flex items-center flex-1 min-w-0">
               {/* Nodo del nivel */}
               <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-                <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full ${lvl.bg} ring-2 ${lvl.ring} flex items-center justify-center text-2xl sm:text-3xl shadow-lg shadow-black/30`}>
+                <div className={`w-9 h-9 xs:w-10 h-10 sm:w-14 sm:h-14 rounded-full ${lvl.bg} ring-1 sm:ring-2 ${lvl.ring} flex items-center justify-center text-xl sm:text-3xl shadow-lg shadow-black/30`}>
                   {lvl.icon}
                 </div>
-                <span className={`text-[9px] sm:text-[11px] font-black ${lvl.color} text-center whitespace-nowrap`}>{lvl.name}</span>
+                <span className={`text-[8px] xs:text-[9px] sm:text-[11px] font-black ${lvl.color} text-center whitespace-nowrap`}>
+                  {t(`home.rank_${lvl.name === "Novato" ? "novice" : lvl.name === "Aprendiz" ? "apprentice" : lvl.name === "Jugador" ? "player" : lvl.name === "Veterano" ? "veteran" : lvl.name === "Experto" ? "expert" : lvl.name === "Maestro" ? "master" : "legend"}`)}
+                </span>
               </div>
               {/* Conector — solo entre nodos, no al final */}
               {i < arr.length - 1 && (
