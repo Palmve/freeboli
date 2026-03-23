@@ -212,7 +212,7 @@ export async function POST(request: Request) {
     { onConflict: "user_id" }
   );
 
-  // --- Affiliate commission ---
+  // --- Affiliate commission (con tope diario anti-fraude) ---
   if (cfg.commission > 0) {
     const { data: ref } = await supabase
       .from("referrals")
@@ -220,20 +220,25 @@ export async function POST(request: Request) {
       .eq("referred_id", userId)
       .single();
     if (ref?.referrer_id) {
-      const commission = Math.floor((payout * cfg.commission) / 100);
-      if (commission > 0) {
-        await supabase.rpc("atomic_add_points", {
-          target_user_id: ref.referrer_id,
-          amount_to_add: commission
-        });
+      // Verificar tope diario de comisiones del referrer
+      const { checkAffiliateCommissionCap } = await import("@/lib/affiliate-guard");
+      const { allowed: capAllowed } = await checkAffiliateCommissionCap(supabase, ref.referrer_id);
+      if (capAllowed) {
+        const commission = Math.floor((payout * cfg.commission) / 100);
+        if (commission > 0) {
+          await supabase.rpc("atomic_add_points", {
+            target_user_id: ref.referrer_id,
+            amount_to_add: commission
+          });
 
-        await supabase.from("movements").insert({
-          user_id: ref.referrer_id,
-          type: "comision_afiliado",
-          points: commission,
-          reference: userId,
-          metadata: { source: "faucet", referred_user: userId },
-        });
+          await supabase.from("movements").insert({
+            user_id: ref.referrer_id,
+            type: "comision_afiliado",
+            points: commission,
+            reference: userId,
+            metadata: { source: "faucet", referred_user: userId },
+          });
+        }
       }
     }
   }

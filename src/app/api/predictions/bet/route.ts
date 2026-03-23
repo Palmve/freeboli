@@ -109,20 +109,25 @@ export async function POST(req: Request) {
   const gameCommPercent = await getSetting<number>("AFFILIATE_GAME_PERCENT", AFFILIATE_GAME_PERCENT);
 
   if (ref?.referrer_id && gameCommPercent > 0) {
-    const commission = Math.floor((amount * gameCommPercent) / 100);
-    if (commission > 0) {
-      await supabase.rpc("atomic_add_points", {
-        target_user_id: ref.referrer_id,
-        amount_to_add: commission
-      });
+    // Verificar tope diario de comisiones del referrer
+    const { checkAffiliateCommissionCap } = await import("@/lib/affiliate-guard");
+    const { allowed: capAllowed } = await checkAffiliateCommissionCap(supabase, ref.referrer_id);
+    if (capAllowed) {
+      const commission = Math.floor((amount * gameCommPercent) / 100);
+      if (commission > 0) {
+        await supabase.rpc("atomic_add_points", {
+          target_user_id: ref.referrer_id,
+          amount_to_add: commission
+        });
 
-      await supabase.from("movements").insert({
-        user_id: ref.referrer_id,
-        type: "comision_afiliado",
-        points: commission,
-        reference: user.id,
-        metadata: { source: "prediction", referred_user: user.id, bet_amount: amount, round_id: roundData.id },
-      });
+        await supabase.from("movements").insert({
+          user_id: ref.referrer_id,
+          type: "comision_afiliado",
+          points: commission,
+          reference: user.id,
+          metadata: { source: "prediction", referred_user: user.id, bet_amount: amount, round_id: roundData.id },
+        });
+      }
     }
   }
 

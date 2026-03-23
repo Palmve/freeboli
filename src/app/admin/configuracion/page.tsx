@@ -48,6 +48,7 @@ const FIELDS: SettingField[] = [
   { key: "WITHDRAW_RATE_WINDOW_HOURS", label: "Retiros: ventana (horas)", type: "number", description: "Ventana en horas para el límite de solicitudes de retiro por usuario.", group: "Seguridad", defaultValue: "1" },
   { key: "WITHDRAWALS_ENABLED", label: "Retiros habilitados (Global)", type: "number", description: "1 = permitir retiros; 0 = BLOQUEAR todos los retiros (Emergencia)", group: "Seguridad", defaultValue: "1" },
   { key: "WITHDRAWAL_AUTO_APPROVE_ENABLED", label: "Retiros automáticos habilitados", type: "number", description: "1 = permitir pagos automáticos; 0 = forzar todas las solicitudes a Pendiente", group: "Seguridad", defaultValue: "0" },
+  { key: "MAX_DAILY_AFFILIATE_COMMISSION", label: "Tope diario comisiones referidos (pts)", type: "number", description: "Máximo de puntos que un usuario puede recibir por comisiones de referidos en 24h. Evita el farming entre cuentas propias.", group: "Seguridad", defaultValue: "5000" },
   // Predicciones
   { key: "BTC_MAX_BET", label: "BTC: Apuesta máxima", type: "number", description: "Límite de puntos para BTC", group: "Predicciones (BTC)", defaultValue: "10000" },
   { key: "SOL_MAX_BET", label: "SOL: Apuesta máxima", type: "number", description: "Límite de puntos para SOL", group: "Predicciones (SOL)", defaultValue: "10000" },
@@ -363,6 +364,20 @@ export default function ConfiguracionPage() {
                     className="text-xs text-slate-400 hover:text-white transition"
                   >↻ Actualizar</button>
                 </div>
+
+                {/* Botón de exportación de BD */}
+                <div className="px-5 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-800/30">
+                  <div>
+                    <p className="text-sm text-white font-semibold">📦 Respaldo de Base de Datos</p>
+                    <p className="text-[11px] text-slate-500">Descarga JSON de todas las tablas para análisis forense</p>
+                  </div>
+                  <a
+                    href="/api/admin/export-db"
+                    download
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition shadow-lg shadow-emerald-600/20"
+                  >⬇ Descargar BD</a>
+                </div>
+
                 {loadingSec ? (
                   <div className="p-8 text-center text-slate-500">Cargando eventos...</div>
                 ) : secEvents.length === 0 ? (
