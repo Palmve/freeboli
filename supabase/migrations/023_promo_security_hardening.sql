@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS public.promo_cooldowns (
 comment on table public.promo_cooldowns is 'Rastrea intentos de canje para prevenir fuerza bruta.';
 
 -- 2. Actualizar la función RPC para incluir lógica de cooldown y sanitización
-OR REPLACE FUNCTION public.fn_claim_promotion(p_user_id UUID, p_word TEXT)
+CREATE OR REPLACE FUNCTION public.fn_claim_promotion(p_user_id UUID, p_word TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { LEVELS, getDynamicLevels } from "@/lib/levels";
+import { useEffect, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
+import { getDynamicLevels } from "@/lib/levels";
 
 interface SettingField {
   key: string;
@@ -58,11 +59,45 @@ const FIELDS: SettingField[] = [
   { key: "LEVEL_LIMITS", label: "Sobreescritura de Límites (JSON)", type: "json", description: 'Define límites personalizados por nivel. Formato: { "1": { "maxBet": 1000, "maxWithdraw": 5 }, "2": ... }', group: "Niveles" },
 ];
 
+interface Promotion {
+  id: string;
+  nombre: string;
+  nombre_en?: string;
+  palabra: string;
+  puntos_totales: number;
+  puntos_restantes: number;
+  puntos_por_usuario: number;
+  link_fuente: string;
+  is_active: boolean;
+  fecha_inicio: string;
+  created_at: string;
+}
+
+interface Claim {
+  id: string;
+  user_id: string;
+  points_awarded: number;
+  claimed_at: string;
+  profiles: {
+    email: string;
+    name: string;
+  };
+}
+
 export default function ConfiguracionPage() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+
+  // Promociones
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [selectedPromo, setSelectedPromo] = useState<Promotion | null>(null);
+  const [claims, setClaims] = useState<Claim[]>([]);
+  const [showPromoForm, setShowPromoForm] = useState(false);
+  const [editingPromo, setEditingPromo] = useState<Partial<Promotion> | null>(null);
+  const [savingPromo, setSavingPromo] = useState(false);
+  const [staff, setStaff] = useState<any[]>([]);
 
   useEffect(() => {
     fetch("/api/admin/site-settings")
@@ -162,8 +197,27 @@ export default function ConfiguracionPage() {
     setTemplateMsg(json.ok ? "Logros actualizados" : "Error al guardar logros");
   }
 
-  const groups = [...new Set(FIELDS.filter(f => f.group !== "Soporte").map((f) => f.group)), "Soporte"];
-  const [activeTab, setActiveTab] = useState(groups[0]);
+  const { data: session } = useSession();
+  const isAdminTotal = session?.user?.email && (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "").split(',').includes(session.user.email.toLowerCase());
+  const permissions = (session?.user as any)?.permissions || {};
+  const isSuper = isAdminTotal || (session?.user?.isAdmin && !(process.env.NEXT_PUBLIC_ADMIN_EMAILS));
+
+  const TABS = [
+    { id: "Faucet", label: "Faucet", icon: "⚙️" },
+    { id: "Afiliados", label: "Afiliados", icon: "⚙️" },
+    { id: "Streaks", label: "Streaks", icon: "⚙️" },
+    { id: "Premios Ranking", label: "Premios Ranking", icon: "⚙️" },
+    { id: "Limites de Juego", label: "Limites de Juego", icon: "⚙️" },
+    { id: "Logros", label: "🏅 Valor de Logros", icon: "🏅", hidden: !isSuper && !permissions.logros },
+    { id: "Predicciones", label: "📈 Predicciones", icon: "📈", hidden: !isSuper && !permissions.predicciones },
+    { id: "Tickets", label: "🎫 Tickets Soporte", icon: "🎫", hidden: !isSuper && !permissions.soporte },
+    { id: "Seguridad", label: "🛡️ Seguridad", icon: "🛡️", hidden: !isSuper && !permissions.seguridad },
+    { id: "Niveles", label: "📊 Niveles y Emails", icon: "📊", hidden: !isSuper && !permissions.levels },
+    { id: "Promociones", label: "🎁 Promociones", icon: "🎁", hidden: !isSuper && !permissions.promotions },
+    { id: "Staff", label: "👥 Acceso Staff", icon: "👥", hidden: !isSuper },
+  ].filter(t => !t.hidden);
+
+  const [activeTab, setActiveTab] = useState(TABS[0]?.id || "Faucet");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Niveles
@@ -227,6 +281,76 @@ export default function ConfiguracionPage() {
     }
   };
 
+  const fetchPromotions = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/promociones");
+      const data = await res.json();
+      setPromotions(data.promotions || []);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  const fetchPromoClaims = useCallback(async (promoId: string) => {
+    try {
+      const res = await fetch(`/api/admin/promociones/claims?promoId=${promoId}`);
+      const data = await res.json();
+      setClaims(data.claims || []);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  const handleSavePromo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingPromo(true);
+    try {
+      const res = await fetch("/api/admin/promociones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingPromo),
+      });
+      if (res.ok) {
+        fetchPromotions();
+        setShowPromoForm(false);
+        setEditingPromo(null);
+        setMessage("Campaña guardada con éxito.");
+      } else {
+        setMessage("Error al guardar la campaña.");
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage("Error de conexión al guardar campaña.");
+    } finally {
+      setSavingPromo(false);
+    }
+  };
+
+  const togglePromoStatus = async (promo: Promotion) => {
+    try {
+      const res = await fetch("/api/admin/promociones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...promo, is_active: !promo.is_active }),
+      });
+      if (res.ok) {
+        fetchPromotions();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchStaff = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/staff");
+      const data = await res.json();
+      setStaff(data.staff || []);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
   useEffect(() => {
     if (activeTab === "Seguridad") {
       setLoadingSec(true);
@@ -243,7 +367,13 @@ export default function ConfiguracionPage() {
         .then(d => setTickets(d.tickets || []))
         .finally(() => setLoadingTickets(false));
     }
-  }, [activeTab]);
+    if (activeTab === "Promociones") {
+      fetchPromotions();
+    }
+    if (activeTab === "Staff") {
+      fetchStaff();
+    }
+  }, [activeTab, fetchPromotions, fetchStaff]);
 
   if (loading) return <div className="py-20 text-center text-slate-400">Cargando configuración...</div>;
 
@@ -260,45 +390,20 @@ export default function ConfiguracionPage() {
             Ajustes
           </h2>
           <nav className="space-y-1">
-            {groups.filter(g => g !== "Seguridad" && g !== "Soporte" && g !== "Predicciones (General)" && g !== "Niveles").map((group) => (
+            {TABS.map((tab) => (
               <button
-                key={group}
-                onClick={() => { setActiveTab(group); setIsMenuOpen(false); }}
-                className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === group ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); setIsMenuOpen(false); }}
+                className={`w-full text-left px-4 py-3 rounded-xl transition flex items-center gap-3 ${
+                  activeTab === tab.id 
+                    ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" 
+                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                }`}
               >
-                {group}
+                <span className="text-lg">{tab.icon.split(' ')[0]}</span>
+                {tab.label.replace(tab.icon.split(' ')[0], '').trim()}
               </button>
             ))}
-            <button
-              onClick={() => { setActiveTab("Logros"); setIsMenuOpen(false); }}
-              className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === "Logros" ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
-            >
-              🏅 Valor de Logros
-            </button>
-            <button
-              onClick={() => { setActiveTab("Predicciones (General)"); setIsMenuOpen(false); }}
-              className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === "Predicciones (General)" ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
-            >
-              📈 Predicciones
-            </button>
-            <button
-              onClick={() => { setActiveTab("Tickets"); setIsMenuOpen(false); }}
-              className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === "Tickets" ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
-            >
-              🎫 Tickets Soporte
-            </button>
-            <button
-              onClick={() => { setActiveTab("Seguridad"); setIsMenuOpen(false); }}
-              className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === "Seguridad" ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
-            >
-              🛡️ Seguridad
-            </button>
-            <button
-              onClick={() => { setActiveTab("Niveles"); setIsMenuOpen(false); }}
-              className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === "Niveles" ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
-            >
-              📊 Niveles y Emails
-            </button>
           </nav>
         </div>
       </aside>
@@ -728,10 +833,250 @@ export default function ConfiguracionPage() {
                 </button>
               </div>
             </section>
+          ) : activeTab === "Promociones" ? (
+            <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+               <div className="flex items-center justify-between mb-2">
+                <p className="text-sm text-slate-400">Gestiona campañas de palabras secretas.</p>
+                <button
+                  onClick={() => { setEditingPromo({ is_active: true, link_fuente: "https://x.com/BolivarCoin_XT" }); setShowPromoForm(true); }}
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2 px-4 rounded-xl flex items-center gap-2 transition text-xs"
+                >
+                  + Nueva Campaña
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6">
+                {/* List Table */}
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-800/50 text-slate-500 uppercase text-[10px] font-black tracking-widest">
+                      <tr>
+                        <th className="px-6 py-4">Campaña</th>
+                        <th className="px-6 py-4">Palabra</th>
+                        <th className="px-6 py-4">Progreso</th>
+                        <th className="px-6 py-4 text-right">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {promotions.map((p) => (
+                        <tr 
+                          key={p.id} 
+                          className={`hover:bg-slate-800/30 transition cursor-pointer ${selectedPromo?.id === p.id ? 'bg-amber-500/5' : ''}`}
+                          onClick={() => { setSelectedPromo(p); fetchPromoClaims(p.id); }}
+                        >
+                          <td className="px-6 py-4">
+                            <div className="font-bold text-white">{p.nombre}</div>
+                            <div className="text-[9px] text-slate-500 font-mono italic">ID: {p.id.slice(0,8)}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="bg-slate-800 border border-slate-700 text-amber-400 px-2 py-0.5 rounded font-mono font-black">{p.palabra}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-[9px] text-slate-400 mb-1 flex justify-between font-black uppercase">
+                              <span>{p.puntos_restantes.toLocaleString()}</span>
+                              <span className="text-slate-600">/ {p.puntos_totales.toLocaleString()}</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-amber-600 to-amber-400" 
+                                style={{ width: `${(p.puntos_restantes / p.puntos_totales) * 100}%` }}
+                              />
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                              <button 
+                                onClick={async () => {
+                                  const r = await fetch('/api/promociones/intent-deposit', {
+                                    method: 'POST',
+                                    headers: {'Content-Type':'application/json'},
+                                    body: JSON.stringify({ promoId: p.id })
+                                  });
+                                  if ((await r.json()).ok) {
+                                    window.location.href = "/cuenta/depositar";
+                                  }
+                                }}
+                                title="Cargar Puntos (BOLIS)"
+                                className="p-1.5 bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-slate-950 rounded-lg transition"
+                              >
+                                💰
+                              </button>
+                              <button 
+                                onClick={() => togglePromoStatus(p)}
+                                className={`p-1.5 rounded-lg transition ${p.is_active ? 'text-emerald-500 bg-emerald-500/10' : 'text-slate-500 bg-slate-800'}`}
+                              >
+                                {p.is_active ? "✅" : "🔘"}
+                              </button>
+                              <button 
+                                onClick={() => { setEditingPromo(p); setShowPromoForm(true); }}
+                                className="p-1.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg"
+                              >
+                                ✏️
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Claims History */}
+                {selectedPromo && (
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl animate-in fade-in slide-in-from-top-4">
+                    <h3 className="text-sm font-black text-white uppercase flex items-center gap-2 mb-4">
+                      🕒 Historial: {selectedPromo.nombre}
+                    </h3>
+                    <div className="max-h-64 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                      {claims.map((c) => (
+                        <div key={c.id} className="bg-slate-800/20 border border-slate-800/50 p-2 rounded-xl flex items-center justify-between text-[11px]">
+                          <div>
+                            <p className="font-bold text-white">{c.profiles.email}</p>
+                            <p className="text-[9px] text-slate-500">{new Date(c.claimed_at).toLocaleString()}</p>
+                          </div>
+                          <span className="text-emerald-400 font-black">+{c.points_awarded.toLocaleString()}</span>
+                        </div>
+                      ))}
+                      {claims.length === 0 && <p className="text-center py-4 text-slate-500 text-xs italic">Sin reclamos aún.</p>}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+               {/* Modal Form */}
+              {showPromoForm && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+                  <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95">
+                    <h2 className="text-base font-black text-white uppercase mb-4">
+                      {editingPromo?.id ? '✏️ Editar Promoción' : '✨ Nueva Campaña'}
+                    </h2>
+                    <form onSubmit={handleSavePromo} className="space-y-3">
+                      <div className="space-y-2">
+                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-1">Nombre (Español)</label>
+                        <input 
+                          type="text" 
+                          value={editingPromo?.nombre || ""} 
+                          onChange={(e) => setEditingPromo({...editingPromo, nombre: e.target.value})}
+                          className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-amber-500"
+                          placeholder="Nombre en Español"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-1">Nombre (Inglés)</label>
+                        <input 
+                          type="text" 
+                          value={editingPromo?.nombre_en || ""} 
+                          onChange={(e) => setEditingPromo({...editingPromo, nombre_en: e.target.value})}
+                          className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-amber-500"
+                          placeholder="Name in English"
+                          required
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input 
+                          type="text" 
+                          value={editingPromo?.palabra || ""} 
+                          onChange={(e) => setEditingPromo({...editingPromo, palabra: e.target.value})}
+                          className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs text-amber-400 font-mono uppercase"
+                          placeholder="PALABRA"
+                          required
+                        />
+                        <input 
+                          type="number" 
+                          value={editingPromo?.puntos_por_usuario || ""} 
+                          onChange={(e) => setEditingPromo({...editingPromo, puntos_por_usuario: parseInt(e.target.value)})}
+                          className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white"
+                          placeholder="Pts x User"
+                          required
+                        />
+                      </div>
+                      <input 
+                        type="number" 
+                        value={editingPromo?.puntos_totales || ""} 
+                        onChange={(e) => setEditingPromo({...editingPromo, puntos_totales: parseInt(e.target.value)})}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white"
+                        placeholder="Pozo Total (Puntos)"
+                        required
+                      />
+                      <input 
+                        type="url" 
+                        value={editingPromo?.link_fuente || ""} 
+                        onChange={(e) => setEditingPromo({...editingPromo, link_fuente: e.target.value})}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white"
+                        placeholder="Link Fuente (X)"
+                      />
+                      <div className="flex gap-2 pt-4">
+                        <button type="button" onClick={() => setShowPromoForm(false)} className="flex-1 bg-slate-800 text-slate-400 font-bold py-2 rounded-xl text-xs">Cancelar</button>
+                        <button type="submit" disabled={savingPromo} className="flex-1 bg-amber-500 text-slate-950 font-black py-2 rounded-xl text-xs uppercase">
+                          {savingPromo ? "..." : "Guardar"}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </section>
+          ) : activeTab === "Staff" ? (
+            <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                <h3 className="text-sm font-bold text-white uppercase mb-4 tracking-widest">Delegados del Sistema</h3>
+                <p className="text-xs text-slate-500 mb-6">Autoriza a usuarios específicos para que entren únicamente a ciertas secciones del Admin.</p>
+                
+                {/* Listado */}
+                <div className="space-y-3 mb-6">
+                   {staff.map((s: any) => (
+                     <div key={s.id} className="flex items-center justify-between p-3 bg-slate-800/40 border border-slate-700 rounded-xl">
+                        <div>
+                          <p className="text-sm font-bold text-white">{s.profiles?.email || "Usuario ID: " + s.user_id.slice(0,8)}</p>
+                          <p className="text-[10px] text-emerald-400 font-mono">Permisos: {Object.keys(s.permissions || {}).join(", ")}</p>
+                          {s.authorized_device && <p className="text-[9px] text-slate-500">📱 Dispositivo vinculado</p>}
+                        </div>
+                        <button 
+                          onClick={async () => {
+                            if (!confirm("¿Eliminar acceso?")) return;
+                            await fetch(`/api/admin/staff?id=${s.id}`, { method: 'DELETE' });
+                            window.location.reload();
+                          }}
+                          className="p-2 text-rose-400 hover:bg-rose-400/10 rounded-lg transition"
+                        >🗑️</button>
+                     </div>
+                   ))}
+                   {staff.length === 0 && <p className="text-center py-4 text-slate-500 text-xs italic">No hay delegados registrados.</p>}
+                </div>
+
+                <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-4 mb-6">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase mb-3">Agregar Nuevo Delegado</h4>
+                  <div className="flex gap-2">
+                    <input id="staff-user-id" type="text" placeholder="User ID o Email" className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-amber-500" />
+                    <button 
+                      onClick={async () => {
+                        const uid = (document.getElementById('staff-user-id') as HTMLInputElement)?.value;
+                        if (!uid) return;
+                        const res = await fetch('/api/admin/staff', { method: 'POST', body: JSON.stringify({ userId: uid, permissions: { promotions: true } }) });
+                        if (res.ok) window.location.reload();
+                        else {
+                          const errData = await res.json().catch(() => ({}));
+                          alert("Error: " + (errData.error || "No se pudo agregar al staff."));
+                        }
+                      }}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-sm transition"
+                    >Autorizar Promos</button>
+                  </div>
+                </div>
+
+                <div className="text-slate-400 text-xs italic">
+                  * Nota: Por ahora solo se soporta la delegación de &quot;Promociones&quot;. Los delegados deben haber entrado al menos una vez a la web.
+                </div>
+              </div>
+            </section>
           ) : (
             <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
-                  {FIELDS.filter((f) => f.group === activeTab).map((field) => (
+                  {FIELDS.filter((f) => {
+                    const group = activeTab === "Predicciones" ? "Predicciones (General)" : activeTab;
+                    return f.group === group;
+                  }).map((field) => (
                     <div key={field.key} className="space-y-2">
                       <div className="flex justify-between items-baseline">
                         <label className="text-sm font-black text-slate-300 uppercase tracking-tighter">{field.label}</label>

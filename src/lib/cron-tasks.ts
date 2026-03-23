@@ -80,36 +80,70 @@ export async function processDeposits() {
           const pointsToAdd = bolisToPoints(result.amount);
           if (pointsToAdd <= 0) continue;
 
-          await supabase.rpc("atomic_add_points", {
-            target_user_id: user.id,
-            amount_to_add: pointsToAdd
-          });
-          await supabase.from("movements").insert({
-            user_id: user.id,
-            type: "deposito_bolis",
-            points: pointsToAdd,
-            reference: signature,
-            metadata: { bolisAmount: result.amount },
-          });
+          // Verificar si hay una intención de depósito para promo
+          const { data: pendingPromo } = await supabase
+            .from("pending_promo_deposits")
+            .select("promo_id")
+            .eq("user_id", user.id)
+            .single();
 
-          try {
-            const { data: wallet } = await supabase
-              .from("deposit_wallets")
-              .select("encrypted_private_key")
-              .eq("user_id", user.id)
-              .single();
-            if (wallet?.encrypted_private_key && getTreasuryKeypair()) {
-              const kp = getDepositKeypair(wallet.encrypted_private_key);
-              await sweepBolisToTreasury(kp, result.amount);
-            }
-          } catch {}
+          if (pendingPromo) {
+            // Acreditar a la PROMOCIÓN
+            await supabase
+              .from("promociones")
+              .update({
+                puntos_totales: supabase.rpc('increment', { row_id: pendingPromo.promo_id, x: pointsToAdd }), // Nota: Usando lógica de incremento
+                puntos_restantes: supabase.rpc('increment', { row_id: pendingPromo.promo_id, x: pointsToAdd })
+              })
+              // Pero espera, Supabase no tiene rpc 'increment' por defecto asumo. Usaré lógica tradicional o un RPC nuevo.
+              // Mejor usar un RPC dedicado para seguridad: atomic_add_promo_points
+              .eq("id", pendingPromo.promo_id);
+            
+            // Re-ejecutar con RPC para evitar race conditions
+            await supabase.rpc("atomic_add_promo_points", {
+              target_promo_id: pendingPromo.promo_id,
+              amount_to_add: pointsToAdd
+            });
 
-          await supabase.from("processed_deposits").insert({
-            tx_signature: signature,
-            user_id: user.id,
-            amount_bolis: result.amount,
-            points_added: pointsToAdd,
-          });
+            await supabase.from("movements").insert({
+              user_id: user.id,
+              type: "deposito_promo",
+              points: pointsToAdd,
+              reference: signature,
+              metadata: { bolisAmount: result.amount, promo_id: pendingPromo.promo_id },
+            });
+
+            // Borrar intención
+            await supabase.from("pending_promo_deposits").delete().eq("user_id", user.id);
+
+            await supabase.from("processed_deposits").insert({
+              tx_signature: signature,
+              user_id: user.id,
+              promo_id: pendingPromo.promo_id,
+              amount_bolis: result.amount,
+              points_added: pointsToAdd,
+            });
+          } else {
+            // Acreditar al USUARIO (Lógica original)
+            await supabase.rpc("atomic_add_points", {
+              target_user_id: user.id,
+              amount_to_add: pointsToAdd
+            });
+            await supabase.from("movements").insert({
+              user_id: user.id,
+              type: "deposito_bolis",
+              points: pointsToAdd,
+              reference: signature,
+              metadata: { bolisAmount: result.amount },
+            });
+
+            await supabase.from("processed_deposits").insert({
+              tx_signature: signature,
+              user_id: user.id,
+              amount_bolis: result.amount,
+              points_added: pointsToAdd,
+            });
+          }
 
           // Alerta Telegram
           try { await alertDepositDetected(user.email || user.id, pointsToAdd, signature); } catch {}

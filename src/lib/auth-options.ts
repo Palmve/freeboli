@@ -127,8 +127,30 @@ export const authOptions: NextAuthOptions = {
         try {
           const { isAdmin } = await import("@/lib/auth");
           const sessionForCheck = { user: { email } } as import("next-auth").Session;
-          (session as { user: { isAdmin?: boolean } }).user.isAdmin = isAdmin(sessionForCheck);
-        } catch {
+          const isGlobalAdmin = isAdmin(sessionForCheck);
+          
+          (session as any).user.isAdmin = isGlobalAdmin;
+          (session as any).user.isSuperAdmin = isGlobalAdmin && email.toLowerCase() === process.env.ADMIN_EMAILS?.split(',')[0].trim().toLowerCase();
+
+          // Si no es admin global, checar si es staff delegado
+          if (!isGlobalAdmin) {
+            const { createClient } = await import("@/lib/supabase/server");
+            const supabase = await createClient();
+            const { data: staff } = await supabase
+              .from("staff_access_nodes")
+              .select("permissions, authorized_device")
+              .eq("user_id", token.sub)
+              .single();
+
+            if (staff) {
+              (session as any).user.isAdmin = true; // Permite acceso a /admin
+              (session as any).user.isStaff = true;
+              (session as any).user.permissions = staff.permissions;
+              (session as any).user.authorizedDevice = staff.authorized_device;
+            }
+          }
+        } catch (e) {
+          console.error("[NextAuth] Session enrichment error:", e);
           (session as { user: { isAdmin?: boolean } }).user.isAdmin = false;
         }
       }

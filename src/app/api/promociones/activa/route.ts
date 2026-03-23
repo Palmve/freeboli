@@ -10,7 +10,7 @@ export async function GET() {
   try {
     const { data, error } = await supabase
       .from("promociones")
-      .select("id, nombre, puntos_totales, puntos_restantes, puntos_por_usuario, link_fuente")
+      .select("id, nombre, nombre_en, puntos_totales, puntos_restantes, puntos_por_usuario, link_fuente")
       .eq("is_active", true)
       .gt("puntos_restantes", 0)
       .order("created_at", { ascending: false })

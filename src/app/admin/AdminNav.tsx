@@ -17,7 +17,6 @@ const tabs = [
   { href: "/admin/configuracion", label: "Configuración" },
   { href: "/admin/bot", label: "Bot Volumen 🔥" },
   { href: "/admin/seguridad", label: "Seguridad" },
-  { href: "/admin/promociones", label: "Promociones 🎁" },
 ];
 
 export default function AdminNav() {
