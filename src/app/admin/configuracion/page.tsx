@@ -258,7 +258,7 @@ export default function ConfiguracionPage() {
             Ajustes
           </h2>
           <nav className="space-y-1">
-            {groups.map((group) => (
+            {groups.filter(g => g !== "Seguridad" && g !== "Soporte" && g !== "Predicciones (General)").map((group) => (
               <button
                 key={group}
                 onClick={() => { setActiveTab(group); setIsMenuOpen(false); }}
@@ -271,13 +271,19 @@ export default function ConfiguracionPage() {
               onClick={() => { setActiveTab("Logros"); setIsMenuOpen(false); }}
               className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === "Logros" ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
             >
-              Valor de Logros
+              🏅 Valor de Logros
+            </button>
+            <button
+              onClick={() => { setActiveTab("Predicciones (General)"); setIsMenuOpen(false); }}
+              className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === "Predicciones (General)" ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
+            >
+              📈 Predicciones
             </button>
             <button
               onClick={() => { setActiveTab("Tickets"); setIsMenuOpen(false); }}
               className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === "Tickets" ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
             >
-              Tickets Soporte
+              🎫 Tickets Soporte
             </button>
             <button
               onClick={() => { setActiveTab("Seguridad"); setIsMenuOpen(false); }}
