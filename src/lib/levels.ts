@@ -61,6 +61,33 @@ export const LEVELS: UserLevel[] = [
   },
 ];
 
+/**
+ * Aplica sobreescrituras desde JSON si existen en la configuración 'LEVEL_LIMITS'.
+ * Formato esperado: { "1": { "maxBet": 1000, "maxWithdraw": 5 }, "2": ... }
+ */
+export function getDynamicLevels(overridesJson?: string): UserLevel[] {
+  if (!overridesJson) return LEVELS;
+  try {
+    const overrides = JSON.parse(overridesJson);
+    return LEVELS.map(lvl => {
+      const ov = overrides[lvl.level] || overrides[lvl.name];
+      if (ov) {
+        return {
+          ...lvl,
+          benefits: {
+            maxBetPoints: typeof ov.maxBet === 'number' ? ov.maxBet : lvl.benefits.maxBetPoints,
+            maxWithdrawBolis: typeof ov.maxWithdraw === 'number' ? ov.maxWithdraw : lvl.benefits.maxWithdrawBolis,
+          }
+        };
+      }
+      return lvl;
+    });
+  } catch (e) {
+    console.error("[Levels] Error parsing LEVEL_LIMITS override:", e);
+    return LEVELS;
+  }
+}
+
 export function getUserLevel(stats: {
   betCount: number;
   faucetClaims: number;
@@ -106,38 +133,47 @@ export function getLevelProgress(stats: {
 
 /** Obtiene el nivel de un usuario desde la BD (usando contadores cacheados en profile). */
 export async function fetchUserLevel(supabase: any, userId: string): Promise<UserLevel> {
-  const { data: p } = await supabase
-    .from("profiles")
-    .select("hilo_bet_count, faucet_claim_count, prediction_count, email_verified_at, created_at")
-    .eq("id", userId)
-    .single();
+  const [{ data: p }, { data: settings }] = await Promise.all([
+     supabase.from("profiles").select("hilo_bet_count, faucet_claim_count, prediction_count, email_verified_at, created_at").eq("id", userId).single(),
+     supabase.from("settings").select("value").eq("key", "LEVEL_LIMITS").maybeSingle()
+  ]);
 
-  if (!p) return LEVELS[0];
+  const activeLevels = getDynamicLevels(settings?.value);
+  if (!p) return activeLevels[0];
 
   const daysSinceJoined = p.created_at
     ? Math.floor((Date.now() - new Date(p.created_at).getTime()) / 86400000)
     : 0;
 
-  return getUserLevel({
+  const stats = {
     betCount: p.hilo_bet_count ?? 0,
     faucetClaims: p.faucet_claim_count ?? 0,
     predictionCount: p.prediction_count ?? 0,
     daysSinceJoined,
     emailVerified: !!p.email_verified_at,
-  });
+  };
+
+  // Usamos una versión local de getUserLevel que acepte el array de niveles
+  let result = activeLevels[0];
+  for (const lvl of activeLevels) {
+    if (lvl.requiresEmail && !stats.emailVerified) continue;
+    if (
+      stats.betCount >= lvl.minBets && 
+      stats.faucetClaims >= lvl.minFaucet && 
+      stats.predictionCount >= (lvl.minPredictions ?? 0) &&
+      stats.daysSinceJoined >= (lvl.minDaysSinceJoined ?? 0)
+    ) {
+      result = lvl;
+    }
+  }
+  return result;
 }
 
 /** 
  * Verifica si el usuario ha subido de nivel y envía una notificación por correo 
- * si el nivel actual es mayor al último notificado.
  */
 export async function checkAndNotifyLevelUp(supabase: any, userId: string, email: string, name?: string) {
-  const { data: p } = await supabase
-    .from("profiles")
-    .select("last_notified_level")
-    .eq("id", userId)
-    .single();
-
+  const { data: p } = await supabase.from("profiles").select("last_notified_level").eq("id", userId).single();
   const currentLevel = await fetchUserLevel(supabase, userId);
   const lastLevel = p?.last_notified_level ?? 1;
 

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LEVELS, getDynamicLevels } from "@/lib/levels";
 
 interface SettingField {
   key: string;
   label: string;
-  type: "number" | "json";
+  type: "number" | "json" | "text";
   description: string;
   group: string;
   /** Valor por defecto (se muestra como nota y se usa si no hay valor en BD) */
@@ -53,7 +54,8 @@ const FIELDS: SettingField[] = [
   { key: "PREDICTION_CUTOFF_SECONDS", label: "Tiempo de Cierre (s)", type: "number", description: "Segundos antes del fin de hora para cerrar (600 = 10 min)", group: "Predicciones (General)", defaultValue: "600" },
   // Soporte
   { key: "TELEGRAM_BOT_TOKEN", label: "Telegram Bot Token", type: "text" as any, description: "Token del bot para notificaciones de soporte", group: "Soporte" },
-  { key: "TELEGRAM_CHAT_ID", label: "Telegram Chat ID", type: "text" as any, description: "ID del chat/usuario donde llegarán los avisos", group: "Soporte" },
+  { key: "TELEGRAM_CHAT_ID", label: "ID de Chat Telegram", type: "text", description: "Chat ID para alertas (numérico)", group: "Soporte" },
+  { key: "LEVEL_LIMITS", label: "Sobreescritura de Límites (JSON)", type: "json", description: 'Define límites personalizados por nivel. Formato: { "1": { "maxBet": 1000, "maxWithdraw": 5 }, "2": ... }', group: "Niveles" },
 ];
 
 export default function ConfiguracionPage() {
@@ -590,22 +592,19 @@ export default function ConfiguracionPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
-                      {[
-                        { level: 1, name: "Novato", icon: "🥉", minBets: 0, minFaucet: 0, minDaysSinceJoined: 0, rewardPoints: 0, maxBet: 10000 },
-                        { level: 2, name: "Aprendiz", icon: "🥈", minBets: 5, minFaucet: 3, minDaysSinceJoined: 0, rewardPoints: 0, maxBet: 25000 },
-                        { level: 3, name: "Jugador", icon: "🥇", minBets: 20, minFaucet: 10, minDaysSinceJoined: 1, rewardPoints: 0, maxBet: 50000 },
-                        { level: 4, name: "Veterano", icon: "⭐", minBets: 200, minFaucet: 30, minDaysSinceJoined: 7, rewardPoints: 1000, maxBet: 100000 },
-                        { level: 5, name: "Experto", icon: "💎", minBets: 1000, minFaucet: 60, minDaysSinceJoined: 30, rewardPoints: 5000, maxBet: 250000 },
-                        { level: 6, name: "Maestro", icon: "👑", minBets: 5000, minFaucet: 100, minDaysSinceJoined: 90, rewardPoints: 25000, maxBet: 500000 },
-                        { level: 7, name: "Leyenda", icon: "🔥", minBets: 10000, minFaucet: 200, minDaysSinceJoined: 180, rewardPoints: 100000, maxBet: 1000000 },
-                      ].map((l) => (
+                      {getDynamicLevels(values.LEVEL_LIMITS).map((l) => (
                         <tr key={l.level} className="hover:bg-slate-800/20 transition">
                           <td className="px-4 py-3 font-bold">{l.icon} {l.name}</td>
                           <td className="px-4 py-3 text-center text-slate-400 font-mono">{l.minBets.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-center text-slate-400 font-mono">{l.minFaucet}</td>
+                          <td className="px-4 py-3 text-center text-slate-400 font-mono">{l.minFaucet.toLocaleString()}</td>
                           <td className="px-4 py-3 text-center text-slate-400 font-mono">{l.minDaysSinceJoined > 0 ? `${l.minDaysSinceJoined}d` : "-"}</td>
                           <td className="px-4 py-3 text-center text-amber-400 font-mono font-bold">{l.rewardPoints > 0 ? `+${l.rewardPoints.toLocaleString()}` : "-"}</td>
-                          <td className="px-4 py-3 text-center text-emerald-400 font-mono">{l.maxBet.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-center text-emerald-400 font-mono">
+                            <div className="flex flex-col items-center">
+                              <span className="text-white font-bold">{l.benefits.maxBetPoints.toLocaleString()} pts</span>
+                              <span className="text-[10px] text-slate-500">Retiro: {l.benefits.maxWithdrawBolis} BOLIS</span>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
