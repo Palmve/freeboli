@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import type { UserRow, UserStatus } from "./page";
 
 type Movement = {
@@ -190,7 +191,14 @@ export default function AdminUsuariosTable({ users, dbError }: { users: UserRow[
               const cfg = STATUS_CONFIG[st];
               return (
                 <tr key={u.id} className="border-t border-slate-700/50 hover:bg-slate-800/80 transition-colors">
-                  <td className="p-2 text-amber-400 text-xs font-bold font-mono">{u.public_id || "—"}</td>
+                  <td className="p-2">
+                    <Link 
+                      href={`/admin/usuarios/${u.id}`}
+                      className="text-amber-400 text-xs font-bold font-mono hover:underline hover:text-amber-300 transition-colors"
+                    >
+                      {u.public_id || "—"}
+                    </Link>
+                  </td>
                   <td className="p-2 text-slate-300 text-xs truncate max-w-[120px]">{u.email ?? "—"}</td>
                   <td className="p-2 text-center text-[10px] text-slate-500 font-mono">{u.lastIp || "—"}</td>
                   <td className="p-2 text-center font-bold text-amber-500 text-xs">{u.rankingPos ?? "-"}º</td>

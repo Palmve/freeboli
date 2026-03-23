@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import AdminWithdrawSettings from "../AdminWithdrawSettings";
 
 type Withdrawal = {
@@ -87,7 +88,6 @@ export default function AdminRetirosPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-slate-400">
-              <th>ID</th>
               <th>Usuario</th>
               <th>Puntos</th>
               <th>Wallet</th>
@@ -98,10 +98,13 @@ export default function AdminRetirosPage() {
           <tbody>
             {list.map((w) => (
               <tr key={w.id} className="border-t border-slate-700">
-                <td className="font-mono text-xs" title={w.id}>{w.id.slice(0, 8)}…</td>
-                <td className="font-mono text-xs flex flex-col">
-                  <span className="text-amber-400 font-bold">{w.profiles?.public_id || "—"}</span>
-                  <span className="text-[10px] text-slate-500 uppercase tracking-tighter" title={w.user_id}>{w.user_id.slice(0, 8)}…</span>
+                <td className="p-2">
+                  <Link 
+                    href={`/admin/usuarios/${w.user_id}`}
+                    className="text-amber-400 font-bold font-mono hover:underline hover:text-amber-300 transition-colors"
+                  >
+                    {w.profiles?.public_id || "—"}
+                  </Link>
                 </td>
                 <td>{Number(w.points).toLocaleString()}</td>
                 <td className="font-mono text-xs truncate max-w-[140px]">{w.wallet_destination}</td>
