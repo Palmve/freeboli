@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const { type, subject, message, email } = body;
+  const { type, subject, message, email, lang = "es" } = body;
 
   // 1. Validaciones de Presencia y Formato
   if (!type || !subject || !message) {
@@ -59,7 +59,8 @@ export async function POST(request: Request) {
       type: type.slice(0, 50),
       subject: subject.trim(),
       message: message.trim(),
-      status: "open"
+      status: "open",
+      lang: lang === "en" ? "en" : "es"
     })
     .select()
     .single();

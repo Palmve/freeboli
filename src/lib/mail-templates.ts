@@ -221,3 +221,56 @@ export function getLevelCardEmail(params: {
     </div>
   `;
 }
+export function getSupportUpdateEmail(params: {
+  lang: string;
+  status: "approved" | "rejected" | "info_requested";
+  ticketId: string;
+  subject: string;
+}): string {
+  const { lang, status, ticketId, subject: ticketSubject } = params;
+  const isEn = lang === "en";
+
+  const titles = {
+    approved: isEn ? "Incident Approved" : "Incidencia Aprobada",
+    rejected: isEn ? "Incident Rejected" : "Incidencia Rechazada",
+    info_requested: isEn ? "Information Requested" : "Información Requerida",
+  };
+
+  const messages = {
+    approved: isEn
+      ? "Your report has been approved and the issue is considered resolved. Thank you for helping us improve FreeBoli."
+      : "Su reporte ha sido aprobado y el inconveniente se considera resuelto. Gracias por ayudarnos a mejorar FreeBoli.",
+    rejected: isEn
+      ? "Your report has been rejected. This might be due to lack of evidence or because it doesn't violate our terms. If you believe this is an error, please open a new ticket with more details."
+      : "Su reporte ha sido rechazado. Esto puede deberse a falta de pruebas o a que no infringe nuestros términos. Si cree que esto es un error, por favor abra una nueva incidencia con más detalles.",
+    info_requested: isEn
+      ? "We need more information to process your report. Please open a new ticket or reply with the requested details so we can help you."
+      : "Necesitamos más información para procesar su reporte. Por favor, abra una nueva incidencia enviando los datos solicitados para que podamos ayudarle.",
+  };
+
+  const footer = isEn
+    ? "This is an automated notification from FreeBoli Support."
+    : "Esta es una notificación automática del Soporte de FreeBoli.";
+
+  const btnText = isEn ? "Go to My Account" : "Ir a Mi Cuenta";
+
+  return `
+    <div style="${BASE_STYLE}">
+      <div style="${CARD_STYLE}; border-left: 4px solid #3b82f6;">
+        <h2 style="color: #ffffff; margin-top: 0;">${titles[status]}</h2>
+        <p style="font-size: 13px; color: #94a3b8; margin-bottom: 20px;">
+          Ticket ID: <span style="font-family: monospace; color: #3b82f6;">${ticketId}</span><br>
+          Asunto: <strong>${ticketSubject}</strong>
+        </p>
+        <p style="color: #e2e8f0; font-size: 15px; background: #0f172a; padding: 20px; border-radius: 8px;">
+          ${messages[status]}
+        </p>
+        <p style="margin-top: 25px;">${isEn ? "Best regards," : "Atentamente,"}<br><strong>FreeBoli Support Team</strong></p>
+        <div style="text-align: center;">
+          <a href="https://freeboli.win/cuenta" style="${BUTTON_STYLE}">${btnText}</a>
+        </div>
+      </div>
+      <p style="text-align: center; font-size: 11px; color: #64748b; margin-top: 20px;">${footer}</p>
+    </div>
+  `;
+}

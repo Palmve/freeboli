@@ -11,7 +11,7 @@ interface SupportModalProps {
 }
 
 export function SupportModal({ isOpen, onClose, defaultType = "error", userEmail = "" }: SupportModalProps) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [type, setType] = useState(defaultType);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
@@ -38,7 +38,7 @@ export function SupportModal({ isOpen, onClose, defaultType = "error", userEmail
       const res = await fetch("/api/support/ticket", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, subject, message, email }),
+        body: JSON.stringify({ type, subject, message, email, lang }),
       });
 
       const data = await res.json();

@@ -180,6 +180,29 @@ export default function ConfiguracionPage() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
 
+  const updateTicketStatus = async (ticketId: string, newStatus: string) => {
+    setMessage("");
+    try {
+      const res = await fetch("/api/admin/support-tickets", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticketId, status: newStatus }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setMessage("Estado del ticket actualizado con éxito.");
+        // Refrescar lista
+        fetch("/api/admin/support-tickets")
+          .then(r => r.json())
+          .then(d => setTickets(d.tickets || []));
+      } else {
+        setMessage("Error: " + data.error);
+      }
+    } catch {
+      setMessage("Error al conectar con la API");
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "Seguridad") {
       setLoadingSec(true);
@@ -310,8 +333,9 @@ export default function ConfiguracionPage() {
                         <tr className="bg-slate-800/50 text-slate-400 text-left">
                           <th className="px-6 py-4 font-bold uppercase tracking-tighter">Usuario</th>
                           <th className="px-6 py-4 font-bold uppercase tracking-tighter">Asunto</th>
+                          <th className="px-6 py-4 font-bold uppercase tracking-tighter">Lang</th>
                           <th className="px-6 py-4 font-bold uppercase tracking-tighter">Fecha</th>
-                          <th className="px-6 py-4 font-bold uppercase tracking-tighter text-right">Estado</th>
+                          <th className="px-6 py-4 font-bold uppercase tracking-tighter text-right">Acción</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800">
@@ -334,14 +358,28 @@ export default function ConfiguracionPage() {
                               </div>
                               <p className="text-xs text-slate-400 line-clamp-2">{t.message}</p>
                             </td>
-                            <td className="px-6 py-4 text-slate-500 font-mono text-xs whitespace-nowrap">
-                              {new Date(t.created_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter ${t.status === 'open' ? 'bg-amber-500 text-slate-900' : 'bg-slate-800 text-slate-500'}`}>
-                                {t.status === 'open' ? 'Pendiente' : 'Cerrado'}
-                              </span>
-                            </td>
+                            <td className="px-6 py-4 text-center">
+                               <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${t.lang === 'en' ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400'}`}>
+                                 {t.lang || 'es'}
+                               </span>
+                             </td>
+                             <td className="px-6 py-4 text-slate-500 font-mono text-xs whitespace-nowrap">
+                               {new Date(t.created_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+                             </td>
+                             <td className="px-6 py-4 text-right">
+                               <select
+                                 value={t.status}
+                                 onChange={(e) => updateTicketStatus(t.id, e.target.value)}
+                                 className="bg-slate-800 border-none text-[10px] font-black uppercase tracking-tighter rounded px-2 py-1 outline-none text-slate-300 hover:text-white cursor-pointer transition"
+                               >
+                                 <option value="open">Pendiente</option>
+                                 <option value="approved">Aprobar (Email)</option>
+                                 <option value="rejected">Rechazar (Email)</option>
+                                 <option value="info_requested">Pedir Info (Email)</option>
+                                 <option value="resolved">Resuelto</option>
+                                 <option value="closed">Cerrado</option>
+                                </select>
+                             </td>
                           </tr>
                         ))}
                       </tbody>
