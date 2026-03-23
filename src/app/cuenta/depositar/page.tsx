@@ -6,7 +6,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
 import { SupportModal } from "@/components/SupportModal";
-import { APP_VERSION } from "@/lib/version";
 import { useRouter } from "next/navigation";
 import { useLang } from "@/context/LangContext";
 
@@ -201,7 +200,7 @@ export default function DepositarPage() {
         onClick={() => setSupportOpen(true)}
         className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal font-medium"
       >
-        {t("deposit.support_hint")} - v{APP_VERSION}
+        {t("deposit.support_hint")}
       </button>
 
       <SupportModal

@@ -6,7 +6,6 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { SupportModal } from "@/components/SupportModal";
 import { BetDetailModal } from "@/components/BetDetailModal";
-import { APP_VERSION } from "@/lib/version";
 import { useLang } from "@/context/LangContext";
 
 type PredictionData = {
@@ -614,7 +613,7 @@ function PredictionsContent() {
         onClick={() => setSupportOpen(true)}
         className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal"
       >
-        {t("predictions.support_hint")} - v{APP_VERSION}
+        {t("predictions.support_hint")}
       </button>
 
       <SupportModal

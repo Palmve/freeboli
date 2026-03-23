@@ -4,7 +4,6 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { SupportModal } from "@/components/SupportModal";
-import { APP_VERSION } from "@/lib/version";
 import RollDisplay from "./RollDisplay";
 import { MAX_BET_POINTS, MAX_WIN_POINTS } from "@/lib/config";
 import { useLang } from "@/context/LangContext";
@@ -847,7 +846,7 @@ export default function HiLoPage() {
         onClick={() => setSupportOpen(true)}
         className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal"
       >
-        {t("hilo.support_hint")} - version {APP_VERSION}
+        {t("hilo.support_hint")}
       </button>
 
       <SupportModal

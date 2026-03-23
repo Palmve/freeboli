@@ -1,5 +1,6 @@
 "use client";
 
+import { APP_VERSION } from "@/lib/version";
 import { useLang } from "@/context/LangContext";
 
 export function Footer() {
@@ -20,8 +21,8 @@ export function Footer() {
           </a>
           {t("footer.bolis_info").split("{0}")[1]}
         </p>
-        <p className="mt-1 text-[9px] text-slate-500 uppercase tracking-widest font-medium">
-          &copy; {new Date().getFullYear()} FreeBoli - Built on Solana
+        <p className="mt-2 text-[10px] text-slate-500">
+          &copy; {new Date().getFullYear()} FreeBoli - Built on Solana - v{APP_VERSION}
         </p>
       </div>
     </footer>

@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
 import { SupportModal } from "@/components/SupportModal";
-import { APP_VERSION } from "@/lib/version";
 import { useLang } from "@/context/LangContext";
 import LevelProgressCard from "@/components/LevelProgressCard";
 
@@ -242,7 +241,7 @@ export default function RetirarPage() {
         onClick={() => setSupportOpen(true)}
         className="text-[10px] text-slate-600 hover:text-slate-500 transition mt-8 block mx-auto tracking-normal font-medium"
       >
-        {t("withdraw.support_hint")} - v{APP_VERSION}
+        {t("withdraw.support_hint")}
       </button>
 
       <SupportModal
