@@ -17,13 +17,8 @@ const MISSIONS = [
   { icon: "🏆", label: "Sube al top del ranking", desc: "Compite con otros jugadores por premios diarios", href: "/clasificacion", color: "from-emerald-600 to-teal-400", border: "border-emerald-500/40", glow: "hover:shadow-emerald-500/20" },
 ];
 
-// Estadísticas de la plataforma (motivación social)
-const PLATFORM_STATS = [
-  { value: `${POINTS_PER_BOLIS.toLocaleString()}`, label: "Puntos = 1 BOLIS", icon: "💎" },
-  { value: "7", label: "Niveles de Jugador", icon: "🏅" },
-  { value: "+100K", label: "Puntos de Premio en Leyenda", icon: "🔥" },
-  { value: "24h", label: "Recompensas Ranking", icon: "⏱️" },
-];
+// Función utilitaria para formatear números consistentemente en servidor y cliente
+const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n);
 
 // Barra de stats de juego animada
 function StatBar({ value, label, icon }: { value: string; label: string; icon: string }) {
@@ -69,6 +64,14 @@ export default function HomePage() {
   const loggedIn = !!session?.user || !REQUIRE_AUTH;
   const loading = REQUIRE_AUTH && status === "loading";
   const [tick, setTick] = useState(0);
+
+  // Estadísticas (dentro del componente para que t() funcione correctamente)
+  const PLATFORM_STATS = [
+    { value: fmt(POINTS_PER_BOLIS), label: t("home.stat_points_label") || "Puntos = 1 BOLIS", icon: "💎" },
+    { value: "7", label: t("home.stat_levels_label") || "Niveles de Jugador", icon: "🏅" },
+    { value: "+100K", label: t("home.stat_prize_label") || "Puntos de Premio en Leyenda", icon: "🔥" },
+    { value: "24h", label: t("home.stat_ranking_label") || "Recompensas Ranking", icon: "⏱️" },
+  ];
 
   // Animación del contador del hero
   useEffect(() => {
