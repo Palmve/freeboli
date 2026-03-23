@@ -17,8 +17,8 @@ export async function POST(req: Request) {
   }
   const userId = currentUser.id;
 
-  // Rate-limit de sesión: 1 jugada por segundo para bloquear bots concurrentes
-  const { allowed: rateLimitAllowed } = rateLimit(`hilo:${userId}`, 1, 1000);
+  // Rate-limit de sesión: 5 jugadas por segundo (Ajustado v1.082 para Auto-Bet rápido)
+  const { allowed: rateLimitAllowed } = rateLimit(`hilo:${userId}`, 5, 1000);
   if (!rateLimitAllowed) {
     return NextResponse.json(
       { error: "Demasiadas jugadas en muy poco tiempo. Espera un momento." },
