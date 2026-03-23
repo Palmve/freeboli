@@ -378,7 +378,13 @@ export default function HiLoPage() {
       <div className="flex gap-1 rounded-lg bg-slate-800 p-1">
         <button
           type="button"
-          onClick={() => setTab("manual")}
+          onClick={() => {
+            setTab("manual");
+            if (autoRunning) {
+              autoAbortRef.current = true;
+              setAutoRunning(false);
+            }
+          }}
           className={`flex-1 rounded-md px-3 py-2 text-xs font-semibold transition sm:px-4 sm:text-sm ${
             tab === "manual" ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"
           }`}
@@ -387,7 +393,10 @@ export default function HiLoPage() {
         </button>
         <button
           type="button"
-          onClick={() => setTab("auto")}
+          onClick={() => {
+            setTab("auto");
+            // No detenemos aquí porque entrar a auto es lo que el usuario quiere
+          }}
           className={`flex-1 rounded-md px-3 py-2 text-xs font-semibold transition sm:px-4 sm:text-sm ${
             tab === "auto" ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"
           }`}
