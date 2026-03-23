@@ -14,9 +14,10 @@ export default async function AdminLayout({
   const user = await getAdminUser();
   if (!user) redirect("/auth/login");
 
-  // Device Fingerprinting Check
+  // Device Fingerprinting Check - User Specific
   const cookieStore = cookies();
-  const isTrustedDevice = cookieStore.get("freeboli_device_trusted")?.value === "true";
+  const trustCookie = cookieStore.get(`freeboli_device_trusted_${user.id.slice(0, 8)}`)?.value;
+  const isTrustedDevice = trustCookie === "true";
 
   if (!isTrustedDevice) {
     return (

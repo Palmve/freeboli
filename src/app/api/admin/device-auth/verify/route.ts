@@ -39,11 +39,11 @@ export async function POST(req: Request) {
   // 1. Destruimos el PIN para evitar re-usos (Replay Attacks).
   await supabase.from("email_verifications").delete().eq("user_id", user.id);
 
-  // 2. Insertamos la galleta de reconocimiento de dispositivo (30 Días).
-  cookies().set("freeboli_device_trusted", "true", {
+  // 2. Insertamos la galleta de reconocimiento de dispositivo (30 Días) - Específica por usuario
+  cookies().set(`freeboli_device_trusted_${user.id.slice(0, 8)}`, "true", {
     path: "/",
     httpOnly: true,
-    secure: true, // Siempre secure en cookies sensibles
+    secure: true, 
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 30, // 30 Días
   });

@@ -2,30 +2,44 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const tabs = [
-  { href: "/admin", label: "Resumen" },
-  { href: "/admin/wallets", label: "Wallets" },
-  { href: "/admin/depositos", label: "Depósitos" },
-  { href: "/admin/retiros", label: "Retiros" },
-  { href: "/admin/usuarios", label: "Usuarios" },
-  { href: "/admin/visitas", label: "Visitas" },
-  { href: "/admin/ranking", label: "Ranking" },
-  { href: "/admin/estadisticas", label: "Estadísticas" },
-  { href: "/admin/proyecciones", label: "Proyecciones" },
-  { href: "/admin/alertas", label: "Alertas" },
-  { href: "/admin/configuracion", label: "Configuración" },
-  { href: "/admin/bot", label: "Bot Volumen 🔥" },
-  { href: "/admin/seguridad", label: "Seguridad" },
+  { href: "/admin", label: "Resumen", superOnly: true },
+  { href: "/admin/wallets", label: "Wallets", permission: "finances" },
+  { href: "/admin/depositos", label: "Depósitos", permission: "finances" },
+  { href: "/admin/retiros", label: "Retiros", permission: "finances" },
+  { href: "/admin/usuarios", label: "Usuarios", permission: "users" },
+  { href: "/admin/visitas", label: "Visitas", permission: "stats" },
+  { href: "/admin/ranking", label: "Ranking", permission: "stats" },
+  { href: "/admin/configuracion", label: "Configuración", permission: ["settings", "promotions"] },
+  { href: "/admin/bot", label: "Bot Volumen 🔥", superOnly: true },
+  { href: "/admin/seguridad", label: "Seguridad", permission: "security" },
 ];
 
 export default function AdminNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const { data: session } = useSession();
+
+  const user = session?.user as any;
+  const isSuper = user?.isSuperAdmin;
+  const permissions = user?.permissions || {};
+
+  const filteredTabs = tabs.filter(tab => {
+    if (isSuper) return true;
+    if (tab.superOnly) return false;
+    if (Array.isArray(tab.permission)) {
+      return tab.permission.some(p => permissions[p]);
+    }
+    if (tab.permission) return permissions[tab.permission];
+    return false;
+  });
+
+  if (filteredTabs.length === 0 && !isSuper) return null;
 
   return (
     <>
-      {/* Menú Desplegable para Móviles (Android/iOS) */}
       <div className="block md:hidden mb-4 px-1">
         <label htmlFor="admin-nav-select" className="sr-only">Navegación Administrador</label>
         <div className="relative">
@@ -35,7 +49,7 @@ export default function AdminNav() {
             onChange={(e) => router.push(e.target.value)}
             className="w-full appearance-none rounded-xl border-2 border-slate-700 bg-slate-800/80 px-4 py-3.5 pr-10 text-[15px] font-bold text-amber-500 shadow-md outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
           >
-            {tabs.map((tab) => (
+            {filteredTabs.map((tab) => (
               <option key={tab.href} value={tab.href} className="bg-slate-800 text-amber-500 font-semibold">
                 {tab.label}
               </option>
@@ -49,10 +63,9 @@ export default function AdminNav() {
         </div>
       </div>
 
-      {/* Menú de Pestañas Horizontales (Usuarios de PC/Tableta) */}
       <nav className="hidden md:block overflow-x-auto pb-4 scrollbar-hide">
         <div className="flex min-w-max gap-2 border-b border-slate-700/50 pb-px">
-          {tabs.map((tab) => {
+          {filteredTabs.map((tab) => {
             const active = pathname === tab.href;
             return (
               <Link
