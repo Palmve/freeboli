@@ -9,7 +9,7 @@ const dictionaries: Record<Lang, any> = { es, en };
 
 interface LangContextType {
   lang: Lang;
-  t: (keyPath: string, ...args: any[]) => string;
+  t: (keyPath: string, ...args: any[]) => any;
   changeLang: (newLang: Lang) => void;
 }
 
@@ -65,9 +65,14 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    let result = (current !== undefined ? current : keyPath).toString();
+    if (current === undefined) return keyPath;
+
+    // Si es un array o objeto, lo devolvemos tal cual (sin interpolación)
+    if (typeof current !== "string") return current;
+
+    let result = current;
     
-    // Interpolación {0}, {1}, etc.
+    // Interpolación {0}, {1}, etc. (solo para strings)
     if (args && args.length > 0) {
       args.forEach((arg, i) => {
         result = result.replace(`{${i}}`, arg?.toString() || "");
