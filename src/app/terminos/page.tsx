@@ -125,6 +125,21 @@ export default function TerminosPage() {
           <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.age_title")}</h2>
           <p>{t("terms.age_text")}</p>
         </div>
+
+        <div>
+          <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.juris_title")}</h2>
+          <p>{t("terms.juris_text")}</p>
+        </div>
+
+        <div>
+          <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.liability_title")}</h2>
+          <p>{t("terms.liability_text")}</p>
+        </div>
+
+        <div>
+          <h2 className="text-lg font-bold text-amber-400 mb-2 uppercase tracking-tight">{t("terms.protection_title")}</h2>
+          <p>{t("terms.protection_text")}</p>
+        </div>
       </div>
 
       {session?.user && !accepted && (
