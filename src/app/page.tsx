@@ -18,10 +18,8 @@ const MISSIONS = [
   { icon: "🏆", label: "Sube al top del ranking", desc: "Compite con otros jugadores por premios diarios", href: "/clasificacion", color: "from-emerald-600 to-teal-400", border: "border-emerald-500/40", glow: "hover:shadow-emerald-500/20" },
 ];
 
-// Función utilitaria para formatear números consistentemente en servidor y cliente
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n);
 
-// Barra de stats de juego animada
 function StatBar({ value, label, icon }: { value: string; label: string; icon: string }) {
   return (
     <div className="flex flex-col items-center text-center p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-amber-500/30 transition group shadow-lg hover:shadow-xl hover:-translate-y-1">
@@ -32,17 +30,13 @@ function StatBar({ value, label, icon }: { value: string; label: string; icon: s
   );
 }
 
-// Tarjeta de juego tipo arcade
 function GameCard({ icon, label, desc, href, color, border, glow }: typeof MISSIONS[0]) {
   return (
     <Link href={href}
       className={`group relative overflow-hidden rounded-2xl border ${border} bg-slate-900 p-5 flex flex-col gap-3 transition-all duration-300 hover:shadow-2xl ${glow} hover:-translate-y-2 active:translate-y-0`}
     >
-      {/* Fondo degradado neón en hover */}
       <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
-
       <div className="relative flex items-start gap-3">
-        {/* Icono con glow */}
         <span className={`text-4xl p-2 rounded-xl bg-gradient-to-br ${color} bg-opacity-20 shadow-lg group-hover:scale-110 transition-transform duration-500`}>{icon}</span>
         <div className="flex-1">
           <div className="font-black text-white text-base group-hover:text-amber-300 transition">{label}</div>
@@ -50,8 +44,6 @@ function GameCard({ icon, label, desc, href, color, border, glow }: typeof MISSI
         </div>
         <span className="text-slate-600 group-hover:text-white group-hover:translate-x-2 transition-all duration-300 text-2xl mt-1 opacity-0 group-hover:opacity-100">→</span>
       </div>
-
-      {/* Barra de "energía" decorativa */}
       <div className="relative h-1 bg-slate-800 rounded-full overflow-hidden">
         <div className={`h-full bg-gradient-to-r ${color} rounded-full group-hover:w-full w-2/3 transition-all duration-1000 ease-in-out`} />
       </div>
@@ -65,8 +57,8 @@ export default function HomePage() {
   const loggedIn = !!session?.user || !REQUIRE_AUTH;
   const loading = REQUIRE_AUTH && status === "loading";
   const [tick, setTick] = useState(0);
+  const [promo, setPromo] = useState<any>(null);
 
-  // Estadísticas (dentro del componente para que t() funcione correctamente)
   const PLATFORM_STATS = [
     { value: fmt(POINTS_PER_BOLIS), label: t("home.stat_points_label"), icon: "💎" },
     { value: "7", label: t("home.stat_levels_label"), icon: "🏅" },
@@ -74,87 +66,59 @@ export default function HomePage() {
     { value: "24h", label: t("home.stat_ranking_label"), icon: "⏱️" },
   ];
 
-  // Animación del contador del hero
   useEffect(() => {
     const id = setInterval(() => setTick((v) => v + 1), 2000);
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    if (loggedIn) {
+      fetch("/api/promociones/activa")
+        .then(res => res.json())
+        .then(data => setPromo(data.promo))
+        .catch(err => console.error(err));
+    }
+  }, [loggedIn]);
+
   return (
     <div className="space-y-12 py-6 px-2">
-
-      {/* ═══════════════════════════════════════
-          HERO - Gaming Banner                  
-      ═══════════════════════════════════════ */}
       <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-slate-800 shadow-2xl px-6 py-14 text-center">
-        {/* Aura de fondo animada */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl animate-pulse delay-1000" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-purple-600/5 rounded-full blur-2xl" />
         </div>
-
-        {/* Badge de plataforma */}
         <div className="relative mb-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-black uppercase tracking-widest">
           <span className="animate-pulse w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
           {t("home.hero_badge")}
         </div>
-
-        {/* Título hero */}
         <h1 className="relative mb-4 text-5xl font-black tracking-tighter text-white md:text-7xl drop-shadow-2xl leading-none">
-          {t("home.title")}
-          <br />
+          {t("home.title")}<br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300">
             {t("home.in_bolis")} 🔥
           </span>
         </h1>
-
         <p className="relative mx-auto max-w-xl text-base text-slate-400 font-medium mb-8">
           {t("home.subtitle")}
         </p>
-
-        {/* CTA Buttons */}
         <div className="relative flex flex-wrap justify-center gap-3">
           {loading ? (
             <div className="h-16" />
           ) : loggedIn ? (
             <>
-              <Link href="/faucet"
-                className="group flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-black rounded-2xl text-base px-7 py-3.5 hover:opacity-90 transition shadow-xl shadow-blue-600/20 hover:-translate-y-0.5 active:translate-y-0"
-              >
-                🚰 {t("home.btn_faucet")}
-              </Link>
-              <Link href="/predicciones"
-                className="group flex items-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black rounded-2xl text-base px-7 py-3.5 hover:opacity-90 transition shadow-xl shadow-amber-500/20 hover:-translate-y-0.5 active:translate-y-0"
-              >
-                📈 {t("home.btn_prediction")}
-              </Link>
-              <Link href="/hi-lo"
-                className="group flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-black rounded-2xl text-base px-7 py-3.5 hover:opacity-90 transition shadow-xl shadow-purple-600/20 hover:-translate-y-0.5 active:translate-y-0"
-              >
-                🎲 {t("home.btn_hilo")}
-              </Link>
+              <Link href="/faucet" className="group flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-black rounded-2xl text-base px-7 py-3.5 hover:opacity-90 transition shadow-xl shadow-blue-600/20 hover:-translate-y-0.5 active:translate-y-0">🚰 {t("home.btn_faucet")}</Link>
+              <Link href="/predicciones" className="group flex items-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black rounded-2xl text-base px-7 py-3.5 hover:opacity-90 transition shadow-xl shadow-amber-500/20 hover:-translate-y-0.5 active:translate-y-0">📈 {t("home.btn_prediction")}</Link>
+              <Link href="/hi-lo" className="group flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-black rounded-2xl text-base px-7 py-3.5 hover:opacity-90 transition shadow-xl shadow-purple-600/20 hover:-translate-y-0.5 active:translate-y-0">🎲 {t("home.btn_hilo")}</Link>
             </>
           ) : (
             <>
-              <Link href="/auth/registro"
-                className="bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black rounded-2xl text-lg px-10 py-4 hover:opacity-90 transition shadow-xl shadow-amber-500/30 hover:-translate-y-0.5 active:translate-y-0"
-              >
-                {t("home.btn_play_now")} 🚀
-              </Link>
-              <Link href="/auth/login"
-                className="bg-slate-800 border border-slate-700 text-white font-black rounded-2xl text-lg px-10 py-4 hover:bg-slate-700 transition shadow-xl hover:-translate-y-0.5 active:translate-y-0"
-              >
-                {t("home.btn_login")}
-              </Link>
+              <Link href="/auth/registro" className="bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black rounded-2xl text-lg px-10 py-4 hover:opacity-90 transition shadow-xl shadow-amber-500/30 hover:-translate-y-0.5 active:translate-y-0">{t("home.btn_play_now")} 🚀</Link>
+              <Link href="/auth/login" className="bg-slate-800 border border-slate-700 text-white font-black rounded-2xl text-lg px-10 py-4 hover:bg-slate-700 transition shadow-xl hover:-translate-y-0.5 active:translate-y-0">{t("home.btn_login")}</Link>
             </>
           )}
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════
-          STATS DE LA PLATAFORMA               
-      ═══════════════════════════════════════ */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {PLATFORM_STATS.map((s) => (
           <StatBar key={s.label} {...s} />
@@ -162,23 +126,22 @@ export default function HomePage() {
       </section>
 
       {loggedIn && !loading && (
-        <section className="grid gap-6 lg:grid-cols-2">
-          <div>
+        <section className={`grid gap-6 ${promo ? "lg:grid-cols-2" : "grid-cols-1"}`}>
+          <div className={promo ? "" : "max-w-4xl mx-auto w-full"}>
             <div className="mb-3 flex items-center gap-2">
               <span className="text-lg">🎮</span>
               <h2 className="text-base font-black text-slate-300 uppercase tracking-widest">{t("levels.title")}</h2>
             </div>
             <LevelProgressCard />
           </div>
-          <div>
-            <PromoCard />
-          </div>
+          {promo && (
+            <div>
+              <PromoCard initialPromo={promo} />
+            </div>
+          )}
         </section>
       )}
 
-      {/* ═══════════════════════════════════════
-          MISIONES / METAS DEL DÍA             
-      ═══════════════════════════════════════ */}
       <section>
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -188,62 +151,21 @@ export default function HomePage() {
           <span className="text-xs text-slate-600 font-mono">{t("home.missions_subtitle")}</span>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <GameCard
-            icon="🚰"
-            label={t("faucet.title")}
-            desc={t("home.faucet_desc")}
-            href="/faucet"
-            color="from-blue-600 to-cyan-500"
-            border="border-cyan-500/40"
-            glow="hover:shadow-cyan-500/20"
-          />
-          <GameCard
-            icon="📈"
-            label={t("nav.prediction")}
-            desc={t("home.btc_pred_desc")}
-            href="/predicciones"
-            color="from-amber-600 to-yellow-400"
-            border="border-amber-500/40"
-            glow="hover:shadow-amber-500/20"
-          />
-          <GameCard
-            icon="🎲"
-            label={t("hilo.title")}
-            desc={t("home.hilo_desc")}
-            href="/hi-lo"
-            color="from-purple-600 to-pink-500"
-            border="border-purple-500/40"
-            glow="hover:shadow-purple-500/20"
-          />
-          <GameCard
-            icon="🏆"
-            label={t("nav.ranking")}
-            desc={t("ranking.no_data_hint")}
-            href="/clasificacion"
-            color="from-emerald-600 to-teal-400"
-            border="border-emerald-500/40"
-            glow="hover:shadow-emerald-500/20"
-          />
+          <GameCard icon="🚰" label={t("faucet.title")} desc={t("home.faucet_desc")} href="/faucet" color="from-blue-600 to-cyan-500" border="border-cyan-500/40" glow="hover:shadow-cyan-500/20" />
+          <GameCard icon="📈" label={t("nav.prediction")} desc={t("home.btc_pred_desc")} href="/predicciones" color="from-amber-600 to-yellow-400" border="border-amber-500/40" glow="hover:shadow-amber-500/20" />
+          <GameCard icon="🎲" label={t("hilo.title")} desc={t("home.hilo_desc")} href="/hi-lo" color="from-purple-600 to-pink-500" border="border-purple-500/40" glow="hover:shadow-purple-500/20" />
+          <GameCard icon="🏆" label={t("nav.ranking")} desc={t("ranking.no_data_hint")} href="/clasificacion" color="from-emerald-600 to-teal-400" border="border-emerald-500/40" glow="hover:shadow-emerald-500/20" />
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════
-          ÁRBOL DE NIVELES - MOTIVACIÓN         
-      ═══════════════════════════════════════ */}
       <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-6">
         <div className="pointer-events-none absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl" />
-
         <div className="mb-5 text-center">
-          <span className="inline-block px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-black uppercase tracking-widest mb-3">
-            {t("home.ranks_system_title")}
-          </span>
+          <span className="inline-block px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-black uppercase tracking-widest mb-3">{t("home.ranks_system_title")}</span>
           <h2 className="text-2xl font-black text-white">{t("home.ranks_system_subtitle")}</h2>
           <p className="text-sm text-slate-500 mt-1">{t("home.ranks_system_desc")}</p>
         </div>
-
-        {/* Barra visual de progresión de rangos */}
         <div className="pt-4 pb-2 px-1">
-          {/* Desktop Layout: Una sola fila */}
           <div className="hidden sm:flex items-start justify-between gap-0">
             {[
               { icon: "🥉", key: "novice",     color: "text-slate-400",   bg: "bg-slate-800",      ring: "ring-slate-500" },
@@ -256,23 +178,14 @@ export default function HomePage() {
             ].map((lvl, i, arr) => (
               <div key={lvl.key} className="flex items-center flex-1 min-w-0">
                 <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-                  <div className={`w-14 h-14 rounded-full ${lvl.bg} ring-2 ${lvl.ring} flex items-center justify-center text-3xl shadow-lg shadow-black/30`}>
-                    {lvl.icon}
-                  </div>
-                  <span className={`text-[11px] font-black ${lvl.color} text-center whitespace-nowrap`}>
-                    {t(`home.rank_${lvl.key}`)}
-                  </span>
+                  <div className={`w-14 h-14 rounded-full ${lvl.bg} ring-2 ${lvl.ring} flex items-center justify-center text-3xl shadow-lg shadow-black/30`}>{lvl.icon}</div>
+                  <span className={`text-[11px] font-black ${lvl.color} text-center whitespace-nowrap`}>{t(`home.rank_${lvl.key}`)}</span>
                 </div>
-                {i < arr.length - 1 && (
-                  <div className="flex-1 h-[2px] bg-gradient-to-r from-slate-600 to-slate-700 mx-2 mb-5" />
-                )}
+                {i < arr.length - 1 && <div className="flex-1 h-[2px] bg-gradient-to-r from-slate-600 to-slate-700 mx-2 mb-5" />}
               </div>
             ))}
           </div>
-
-          {/* Mobile Layout: Dos filas (3 y 4) */}
           <div className="sm:hidden space-y-6">
-            {/* Fila 1: 3 niveles */}
             <div className="grid grid-cols-3 gap-2">
               {[
                 { icon: "🥉", key: "novice",     color: "text-slate-400",   bg: "bg-slate-800",      ring: "ring-slate-500" },
@@ -280,16 +193,11 @@ export default function HomePage() {
                 { icon: "🥇", key: "player",     color: "text-blue-400",    bg: "bg-blue-900/40",    ring: "ring-blue-500" },
               ].map((lvl) => (
                 <div key={lvl.key} className="flex flex-col items-center gap-1.5">
-                  <div className={`w-12 h-12 rounded-full ${lvl.bg} ring-1 ${lvl.ring} flex items-center justify-center text-2xl shadow-lg shadow-black/30`}>
-                    {lvl.icon}
-                  </div>
-                  <span className={`text-[10px] font-black ${lvl.color} text-center`}>
-                    {t(`home.rank_${lvl.key}`)}
-                  </span>
+                  <div className={`w-12 h-12 rounded-full ${lvl.bg} ring-1 ${lvl.ring} flex items-center justify-center text-2xl shadow-lg shadow-black/30`}>{lvl.icon}</div>
+                  <span className={`text-[10px] font-black ${lvl.color} text-center`}>{t(`home.rank_${lvl.key}`)}</span>
                 </div>
               ))}
             </div>
-            {/* Fila 2: 4 niveles */}
             <div className="grid grid-cols-4 gap-2">
               {[
                 { icon: "⭐", key: "veteran",    color: "text-purple-400",  bg: "bg-purple-900/40",  ring: "ring-purple-500" },
@@ -298,18 +206,13 @@ export default function HomePage() {
                 { icon: "🔥", key: "legend",     color: "text-red-400",     bg: "bg-red-900/40",     ring: "ring-red-500" },
               ].map((lvl) => (
                 <div key={lvl.key} className="flex flex-col items-center gap-1.5">
-                  <div className={`w-10 h-10 rounded-full ${lvl.bg} ring-1 ${lvl.ring} flex items-center justify-center text-xl shadow-lg shadow-black/30`}>
-                    {lvl.icon}
-                  </div>
-                  <span className={`text-[9px] font-black ${lvl.color} text-center`}>
-                    {t(`home.rank_${lvl.key}`)}
-                  </span>
+                  <div className={`w-10 h-10 rounded-full ${lvl.bg} ring-1 ${lvl.ring} flex items-center justify-center text-xl shadow-lg shadow-black/30`}>{lvl.icon}</div>
+                  <span className={`text-[9px] font-black ${lvl.color} text-center`}>{t(`home.rank_${lvl.key}`)}</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
-
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 text-center text-sm">
           <div className="rounded-xl bg-slate-800/50 border border-slate-700 px-4 py-3">
             <div className="text-amber-400 font-black text-lg">+1,000 pts</div>
@@ -324,19 +227,11 @@ export default function HomePage() {
             <div className="text-slate-500 text-xs">{t("home.prize_legend")} 🔥</div>
           </div>
         </div>
-
         <div className="mt-5 text-center">
-          <Link href="/clasificacion"
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold rounded-xl transition text-sm"
-          >
-            {t("home.btn_view_ranking")} → 🏆
-          </Link>
+          <Link href="/clasificacion" className="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold rounded-xl transition text-sm">{t("home.btn_view_ranking")} → 🏆</Link>
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════
-          SECCIÓN BOLIS / CONVERSIÓN           
-      ═══════════════════════════════════════ */}
       <section className="rounded-3xl overflow-hidden relative bg-gradient-to-r from-emerald-950 to-slate-950 border border-emerald-900/40 p-6 text-center">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(52,211,153,0.08),transparent_60%)]" />
         <h2 className="text-2xl font-black text-white relative mb-1">{t("home.footer_title")}</h2>
@@ -347,15 +242,10 @@ export default function HomePage() {
         </div>
         {!loggedIn && !loading && (
           <div className="relative mt-6">
-            <Link href="/auth/registro"
-              className="inline-block px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-2xl transition shadow-xl shadow-emerald-500/20"
-            >
-              {t("home.btn_start_free")} →
-            </Link>
+            <Link href="/auth/registro" className="inline-block px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-2xl transition shadow-xl shadow-emerald-500/20">{t("home.btn_start_free")} →</Link>
           </div>
         )}
       </section>
-
     </div>
   );
 }

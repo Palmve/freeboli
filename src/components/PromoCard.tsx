@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useLang } from "@/context/LangContext";
 
-interface PromoData {
+export interface PromoData {
   id: string;
   nombre: string;
   puntos_totales: number;
@@ -11,14 +11,18 @@ interface PromoData {
   link_fuente: string;
 }
 
-export default function PromoCard() {
+interface PromoCardProps {
+  initialPromo?: PromoData | null;
+}
+
+export default function PromoCard({ initialPromo }: PromoCardProps) {
   const { data: session } = useSession();
   const { t, lang } = useLang();
-  const [promo, setPromo] = useState<PromoData | null>(null);
+  const [promo, setPromo] = useState<PromoData | null>(initialPromo || null);
   const [word, setWord] = useState("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [isMounting, setIsMounting] = useState(true);
+  const [isMounting, setIsMounting] = useState(!initialPromo);
 
   const fetchActivePromo = async () => {
     try {
@@ -37,8 +41,10 @@ export default function PromoCard() {
   };
 
   useEffect(() => {
-    fetchActivePromo();
-  }, []);
+    if (!initialPromo) {
+      fetchActivePromo();
+    }
+  }, [initialPromo]);
 
   const handleClaim = async (e: React.FormEvent) => {
     e.preventDefault();
