@@ -433,6 +433,10 @@
       "Los depósitos se procesan automáticamente al verificar la transacción en Solana",
       "Los retiros están sujetos a revisión y pueden demorar hasta 24 horas",
       "Se aplica un mínimo de retiro configurable por la administración",
+      "⚠️ <strong>IMPORTANTE:</strong> Envía <strong>ÚNICAMENTE BOLIS</strong> (Token SPL). Si envías SOL nativo u otros tokens, los puntos NO se acreditarán automáticamente y podrías perder el acceso a esos fondos.",
+      "Contrato oficial de BOLIS en Solana: <a href=\"https://solscan.io/token/612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha\" target=\"_blank\" class=\"text-amber-400 underline\">612nt4...5ha</a> (verificar en Solscan).",
+      "Intercambio (DEX): Puedes cambiar SOL o USDT por BOLIS en <a href=\"https://dexscreener.com/solana/adtp1djcsfehs4dc7224n67ejtgxawhzj8w7gwtjgwe8\" target=\"_blank\" class=\"text-amber-400 underline\">Dexscreener</a> (Plataforma descentralizada).",
+      "No somos responsables del uso incorrecto de wallets por parte del usuario ni de sus transacciones erróneas.",
       "La plataforma no es responsable por transacciones enviadas a direcciones incorrectas",
       "En caso de error técnico, la administración puede revertir operaciones"
     ],
