@@ -654,6 +654,44 @@ export default function ConfiguracionPage() {
                   {levelSending ? "⏳ Enviando a todos los usuarios..." : "🚀 Iniciar Envío Masivo"}
                 </button>
               </div>
+
+              {/* Campos Dinámicos de Niveles (Límites JSON, etc) */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
+                <h3 className="text-base font-bold text-white mb-2">⚙️ Ajustes Avanzados de Niveles</h3>
+                {FIELDS.filter((f) => f.group === "Niveles").map((field) => (
+                  <div key={field.key} className="space-y-2">
+                    <div className="flex justify-between items-baseline">
+                      <label className="text-sm font-black text-slate-300 uppercase tracking-tighter">{field.label}</label>
+                      {field.defaultValue !== undefined && (
+                        <span className="text-[10px] text-amber-500/60 font-bold uppercase">Por defecto: {field.defaultValue}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed">{field.description}</p>
+                    {field.type === "json" ? (
+                      <textarea
+                        value={values[field.key] ?? ""}
+                        onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
+                        rows={6}
+                        className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 font-mono text-sm text-amber-200 focus:border-amber-500 focus:outline-none"
+                      />
+                    ) : (
+                      <input
+                        type={field.key.includes("EDGE") || field.key.includes("PERCENT") ? "text" : "number"}
+                        value={values[field.key] ?? ""}
+                        onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
+                        className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white font-mono focus:border-amber-500 focus:outline-none"
+                      />
+                    )}
+                  </div>
+                ))}
+                <button 
+                  onClick={handleSave} 
+                  disabled={saving} 
+                  className="w-full py-4 bg-amber-500 text-slate-950 font-black rounded-2xl hover:bg-amber-400 transition shadow-xl shadow-amber-500/20 disabled:opacity-50 mt-4"
+                >
+                  {saving ? "Guardando..." : "Guardar Ajustes de Niveles"}
+                </button>
+              </div>
             </section>
           ) : (
             <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
