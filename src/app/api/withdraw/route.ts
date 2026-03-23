@@ -7,6 +7,8 @@ import { alertWithdrawalRequest } from "@/lib/telegram";
 import { getSetting } from "@/lib/site-settings";
 import { fetchUserLevel } from "@/lib/levels";
 import { PublicKey } from "@solana/web3.js";
+import { persistentRateLimit, logSecurityEvent, flagWithdrawalAnomaly } from "@/lib/security";
+import { getRequestIpHash } from "@/lib/ip";
 
 export async function POST(req: Request) {
   const currentUser = await getCurrentUser();
@@ -19,10 +21,31 @@ export async function POST(req: Request) {
   const withdrawRateMax = await getSetting<number>("WITHDRAW_RATE_MAX", 5);
   const withdrawWindowHours = await getSetting<number>("WITHDRAW_RATE_WINDOW_HOURS", 1);
   const windowMs = withdrawWindowHours * 60 * 60 * 1000;
-  const { allowed, retryAfterSeconds } = rateLimit(`withdraw:${userId}`, withdrawRateMax, windowMs);
-  if (!allowed) {
+
+  // Capa 1: Rate-limit en memoria (rápida, primera barrera)
+  const { allowed: inMemAllowed, retryAfterSeconds: inMemRetry } = rateLimit(`withdraw:${userId}`, withdrawRateMax, windowMs);
+  if (!inMemAllowed) {
     return NextResponse.json(
-      { error: `Demasiadas solicitudes de retiro. Espera ${Math.ceil(retryAfterSeconds / 60)} minuto(s).` },
+      { error: `Demasiadas solicitudes de retiro. Espera ${Math.ceil(inMemRetry / 60)} minuto(s).` },
+      { status: 429 }
+    );
+  }
+
+  // Capa 2: Rate-limit persistente en Supabase (global entre todos los workers de Vercel)
+  const { allowed: persAllowed, retryAfterSeconds: persRetry } = await persistentRateLimit(
+    `withdraw:${userId}`, withdrawRateMax, windowMs
+  );
+  if (!persAllowed) {
+    const ipHash = await getRequestIpHash();
+    await logSecurityEvent({
+      eventType: "rate_limit_exceeded",
+      userId,
+      ipHash,
+      details: { endpoint: "withdraw", retryAfterSeconds: persRetry },
+      severity: "medium",
+    });
+    return NextResponse.json(
+      { error: `Demasiadas solicitudes de retiro. Espera ${Math.ceil(persRetry / 60)} minuto(s).` },
       { status: 429 }
     );
   }
@@ -77,6 +100,24 @@ export async function POST(req: Request) {
         { status: 403 }
       );
     }
+  }
+
+  // ── Detección de anomalías: más de 3 retiros exitosos en las últimas 24h ──
+  const oneDayAgo = new Date(Date.now() - 86400000).toISOString();
+  const { count: recentWithdrawals } = await supabase
+    .from("withdrawals")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gte("created_at", oneDayAgo);
+
+  if ((recentWithdrawals ?? 0) >= 3) {
+    await logSecurityEvent({
+      eventType: "suspicious_withdrawal_frequency",
+      userId,
+      details: { recentCount: recentWithdrawals, points, wallet },
+      severity: "high",
+    });
+    // No bloqueamos, pero marcamos para revisión del admin
   }
 
   // 1. Ejecutar solicitud de retiro de forma atómica (Evita Race Condition)

@@ -170,11 +170,23 @@ export default function ConfiguracionPage() {
   const [levelMsg, setLevelMsg] = useState("");
   const [levelSending, setLevelSending] = useState(false);
 
+  // Seguridad
+  const [secEvents, setSecEvents] = useState<any[]>([]);
+  const [loadingSec, setLoadingSec] = useState(false);
+
   // Tickets
   const [tickets, setTickets] = useState<any[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
 
   useEffect(() => {
+    if (activeTab === "Seguridad") {
+      setLoadingSec(true);
+      fetch("/api/admin/security-events")
+        .then(r => r.json())
+        .then(d => setSecEvents(d.events || []))
+        .catch(() => {})
+        .finally(() => setLoadingSec(false));
+    }
     if (activeTab === "Tickets") {
       setLoadingTickets(true);
       fetch("/api/admin/support-tickets")
@@ -219,6 +231,12 @@ export default function ConfiguracionPage() {
               className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === "Tickets" ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
             >
               Tickets Soporte
+            </button>
+            <button
+              onClick={() => { setActiveTab("Seguridad"); setIsMenuOpen(false); }}
+              className={`w-full text-left px-4 py-3 rounded-xl transition ${activeTab === "Seguridad" ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
+            >
+              🛡️ Seguridad
             </button>
             <button
               onClick={() => { setActiveTab("Niveles"); setIsMenuOpen(false); }}
@@ -321,6 +339,58 @@ export default function ConfiguracionPage() {
                               <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter ${t.status === 'open' ? 'bg-amber-500 text-slate-900' : 'bg-slate-800 text-slate-500'}`}>
                                 {t.status === 'open' ? 'Pendiente' : 'Cerrado'}
                               </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </section>
+          ) : activeTab === "Seguridad" ? (
+            <section className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                  <h3 className="text-base font-bold text-white">🛡️ Eventos de Seguridad Recientes</h3>
+                  <button
+                    onClick={() => {
+                      setLoadingSec(true);
+                      fetch("/api/admin/security-events").then(r => r.json()).then(d => setSecEvents(d.events || [])).finally(() => setLoadingSec(false));
+                    }}
+                    className="text-xs text-slate-400 hover:text-white transition"
+                  >↻ Actualizar</button>
+                </div>
+                {loadingSec ? (
+                  <div className="p-8 text-center text-slate-500">Cargando eventos...</div>
+                ) : secEvents.length === 0 ? (
+                  <div className="p-8 text-center text-slate-500">✅ Sin eventos de seguridad recientes.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-slate-800/50 text-slate-400 text-left uppercase">
+                          <th className="px-4 py-3">Severidad</th>
+                          <th className="px-4 py-3">Evento</th>
+                          <th className="px-4 py-3">Usuario</th>
+                          <th className="px-4 py-3 text-right">Fecha</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800">
+                        {secEvents.map((e: any) => (
+                          <tr key={e.id} className="hover:bg-slate-800/20 transition">
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                e.severity === 'critical' ? 'bg-red-600 text-white' :
+                                e.severity === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                                e.severity === 'medium' ? 'bg-amber-500/20 text-amber-400' :
+                                'bg-slate-700 text-slate-400'
+                              }`}>{e.severity}</span>
+                            </td>
+                            <td className="px-4 py-3 text-slate-300 font-mono">{e.event_type}</td>
+                            <td className="px-4 py-3 text-slate-500 font-mono text-[10px] truncate max-w-[120px]">{e.user_id ?? '—'}</td>
+                            <td className="px-4 py-3 text-right text-slate-500 whitespace-nowrap">
+                              {new Date(e.created_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
                             </td>
                           </tr>
                         ))}
