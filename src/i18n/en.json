@@ -244,7 +244,8 @@
     "login_hint": "Login to play HI-LO.",
     "btn_login": "Login",
     "error_bet_manual": "Enter a valid bet and press BET HI or BET LO.",
-    "error_generic": "Error playing. Check your balance."
+    "error_generic": "Error playing. Check your balance.",
+    "support_hint": "Problems with the multiplier? Report error or dispute here"
   },
   "predictions": {
     "title": "Predictions",

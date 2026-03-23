@@ -244,7 +244,8 @@
     "login_hint": "Entra para jugar HI-LO.",
     "btn_login": "Entrar",
     "error_bet_manual": "Introduce una apuesta válida y pulsa APUESTA HI o APUESTA LO.",
-    "error_generic": "Error al jugar. Revisa tu saldo."
+    "error_generic": "Error al jugar. Revisa tu saldo.",
+    "support_hint": "¿Problemas con el multiplicador? Reportar error o disputa aquí"
   },
   "predictions": {
     "title": "Predicciones",
