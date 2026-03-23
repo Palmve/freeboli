@@ -523,5 +523,24 @@
   },
   "footer": {
     "bolis_info": "For more information about Solana Bolis trading {0}"
+  },
+  "support": {
+    "title": "Report Incident",
+    "success_title": "Report Sent",
+    "success_desc": "Thank you. The administrator has been notified via Telegram.",
+    "label_type": "Report Type",
+    "type_dispute": "Game Dispute",
+    "type_delay": "Payment/Credit Delay",
+    "type_error": "Technical Error / Bug",
+    "type_other": "Other",
+    "label_email": "Contact Email",
+    "placeholder_email": "Your email for reply...",
+    "label_subject": "Subject",
+    "placeholder_subject": "Brief description of the problem...",
+    "label_message": "Detailed Message",
+    "placeholder_message": "Explain what happened so we can help you...",
+    "btn_sending": "Sending...",
+    "btn_send": "Send Report",
+    "error_send": "Error sending"
   }
 }

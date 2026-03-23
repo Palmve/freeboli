@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useLang } from "@/context/LangContext";
 
 interface SupportModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface SupportModalProps {
 }
 
 export function SupportModal({ isOpen, onClose, defaultType = "error", userEmail = "" }: SupportModalProps) {
+  const { t } = useLang();
   const [type, setType] = useState(defaultType);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
@@ -40,7 +42,7 @@ export function SupportModal({ isOpen, onClose, defaultType = "error", userEmail
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error al enviar");
+      if (!res.ok) throw new Error(data.error || t("support.error_send"));
 
       setSent(true);
       setTimeout(() => {
@@ -61,7 +63,7 @@ export function SupportModal({ isOpen, onClose, defaultType = "error", userEmail
       <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-white">Reportar Incidencia</h2>
+            <h2 className="text-xl font-bold text-white">{t("support.title")}</h2>
             <button onClick={onClose} className="text-slate-400 hover:text-white transition">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -76,56 +78,56 @@ export function SupportModal({ isOpen, onClose, defaultType = "error", userEmail
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <p className="text-white font-bold text-lg">Reporte Enviado</p>
-              <p className="text-slate-400 mt-2">Gracias. El administrador ha sido notificado vía Telegram.</p>
+              <p className="text-white font-bold text-lg">{t("support.success_title")}</p>
+              <p className="text-slate-400 mt-2">{t("support.success_desc")}</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Tipo de Reporte</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{t("support.label_type")}</label>
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value)}
                   className="w-full rounded-lg bg-slate-800 border-slate-700 text-white p-3 text-sm focus:ring-amber-500 border focus:border-amber-500 outline-none transition"
                 >
-                  <option value="dispute">Disputa de Juego</option>
-                  <option value="delay">Retardo en Pago/Crédito</option>
-                  <option value="error">Error Técnico / Bug</option>
-                  <option value="other">Otro</option>
+                  <option value="dispute">{t("support.type_dispute")}</option>
+                  <option value="delay">{t("support.type_delay")}</option>
+                  <option value="error">{t("support.type_error")}</option>
+                  <option value="other">{t("support.type_other")}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Email de Contacto</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{t("support.label_email")}</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Tu email para responderte..."
+                  placeholder={t("support.placeholder_email")}
                   className="w-full rounded-lg bg-slate-800 border-slate-700 text-white p-3 text-sm focus:ring-amber-500 border focus:border-amber-500 outline-none transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Asunto</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{t("support.label_subject")}</label>
                 <input
                   type="text"
                   required
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Breve descripción del problema..."
+                  placeholder={t("support.placeholder_subject")}
                   className="w-full rounded-lg bg-slate-800 border-slate-700 text-white p-3 text-sm focus:ring-amber-500 border focus:border-amber-500 outline-none transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Mensaje Detallado</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{t("support.label_message")}</label>
                 <textarea
                   required
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   rows={4}
-                  placeholder="Explícanos qué pasó para que podamos ayudarte..."
+                  placeholder={t("support.placeholder_message")}
                   className="w-full rounded-lg bg-slate-800 border-slate-700 text-white p-3 text-sm focus:ring-amber-500 border focus:border-amber-500 outline-none transition resize-none"
                 />
               </div>
@@ -137,7 +139,7 @@ export function SupportModal({ isOpen, onClose, defaultType = "error", userEmail
                 disabled={loading}
                 className="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-lg hover:bg-amber-400 transition transform active:scale-[0.98] disabled:opacity-50"
               >
-                {loading ? "Enviando..." : "Enviar Reporte"}
+                {loading ? t("support.btn_sending") : t("support.btn_send")}
               </button>
             </form>
           )}

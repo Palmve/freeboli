@@ -523,5 +523,24 @@
   },
   "footer": {
     "bolis_info": "Para más información sobre el comercio de Bolis de Solana {0}"
+  },
+  "support": {
+    "title": "Reportar Incidencia",
+    "success_title": "Reporte Enviado",
+    "success_desc": "Gracias. El administrador ha sido notificado vía Telegram.",
+    "label_type": "Tipo de Reporte",
+    "type_dispute": "Disputa de Juego",
+    "type_delay": "Retardo en Pago/Crédito",
+    "type_error": "Error Técnico / Bug",
+    "type_other": "Otro",
+    "label_email": "Email de Contacto",
+    "placeholder_email": "Tu email para responderte...",
+    "label_subject": "Asunto",
+    "placeholder_subject": "Breve descripción del problema...",
+    "label_message": "Mensaje Detallado",
+    "placeholder_message": "Explícanos qué pasó para que podamos ayudarte...",
+    "btn_sending": "Enviando...",
+    "btn_send": "Enviar Reporte",
+    "error_send": "Error al enviar"
   }
 }
