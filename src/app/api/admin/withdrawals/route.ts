@@ -8,7 +8,7 @@ export async function GET() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("withdrawals")
-    .select("id, user_id, points, wallet_destination, status, created_at, tx_signature, processed_at")
+    .select("id, user_id, points, wallet_destination, status, created_at, tx_signature, processed_at, profiles(public_id)")
     .order("created_at", { ascending: false })
     .limit(100);
   return NextResponse.json(data ?? []);

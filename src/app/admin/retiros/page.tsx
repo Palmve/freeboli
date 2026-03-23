@@ -11,6 +11,7 @@ type Withdrawal = {
   status: string;
   created_at: string;
   tx_signature?: string;
+  profiles?: { public_id: number | null };
 };
 
 export default function AdminRetirosPage() {
@@ -97,8 +98,11 @@ export default function AdminRetirosPage() {
           <tbody>
             {list.map((w) => (
               <tr key={w.id} className="border-t border-slate-700">
-                <td className="font-mono text-xs">{w.id.slice(0, 8)}…</td>
-                <td className="font-mono text-xs">{w.user_id.slice(0, 8)}…</td>
+                <td className="font-mono text-xs" title={w.id}>{w.id.slice(0, 8)}…</td>
+                <td className="font-mono text-xs flex flex-col">
+                  <span className="text-amber-400 font-bold">{w.profiles?.public_id || "—"}</span>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-tighter" title={w.user_id}>{w.user_id.slice(0, 8)}…</span>
+                </td>
                 <td>{Number(w.points).toLocaleString()}</td>
                 <td className="font-mono text-xs truncate max-w-[140px]">{w.wallet_destination}</td>
                 <td>{w.status}</td>
