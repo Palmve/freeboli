@@ -198,16 +198,15 @@ export default function ConfiguracionPage() {
   }
 
   const { data: session } = useSession();
-  const isAdminTotal = session?.user?.email && (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "").split(',').includes(session.user.email.toLowerCase());
   const permissions = (session?.user as any)?.permissions || {};
-  const isSuper = isAdminTotal || (session?.user?.isAdmin && !(process.env.NEXT_PUBLIC_ADMIN_EMAILS));
+  const isSuper = (session?.user as any)?.isSuperAdmin;
 
   const TABS = [
-    { id: "Faucet", label: "Faucet", icon: "⚙️" },
-    { id: "Afiliados", label: "Afiliados", icon: "⚙️" },
-    { id: "Streaks", label: "Streaks", icon: "⚙️" },
-    { id: "Premios Ranking", label: "Premios Ranking", icon: "⚙️" },
-    { id: "Limites de Juego", label: "Limites de Juego", icon: "⚙️" },
+    { id: "Faucet", label: "Faucet", icon: "⚙️", hidden: !isSuper && !permissions.settings },
+    { id: "Afiliados", label: "Afiliados", icon: "⚙️", hidden: !isSuper && !permissions.settings },
+    { id: "Streaks", label: "Streaks", icon: "⚙️", hidden: !isSuper && !permissions.settings },
+    { id: "Premios Ranking", label: "Premios Ranking", icon: "⚙️", hidden: !isSuper && !permissions.settings },
+    { id: "Limites de Juego", label: "Limites de Juego", icon: "⚙️", hidden: !isSuper && !permissions.settings },
     { id: "Logros", label: "🏅 Valor de Logros", icon: "🏅", hidden: !isSuper && !permissions.logros },
     { id: "Predicciones", label: "📈 Predicciones", icon: "📈", hidden: !isSuper && !permissions.predicciones },
     { id: "Tickets", label: "🎫 Tickets Soporte", icon: "🎫", hidden: !isSuper && !permissions.soporte },

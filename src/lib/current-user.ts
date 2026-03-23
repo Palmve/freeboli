@@ -124,13 +124,32 @@ export async function getAdminUser(): Promise<CurrentUser | null> {
 
     const byEnv = isAdmin(sessionForEmailCheck);
     const byDb = !!profile?.is_admin;
-    if (!byEnv && !byDb) return null;
+    
+    let isStaff = false;
+    let staffPerms = {};
+    if (!byEnv && !byDb) {
+      // Check if is delegated staff
+      const { data: staff } = await sb
+        .from("staff_access_nodes")
+        .select("permissions")
+        .eq("user_id", id)
+        .maybeSingle();
+      
+      if (staff) {
+        isStaff = true;
+        staffPerms = staff.permissions || {};
+      } else {
+        return null;
+      }
+    }
 
     return {
       id,
       email,
       name,
       isAdmin: true,
+      isStaff,
+      permissions: staffPerms,
       status: (profile?.status as UserStatus) || "normal",
       withdrawLimitOverrideUntil: profile?.withdraw_limit_override_until
     };
@@ -144,6 +163,8 @@ export interface CurrentUser {
   email: string;
   name?: string;
   isAdmin: boolean;
+  isStaff?: boolean;
+  permissions?: any;
   status: UserStatus;
   withdrawLimitOverrideUntil?: string | null;
 }
