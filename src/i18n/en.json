@@ -469,7 +469,7 @@
     "section3_title": "💰 Withdrawals and Equivalence",
     "section3_rate": "<span class=\"text-white font-bold\">{0} Points = 1 BOLIS</span>",
     "section3_text": "You can withdraw your BOLIS when you reach a minimum of <strong>{0} points</strong> ({1} BOLIS). You will need a Solana wallet like <strong>Phantom</strong> or <strong>Solflare</strong>.",
-    "section4_title": "<span>💳</span> Deposits",
+    "section4_title": "💳 Deposits",
     "section4_text": "If you want to play with larger amounts, you can deposit BOLIS from your personal wallet. Points will be automatically credited after 1 network confirmation.",
     "footer_terms": "Read full Terms of Use",
     "footer_btn": "Got it, let's play!"
