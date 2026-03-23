@@ -77,7 +77,13 @@ export default function PromoCard() {
   const progressPercent = Math.max(0, Math.min(100, (promo.puntos_restantes / promo.puntos_totales) * 100));
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-slate-900/50 p-6 backdrop-blur-xl transition-all hover:border-amber-500/50 shadow-lg shadow-amber-900/10">
+    <section>
+      <div className="mb-3 flex items-center gap-2">
+        <span className="text-lg">🎁</span>
+        <h2 className="text-base font-black text-slate-300 uppercase tracking-widest">{lang === "es" ? "Promoción Activa" : "Active Promotion"}</h2>
+      </div>
+
+      <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-slate-900/50 p-6 backdrop-blur-xl transition-all hover:border-amber-500/50 shadow-lg shadow-amber-900/10">
       {/* Background Glow */}
       <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-amber-500/10 blur-3xl" />
       <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl" />
@@ -180,5 +186,6 @@ export default function PromoCard() {
         )}
       </div>
     </div>
+  </section>
   );
 }

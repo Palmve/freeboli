@@ -15,15 +15,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { word } = await req.json();
-    if (!word || typeof word !== 'string') {
+    const body = await req.json();
+    const rawWord = body.word || "";
+
+    if (!rawWord || typeof rawWord !== 'string') {
       return NextResponse.json({ error: "Palabra requerida" }, { status: 400 });
     }
 
+    // Sanitización: Limitar longitud, trim, y evitar caracteres sospechosos
+    const word = rawWord.trim().substring(0, 50).replace(/[<>'"%;()]/g, "");
+
+    // TODO: Implementar un rate limit más robusto (ej: Redis o tabla en DB)
+    // Por ahora, validamos la palabra sanitizada en la RPC
+    
     // Llamar a la función RPC atómica para máxima seguridad
     const { data, error } = await supabase.rpc('fn_claim_promotion', {
       p_user_id: session.user.id,
-      p_word: word.trim()
+      p_word: word
     });
 
     if (error) throw error;

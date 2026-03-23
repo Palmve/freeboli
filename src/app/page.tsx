@@ -171,10 +171,6 @@ export default function HomePage() {
             <LevelProgressCard />
           </div>
           <div>
-            <div className="mb-3 flex items-center gap-2">
-              <span className="text-lg">🎁</span>
-              <h2 className="text-base font-black text-slate-300 uppercase tracking-widest">{lang === "es" ? "Promoción Activa" : "Active Promotion"}</h2>
-            </div>
             <PromoCard />
           </div>
         </section>
