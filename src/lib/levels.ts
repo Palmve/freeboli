@@ -37,25 +37,25 @@ export const LEVELS: UserLevel[] = [
   },
   { 
     level: 4, name: "Veterano", icon: "⭐", color: "text-purple-400", glow: "shadow-purple-500/50",
-    minBets: 200, minFaucet: 30, minPredictions: 10, minDaysSinceJoined: 7, requiresEmail: true,
+    minBets: 200, minFaucet: 30, minPredictions: 10, minDaysSinceJoined: 3, requiresEmail: true,
     rewardPoints: 1000,
     benefits: { maxBetPoints: 100000, maxWithdrawBolis: 25 }
   },
   { 
     level: 5, name: "Experto", icon: "💎", color: "text-emerald-400", glow: "shadow-emerald-500/50",
-    minBets: 1000, minFaucet: 60, minPredictions: 50, minDaysSinceJoined: 30, requiresEmail: true,
+    minBets: 1000, minFaucet: 60, minPredictions: 50, minDaysSinceJoined: 7, requiresEmail: true,
     rewardPoints: 5000,
     benefits: { maxBetPoints: 250000, maxWithdrawBolis: 50 }
   },
   { 
     level: 6, name: "Maestro", icon: "👑", color: "text-amber-400", glow: "shadow-amber-500/50",
-    minBets: 5000, minFaucet: 100, minPredictions: 150, minDaysSinceJoined: 90, requiresEmail: true,
+    minBets: 5000, minFaucet: 100, minPredictions: 150, minDaysSinceJoined: 15, requiresEmail: true,
     rewardPoints: 25000,
     benefits: { maxBetPoints: 500000, maxWithdrawBolis: 100 }
   },
   { 
     level: 7, name: "Leyenda", icon: "🔥", color: "text-red-400", glow: "shadow-red-500/60",
-    minBets: 10000, minFaucet: 200, minPredictions: 400, minDaysSinceJoined: 180, requiresEmail: true,
+    minBets: 10000, minFaucet: 200, minPredictions: 400, minDaysSinceJoined: 30, requiresEmail: true,
     rewardPoints: 100000,
     benefits: { maxBetPoints: 1000000, maxWithdrawBolis: 250 }
   },

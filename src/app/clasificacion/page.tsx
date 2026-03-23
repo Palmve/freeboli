@@ -238,6 +238,7 @@ export default function ClasificacionPage() {
                 <th className="p-2 text-center">{t("ranking.th_lvl_faucet")}</th>
                 <th className="p-2 text-center">{t("ranking.th_lvl_preds")}</th>
                 <th className="p-2 text-center">{t("ranking.th_lvl_days")}</th>
+                <th className="p-2 text-center text-emerald-400">Retiro Máx.</th>
                 <th className="p-2 text-center">{t("ranking.th_lvl_reward")}</th>
               </tr>
             </thead>
@@ -251,6 +252,9 @@ export default function ClasificacionPage() {
                   <td className="p-2 text-center text-slate-300 font-mono">{l.minFaucet > 0 ? l.minFaucet.toLocaleString() : "-"}</td>
                   <td className="p-2 text-center text-slate-300 font-mono">{l.minPredictions > 0 ? l.minPredictions.toLocaleString() : "-"}</td>
                   <td className="p-2 text-center text-slate-300 font-mono">{l.minDaysSinceJoined > 0 ? `${l.minDaysSinceJoined}d` : "-"}</td>
+                  <td className="p-2 text-center text-emerald-400 font-mono font-bold">
+                    {l.benefits.maxWithdrawBolis > 0 ? `${(l.benefits.maxWithdrawBolis * 1000).toLocaleString()} pts` : "—"}
+                  </td>
                   <td className="p-2 text-center text-amber-400 font-mono font-bold">
                     {l.rewardPoints > 0 ? `+${l.rewardPoints.toLocaleString()}` : "-"}
                   </td>
