@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
-import { getAllSettings } from "@/lib/site-settings";
 import { rateLimit } from "@/lib/rate-limit";
 import { headers } from "next/headers";
+import { alertSupportTicket } from "@/lib/telegram";
 
 function getIpFromHeaders(h: Headers): string {
   const forwarded = h.get("x-forwarded-for");
@@ -49,7 +49,6 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient();
-  const settings = await getAllSettings();
 
   // 1. Guardar en Base de Datos
   const { data: ticket, error: dbError } = await supabase
@@ -70,40 +69,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Error al procesar la reclamación" }, { status: 500 });
   }
 
-  // 2. Enviar a Telegram
-  const botToken = settings.TELEGRAM_BOT_TOKEN;
-  const chatId = settings.TELEGRAM_CHAT_ID;
-
-  if (botToken && chatId) {
-    const telegramMessage = `
-🚨 *NUEVO RECLAMO / ERROR*
---------------------------
-*ID:* \`${ticket.id}\`
-*Usuario:* ${ticket.user_email}
-*Tipo:* ${type.toUpperCase()}
-*Asunto:* ${subject}
-
-*Mensaje:*
-${message}
-
---------------------------
-_Enviado desde FreeBoli Support System_
-    `;
-
-    try {
-      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: telegramMessage,
-          parse_mode: "Markdown"
-        })
-      });
-    } catch (tgError) {
-      console.error("Error al enviar telegram:", tgError);
-      // No fallamos el request si Telegram falla, el ticket ya está en DB
-    }
+  // 2. Enviar a Telegram usando el sistema unificado
+  try {
+     const tgSent = await alertSupportTicket(ticket.id, ticket.user_email, type, subject, message);
+     if (!tgSent) {
+       console.error("No se pudo enviar notificación de soporte a Telegram");
+     }
+  } catch (tgError) {
+    console.error("Error al enviar telegram:", tgError);
+    // No fallamos el request si Telegram falla, el ticket ya está en DB
   }
 
   return NextResponse.json({ ok: true, ticketId: ticket.id });

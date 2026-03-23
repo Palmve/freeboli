@@ -135,3 +135,33 @@ function maskEmail(email: string): string {
   if (!domain) return email;
   return `${user.slice(0, 3)}***@${domain}`;
 }
+
+export function escapeHTML(str: string): string {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+export async function alertSupportTicket(ticketId: string, email: string, type: string, subject: string, message: string) {
+  const safeEmail = escapeHTML(email);
+  const safeSubject = escapeHTML(subject);
+  const safeMessage = escapeHTML(message);
+  const safeType = escapeHTML(type.toUpperCase());
+
+  const text = `🚨 <b>NUEVA INCIDENCIA / SOPORTE</b>
+--------------------------
+ID: <code>${ticketId}</code>
+Usuario: ${safeEmail}
+Tipo: <b>${safeType}</b>
+Asunto: ${safeSubject}
+
+<b>Mensaje:</b>
+${safeMessage}
+
+--------------------------
+<i>Enviado desde FreeBoli System</i>`;
+
+  return await sendTelegramMessage(text, "critical");
+}
