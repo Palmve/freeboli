@@ -40,7 +40,7 @@ const STATUS_CONFIG: Record<UserStatus, { label: string; bg: string; text: strin
 
 const STATUS_OPTIONS: UserStatus[] = ["normal", "evaluar", "suspendido", "bloqueado"];
 
-type SortKey = "id" | "email" | "created_at" | "balance" | "faucetClaims" | "hiLoPlays" | "hiLoAmount" | "predPlays" | "predAmount" | "referralCount" | "referralEarnings" | "sameIpUsers" | "rankingPos";
+type SortKey = "public_id" | "email" | "created_at" | "balance" | "faucetClaims" | "hiLoPlays" | "hiLoAmount" | "predPlays" | "predAmount" | "referralCount" | "referralEarnings" | "sameIpUsers" | "rankingPos";
 
 export default function AdminUsuariosTable({ users, dbError }: { users: UserRow[], dbError?: string | null }) {
   const [historyUserId, setHistoryUserId] = useState<string | null>(null);
@@ -51,7 +51,7 @@ export default function AdminUsuariosTable({ users, dbError }: { users: UserRow[
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [userStatuses, setUserStatuses] = useState<Record<string, UserStatus>>({});
 
-  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortKey, setSortKey] = useState<SortKey>("public_id");
   const [sortDesc, setSortDesc] = useState(true);
 
   async function openHistory(userId: string, email: string) {
@@ -165,7 +165,7 @@ export default function AdminUsuariosTable({ users, dbError }: { users: UserRow[
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-slate-400 border-b border-slate-700 bg-slate-800/30">
-              <Th label="ID" colKey="id" align="text-left" />
+              <Th label="ID" colKey="public_id" align="text-left" />
               <Th label="Email" colKey="email" align="text-left" />
               <th className="p-2 text-center text-[10px] uppercase font-bold text-slate-500">Última IP</th>
               <Th label="Rank" colKey="rankingPos" />
@@ -190,7 +190,7 @@ export default function AdminUsuariosTable({ users, dbError }: { users: UserRow[
               const cfg = STATUS_CONFIG[st];
               return (
                 <tr key={u.id} className="border-t border-slate-700/50 hover:bg-slate-800/80 transition-colors">
-                  <td className="p-2 text-slate-500 text-[10px] font-mono truncate max-w-[80px]" title={u.id}>{u.id}</td>
+                  <td className="p-2 text-amber-400 text-xs font-bold font-mono">{u.public_id || "—"}</td>
                   <td className="p-2 text-slate-300 text-xs truncate max-w-[120px]">{u.email ?? "—"}</td>
                   <td className="p-2 text-center text-[10px] text-slate-500 font-mono">{u.lastIp || "—"}</td>
                   <td className="p-2 text-center font-bold text-amber-500 text-xs">{u.rankingPos ?? "-"}º</td>

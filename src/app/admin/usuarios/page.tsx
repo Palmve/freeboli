@@ -5,7 +5,8 @@ import { getUserLevel } from "@/lib/levels";
 export type UserStatus = "normal" | "evaluar" | "suspendido" | "bloqueado";
 
 export interface UserRow {
-  id: string;
+  id: string; // UUID interno
+  public_id: number | null; // ID de 6 cifras
   email: string | null;
   name: string | null;
   created_at: string;
@@ -87,7 +88,7 @@ export default async function AdminUsuariosPage() {
   // Intentamos obtener perfiles con last_ip
   let profilesRes: any = await supabase
     .from("profiles")
-    .select("id, email, name, created_at, email_verified_at, status, last_ip")
+    .select("id, public_id, email, name, created_at, email_verified_at, status, last_ip")
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -96,7 +97,7 @@ export default async function AdminUsuariosPage() {
     // Si la columna no existe, reintentamos sin ella
     profilesRes = await supabase
       .from("profiles")
-      .select("id, email, name, created_at, email_verified_at, status")
+      .select("id, public_id, email, name, created_at, email_verified_at, status")
       .order("created_at", { ascending: false })
       .limit(200);
     migrationWarning = "La columna 'last_ip' no existe en la DB. Por favor ejecuta la migración 016 o créala manualmente.";
@@ -240,6 +241,7 @@ export default async function AdminUsuariosPage() {
 
     return {
       id: p.id,
+      public_id: p.public_id ?? null,
       email: p.email,
       name: p.name,
       created_at: p.created_at,
