@@ -492,6 +492,10 @@
     "error_network": "Network error. Try again later.",
     "back_account": "← Back to My Account",
     "support_hint": "Problems with your deposit? Report issue here",
+    "verify_info_title": "Why do this verification?",
+    "verify_info_desc": "Once you have sent your BOLIS, it is necessary to press the button above so that the system converts the deposited BOLIS into Points and updates your account balance.",
+    "verify_info_timing": "⏱️ The process is completely automatic and can take from a few seconds to several minutes, depending on the current congestion level of the Solana network.",
+    "verify_info_support": "If a long time passed and your balance was not updated, make a report using the link at the bottom of this page.",
     "login_hint": "Login to deposit.",
     "btn_login": "Login",
     "loading": "Loading…"

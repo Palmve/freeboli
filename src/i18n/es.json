@@ -492,6 +492,10 @@
     "error_network": "Error al conectar con la red. Intenta más tarde.",
     "back_account": "← Volver a Mi cuenta",
     "support_hint": "¿Problemas con tu depósito? Reportar incidencia aquí",
+    "verify_info_title": "¿Por qué hacer esta verificación?",
+    "verify_info_desc": "Una vez que hayas enviado tus BOLIS, es necesario presionar el botón de arriba para que el sistema convierta los BOLIS depositados en Puntos y actualice tu saldo de cuenta.",
+    "verify_info_timing": "⏱️ El proceso es completamente automático y puede tardar desde unos pocos segundos hasta varios minutos, dependiendo del nivel de congestión actual de la red de Solana.",
+    "verify_info_support": "Si pasó mucho tiempo y tu saldo no se actualizó, haz un reporte con el link ubicado abajo en esta página.",
     "login_hint": "Entra para depositar.",
     "btn_login": "Entrar",
     "loading": "Cargando…"
