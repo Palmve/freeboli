@@ -18,12 +18,19 @@ export async function POST(req: Request) {
   if (!userId) return NextResponse.json({ error: "userId requerido." }, { status: 400 });
 
   const supabase = await createClient();
+  const isPublicId = /^\d{6}$/.test(userId);
 
-  const { data: p } = await supabase
+  let query = supabase
     .from("profiles")
-    .select("email, name, hilo_bet_count, faucet_claim_count, prediction_count, email_verified_at, created_at")
-    .eq("id", userId)
-    .single();
+    .select("email, name, hilo_bet_count, faucet_claim_count, prediction_count, email_verified_at, created_at");
+
+  if (isPublicId) {
+    query = query.eq("public_id", parseInt(userId));
+  } else {
+    query = query.eq("id", userId);
+  }
+
+  const { data: p } = await query.maybeSingle();
 
   if (!p?.email) return NextResponse.json({ error: "Usuario no encontrado o sin email." }, { status: 404 });
 

@@ -618,7 +618,7 @@ export default function ConfiguracionPage() {
                 <h3 className="text-base font-bold text-white">📤 Enviar Tarjeta a un Usuario</h3>
                 <p className="text-xs text-slate-400">Introduce el User ID para enviar manualmente la tarjeta de nivel actual.</p>
                 <div className="flex gap-2">
-                  <input id="level-user-id" type="text" placeholder="User ID (UUID)"
+                  <input id="level-user-id" type="text" placeholder="User ID (6 dígitos o UUID)"
                     className="flex-1 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-white font-mono text-sm focus:border-amber-500 focus:outline-none" />
                   <button
                     onClick={async () => {
