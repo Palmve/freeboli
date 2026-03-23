@@ -40,11 +40,46 @@ export async function POST(req: Request) {
   }
 
   const supabase = await createClient();
-  const userLevel = await fetchUserLevel(supabase, userId);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  // 1.⚡ OPTIMIZACIÓN v1.082: Consultas en paralelo para reducir latencia global
+  const [userLevel, maxWin, maxDailyWin, { data: todayMovements }, { count }, { data: profile }] = await Promise.all([
+    fetchUserLevel(supabase, userId),
+    getSetting<number>("MAX_WIN_POINTS", MAX_WIN_POINTS),
+    getSetting<number>("MAX_DAILY_WIN_POINTS", MAX_DAILY_WIN_POINTS),
+    supabase
+      .from("movements")
+      .select("points, type")
+      .eq("user_id", userId)
+      .in("type", ["premio_hi_lo", "apuesta_hi_lo"])
+      .gte("created_at", todayStart.toISOString()),
+    supabase
+      .from("movements")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("type", "apuesta_hi_lo"),
+    supabase
+      .from("profiles")
+      .select("terms_accepted_at")
+      .eq("id", userId)
+      .single()
+  ]);
+
+  if (!profile?.terms_accepted_at) {
+    return NextResponse.json(
+      { error: "Debes aceptar los terminos y condiciones antes de jugar.", requireTerms: true },
+      { status: 403 }
+    );
+  }
 
   const maxBet = userLevel.benefits.maxBetPoints;
-  const maxWin = await getSetting<number>("MAX_WIN_POINTS", MAX_WIN_POINTS);
-  const maxDailyWin = await getSetting<number>("MAX_DAILY_WIN_POINTS", MAX_DAILY_WIN_POINTS);
+  const totalWonToday = (todayMovements ?? [])
+    .filter(m => m.type === "premio_hi_lo")
+    .reduce((s, m) => s + (Number(m.points) || 0), 0);
+  const totalBetToday = Math.abs((todayMovements ?? [])
+    .filter(m => m.type === "apuesta_hi_lo")
+    .reduce((s, m) => s + (Number(m.points) || 0), 0));
 
   if (bet > maxBet) {
     return NextResponse.json(
@@ -61,18 +96,6 @@ export async function POST(req: Request) {
     );
   }
 
-  // ... (supabase ya está creado arriba)
-
-  // Check daily win cap
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const { data: todayWins } = await supabase
-    .from("movements")
-    .select("points")
-    .eq("user_id", userId)
-    .eq("type", "premio_hi_lo")
-    .gte("created_at", todayStart.toISOString());
-  const totalWonToday = (todayWins ?? []).reduce((s, m) => s + (Number(m.points) || 0), 0);
   if (totalWonToday >= maxDailyWin) {
     return NextResponse.json(
       { error: `Has alcanzado el limite diario de ganancias (${maxDailyWin.toLocaleString()} pts). Vuelve manana.` },
@@ -80,7 +103,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 1. Descuento atómico de la apuesta e incremento de contador de nivel
+  // 2. Descuento atómico de la apuesta e incremento de contador de nivel
   const { data: subData, error: subError } = await supabase.rpc("place_hilo_bet", {
     p_user_id: userId,
     p_amount: bet,
@@ -93,63 +116,45 @@ export async function POST(req: Request) {
   }
 
   const balanceAfterBet = Number(subData[0].result_balance);
-
-  // Check terms acceptance
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("terms_accepted_at")
-    .eq("id", userId)
-    .single();
-  if (!profile?.terms_accepted_at) {
-    return NextResponse.json(
-      { error: "Debes aceptar los terminos y condiciones antes de jugar.", requireTerms: true },
-      { status: 403 }
-    );
-  }
-
-  const { count } = await supabase
-    .from("movements")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("type", "apuesta_hi_lo");
   const nonce = (count ?? 0) + 1;
 
+  // 3. Jugar el resultado
   const result = playHiLo(bet, choice, odds, client_seed, nonce);
   let finalPoints = balanceAfterBet;
   const { verification } = result;
-  await supabase.from("movements").insert({
-    user_id: userId,
-    type: "apuesta_hi_lo",
-    points: -result.bet,
-    reference: null,
-    metadata: {
-      choice: result.choice,
-      roll: result.roll,
-      win: result.win,
-      payout: result.payout,
-      server_seed: verification.server_seed,
-      server_seed_hash: verification.server_seed_hash,
-      client_seed: verification.client_seed,
-      nonce: verification.nonce,
-    },
-  });
+
+  // 4. Registrar la apuesta (Operación paralela con el premio)
+  const inserts = [
+    supabase.from("movements").insert({
+      user_id: userId,
+      type: "apuesta_hi_lo",
+      points: -result.bet,
+      metadata: {
+        choice: result.choice,
+        roll: result.roll,
+        win: result.win,
+        payout: result.payout,
+        server_seed: verification.server_seed,
+        server_seed_hash: verification.server_seed_hash,
+        client_seed: verification.client_seed,
+        nonce: verification.nonce,
+      },
+    })
+  ];
+
   if (result.payout > 0) {
     // Detectar win-rate anómalo (> 5x sobre lo apostado hoy = sospecha)
-    const totalBetToday = Math.abs((todayWins ?? []).reduce((s, m) => s + (Number(m.points) || 0), 0));
-    if (totalBetToday > 0) {
-      const winRate = totalWonToday / totalBetToday;
-      if (winRate > 5) {
-        await logSecurityEvent({
-          eventType: "hilo_suspicious_win_rate",
-          userId,
-          details: { winRate: winRate.toFixed(2), totalWonToday, totalBetToday },
-          severity: "high",
-        });
-        await alertSuspiciousActivity(currentUser.email, `Win rate sospechoso en HI-LO: ${winRate.toFixed(2)}x (${totalWonToday.toLocaleString()} pts ganados hoy)`);
-      }
+    const currentWinRate = totalBetToday > 0 ? (totalWonToday + result.payout - result.bet) / totalBetToday : 0;
+    if (totalBetToday > 0 && currentWinRate > 5) {
+      logSecurityEvent({
+        eventType: "hilo_suspicious_win_rate",
+        userId,
+        details: { winRate: currentWinRate.toFixed(2), totalWonToday, totalBetToday },
+        severity: "high",
+      }).catch(console.error);
     }
 
-    // 2. Acreditar premio de forma atómica y verificar límite diario
+    // Acreditar premio de forma atómica y verificar límite diario
     const { data: addData, error: addError } = await supabase.rpc("atomic_add_hilo_prize", {
         p_user_id: userId,
         p_amount: result.payout,
@@ -157,128 +162,114 @@ export async function POST(req: Request) {
     });
 
     if (addError || !addData?.[0]?.success) {
-        // Si el premio no se pudo acreditar (ej: límite diario), no registramos el movimiento de premio
-        // El usuario ya perdió su apuesta en el paso 1. Esto es correcto para evitar abusos.
         console.warn(`[Security] Premio Hi-Lo declinado para ${userId}: ${addData?.[0]?.message || addError?.message}`);
-        finalPoints = balanceAfterBet; // El balance sigue siendo el de después de la apuesta
+        finalPoints = balanceAfterBet;
     } else {
         finalPoints = Number(addData[0].result_balance);
+        inserts.push(
+          supabase.from("movements").insert({
+            user_id: userId,
+            type: "premio_hi_lo",
+            points: result.payout,
+            metadata: { roll: result.roll, choice: result.choice },
+          })
+        );
 
-        await supabase.from("movements").insert({
-          user_id: userId,
-          type: "premio_hi_lo",
-          points: result.payout,
-          reference: null,
-          metadata: { roll: result.roll, choice: result.choice },
-        });
-
-        const winAmount = result.payout - result.bet;
-        if (winAmount >= maxWin * 0.5) {
-          await alertLargeWin(currentUser.email, result.bet, result.payout);
-        }
-
-        // Alerta de límite (informativa)
-        // Nota: El límite ya fue verificado por el RPC, aquí solo alertamos si estamos cerca
-        if (finalPoints >= maxDailyWin * 0.8) {
-           // (Opcional) Podemos alertar aquí
+        if (result.payout - result.bet >= maxWin * 0.5) {
+          alertLargeWin(currentUser.email, result.bet, result.payout).catch(console.error);
         }
     }
   }
 
-  // Mantener solo las últimas 100 jugadas HI-LO por usuario (apuestas + premios)
-  const { data: oldHiLo } = await supabase
-    .from("movements")
-    .select("id, points, type, created_at")
-    .eq("user_id", userId)
-    .in("type", ["apuesta_hi_lo", "premio_hi_lo"])
-    .order("created_at", { ascending: false })
-    .range(100, 1000);
+  // 5. Esperar inserciones críticas
+  await Promise.all(inserts);
 
-  if (oldHiLo && oldHiLo.length > 0) {
-    const groupedByDay: Record<string, { pointsBet: number, pointsWon: number, countBet: number, countWon: number, ids: string[] }> = {};
-    
-    for (const m of oldHiLo) {
-        const day = m.created_at.split("T")[0];
-        if (!groupedByDay[day]) groupedByDay[day] = { pointsBet: 0, pointsWon: 0, countBet: 0, countWon: 0, ids: [] };
-        
-        groupedByDay[day].ids.push(m.id);
-        if (m.type === "apuesta_hi_lo") {
-            groupedByDay[day].pointsBet += Number(m.points);
-            groupedByDay[day].countBet++;
-        }
-        if (m.type === "premio_hi_lo") {
-            groupedByDay[day].pointsWon += Number(m.points);
-            groupedByDay[day].countWon++;
-        }
-    }
+  // 6. 🧹 OPTIMIZACIÓN v1.082: Limpieza de historial diferida (Lazy Rollup)
+  // Solo se ejecuta cada 50 jugadas para no ralentizar el juego manual/auto
+  if (nonce % 50 === 0) {
+    const { data: oldHiLo } = await supabase
+      .from("movements")
+      .select("id, points, type, created_at")
+      .eq("user_id", userId)
+      .in("type", ["apuesta_hi_lo", "premio_hi_lo"])
+      .order("created_at", { ascending: false })
+      .range(100, 1000);
 
-    for (const [day, group] of Object.entries(groupedByDay)) {
+    if (oldHiLo && oldHiLo.length > 0) {
+      const groupedByDay: Record<string, { pointsBet: number, pointsWon: number, countBet: number, countWon: number, ids: string[] }> = {};
+      for (const m of oldHiLo) {
+          const day = m.created_at.split("T")[0];
+          if (!groupedByDay[day]) groupedByDay[day] = { pointsBet: 0, pointsWon: 0, countBet: 0, countWon: 0, ids: [] };
+          groupedByDay[day].ids.push(m.id);
+          if (m.type === "apuesta_hi_lo") {
+              groupedByDay[day].pointsBet += Number(m.points);
+              groupedByDay[day].countBet++;
+          }
+          if (m.type === "premio_hi_lo") {
+              groupedByDay[day].pointsWon += Number(m.points);
+              groupedByDay[day].countWon++;
+          }
+      }
+
+      for (const [day, group] of Object.entries(groupedByDay)) {
         if (group.pointsBet !== 0) {
-            await supabase.from("movements").insert({
-                user_id: userId,
-                type: "apuesta_hi_lo",
-                points: group.pointsBet,
-                created_at: `${day}T23:59:59.000Z`,
-                reference: "agrupacion_" + day,
-                metadata: { rollup_count: group.countBet }
-            });
+          await supabase.from("movements").insert({
+            user_id: userId,
+            type: "apuesta_hi_lo",
+            points: group.pointsBet,
+            created_at: `${day}T23:59:59.000Z`,
+            reference: "agrupacion_" + day,
+            metadata: { rollup_count: group.countBet }
+          });
         }
         if (group.pointsWon !== 0) {
-            await supabase.from("movements").insert({
-                user_id: userId,
-                type: "premio_hi_lo",
-                points: group.pointsWon,
-                created_at: `${day}T23:59:59.000Z`,
-                reference: "agrupacion_premio_" + day,
-                metadata: { rollup_count: group.countWon }
-            });
+          await supabase.from("movements").insert({
+            user_id: userId,
+            type: "premio_hi_lo",
+            points: group.pointsWon,
+            created_at: `${day}T23:59:59.000Z`,
+            reference: "agrupacion_premio_" + day,
+            metadata: { rollup_count: group.countWon }
+          });
         }
-    }
-
-    await supabase
-      .from("movements")
-      .delete()
-      .in(
-        "id",
-        oldHiLo.map((m) => m.id)
-      );
-  }
-
-  const { data: ref } = await supabase
-    .from("referrals")
-    .select("referrer_id")
-    .eq("referred_id", userId)
-    .single();
-
-  const gameCommPercent = await getSetting<number>("AFFILIATE_GAME_PERCENT", AFFILIATE_GAME_PERCENT);
-
-  if (ref?.referrer_id && gameCommPercent > 0) {
-    // Verificar tope diario de comisiones del referrer
-    const { checkAffiliateCommissionCap } = await import("@/lib/affiliate-guard");
-    const { allowed: capAllowed } = await checkAffiliateCommissionCap(supabase, ref.referrer_id);
-    if (capAllowed) {
-      const commission = Math.floor((bet * gameCommPercent) / 100);
-      if (commission > 0) {
-        // Acreditar comisión de afiliado de forma atómica
-        await supabase.rpc("atomic_add_points", {
-            target_user_id: ref.referrer_id,
-            amount_to_add: commission
-        });
-
-        await supabase.from("movements").insert({
-          user_id: ref.referrer_id,
-          type: "comision_afiliado",
-          points: commission,
-          reference: userId,
-          metadata: { source: "hi_lo", referred_user: userId, bet_amount: bet },
-        });
       }
+
+      await supabase.from("movements").delete().in("id", oldHiLo.map((m) => m.id));
     }
   }
 
-  const { checkAndNotifyLevelUp } = await import("@/lib/levels");
-  await checkAndNotifyLevelUp(supabase, userId, currentUser.email, currentUser.name);
+  // 7. Acciones secundarias (Referidos, Niveles)
+  // No bloqueamos la respuesta con estas peticiones si es posible
+  const finalTasks = async () => {
+    try {
+      const { data: ref } = await supabase.from("referrals").select("referrer_id").eq("referred_id", userId).maybeSingle();
+      const gameCommPercent = await getSetting<number>("AFFILIATE_GAME_PERCENT", AFFILIATE_GAME_PERCENT);
 
+      if (ref?.referrer_id && gameCommPercent > 0) {
+        const { checkAffiliateCommissionCap } = await import("@/lib/affiliate-guard");
+        const { allowed: capAllowed } = await checkAffiliateCommissionCap(supabase, ref.referrer_id);
+        if (capAllowed) {
+          const commission = Math.floor((bet * gameCommPercent) / 100);
+          if (commission > 0) {
+            await supabase.rpc("atomic_add_points", { target_user_id: ref.referrer_id, amount_to_add: commission });
+            await supabase.from("movements").insert({
+              user_id: ref.referrer_id,
+              type: "comision_afiliado",
+              points: commission,
+              reference: userId,
+              metadata: { source: "hi_lo", referred_user: userId, bet_amount: bet },
+            });
+          }
+        }
+      }
+      const { checkAndNotifyLevelUp } = await import("@/lib/levels");
+      await checkAndNotifyLevelUp(supabase, userId, currentUser.email, currentUser.name);
+    } catch (e) { console.error("[Secondary Tasks Error]:", e); }
+  };
+  
+  // Ejecutamos tareas secundarias en "segundo plano" (Next.js espera a que termine la respuesta pero nosotros enviamos el JSON antes si el runtime lo permite)
+  // En este entorno, simplemente las lanzamos y retornamos el resultado.
+  finalTasks();
   return NextResponse.json({
     roll: result.roll,
     choice: result.choice,

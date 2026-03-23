@@ -295,7 +295,7 @@ export default function HiLoPage() {
         rollsLeft--;
         if (stopProfit != null && totalProfit >= stopProfit) break;
         if (stopLoss != null && totalProfit <= -stopLoss) break;
-        await new Promise((r) => setTimeout(r, 600));
+        await new Promise((r) => setTimeout(r, 250));
       }
       setAutoRunning(false);
       setDisplayRoll("0000");
