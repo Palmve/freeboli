@@ -127,7 +127,9 @@ export async function POST(req: Request) {
     .eq("user_id", userId)
     .gte("created_at", oneDayAgo);
 
-  if ((recentWithdrawals ?? 0) >= 3) {
+  const hasOverride = currentUser.withdrawLimitOverrideUntil && new Date(currentUser.withdrawLimitOverrideUntil) > new Date();
+
+  if (!hasOverride && (recentWithdrawals ?? 0) >= 3) {
     await logSecurityEvent({
       eventType: "suspicious_withdrawal_frequency",
       userId,
@@ -145,6 +147,10 @@ export async function POST(req: Request) {
       { error: "Tu solicitud de retiro ha sido bloqueada temporalmente por seguridad debido a la alta frecuencia de retiros en las últimas 24 horas. Por favor, contacta con soporte." },
       { status: 403 }
     );
+  }
+
+  if (hasOverride) {
+    console.log(`[Withdraw] Usuario ${userId} tiene un bypass activo (hasta ${currentUser.withdrawLimitOverrideUntil}). Ignorando límite de frecuencia.`);
   }
 
   // 1. Ejecutar solicitud de retiro de forma atómica (Evita Race Condition)

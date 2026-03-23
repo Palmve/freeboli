@@ -118,7 +118,7 @@ export async function getAdminUser(): Promise<CurrentUser | null> {
     const sb = createServiceClient(url, key);
     const { data: profile } = await sb
       .from("profiles")
-      .select("status, is_admin")
+      .select("status, is_admin, withdraw_limit_override_until")
       .eq("id", id)
       .maybeSingle();
 
@@ -132,6 +132,7 @@ export async function getAdminUser(): Promise<CurrentUser | null> {
       name,
       isAdmin: true,
       status: (profile?.status as UserStatus) || "normal",
+      withdrawLimitOverrideUntil: profile?.withdraw_limit_override_until
     };
   } catch {
     return null;
@@ -144,6 +145,7 @@ export interface CurrentUser {
   name?: string;
   isAdmin: boolean;
   status: UserStatus;
+  withdrawLimitOverrideUntil?: string | null;
 }
 
 /**
@@ -176,7 +178,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     const supabase = await createClient();
     const { data: profile } = await supabase
       .from("profiles")
-      .select("status")
+      .select("status, withdraw_limit_override_until")
       .eq("id", id)
       .single();
     return {
@@ -185,13 +187,14 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       name: session.user.name ?? undefined,
       isAdmin,
       status: (profile?.status as UserStatus) || "normal",
+      withdrawLimitOverrideUntil: profile?.withdraw_limit_override_until,
     };
   }
   if (REQUIRE_AUTH) return null;
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
-    .select("id, email, name, is_admin, status")
+    .select("id, email, name, is_admin, status, withdraw_limit_override_until")
     .eq("email", LOCAL_USER_EMAIL)
     .single();
   if (!data) return null;
@@ -201,5 +204,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     name: data.name ?? undefined,
     isAdmin: !!data.is_admin,
     status: (data.status as UserStatus) || "normal",
+    withdrawLimitOverrideUntil: data.withdraw_limit_override_until,
   };
 }

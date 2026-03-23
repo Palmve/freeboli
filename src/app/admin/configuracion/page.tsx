@@ -180,6 +180,28 @@ export default function ConfiguracionPage() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
 
+  const updateSecurityEvent = async (eventId: string, status: string) => {
+    setMessage("");
+    try {
+      const res = await fetch("/api/admin/security-events", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId, status }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setMessage("Evento de seguridad actualizado.");
+        fetch("/api/admin/security-events")
+          .then(r => r.json())
+          .then(d => setSecEvents(d.events || []));
+      } else {
+        setMessage("Error: " + data.error);
+      }
+    } catch {
+      setMessage("Error al conectar con la API");
+    }
+  };
+
   const updateTicketStatus = async (ticketId: string, newStatus: string) => {
     setMessage("");
     try {
@@ -471,24 +493,51 @@ export default function ConfiguracionPage() {
                           <th className="px-4 py-3">Severidad</th>
                           <th className="px-4 py-3">Evento</th>
                           <th className="px-4 py-3">Usuario</th>
-                          <th className="px-4 py-3 text-right">Fecha</th>
+                          <th className="px-4 py-3">Fecha</th>
+                          <th className="px-4 py-3 text-right">Acción</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800">
                         {secEvents.map((e: any) => (
                           <tr key={e.id} className="hover:bg-slate-800/20 transition">
                             <td className="px-4 py-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                                e.severity === 'critical' ? 'bg-red-600 text-white' :
-                                e.severity === 'high' ? 'bg-orange-500/20 text-orange-400' :
-                                e.severity === 'medium' ? 'bg-amber-500/20 text-amber-400' :
-                                'bg-slate-700 text-slate-400'
-                              }`}>{e.severity}</span>
+                              <div className="flex flex-col gap-1">
+                                <span className={`w-fit px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                  e.severity === 'critical' ? 'bg-red-600 text-white' :
+                                  e.severity === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                                  e.severity === 'medium' ? 'bg-amber-500/20 text-amber-400' :
+                                  'bg-slate-700 text-slate-400'
+                                }`}>{e.severity}</span>
+                                {e.status && e.status !== 'pending' && (
+                                  <span className={`w-fit px-2 py-0.5 rounded text-[9px] font-bold uppercase ${e.status === 'resolved' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'}`}>
+                                    {e.status === 'resolved' ? 'Resuelto' : 'Descartado'}
+                                  </span>
+                                )}
+                              </div>
                             </td>
-                            <td className="px-4 py-3 text-slate-300 font-mono">{e.event_type}</td>
+                            <td className="px-4 py-3">
+                              <div className="text-slate-300 font-mono text-[11px] font-bold">{e.event_type}</div>
+                              {e.details?.recentCount && <div className="text-[10px] text-slate-500">Frecuencia: {e.details.recentCount} en 24h</div>}
+                            </td>
                             <td className="px-4 py-3 text-slate-500 font-mono text-[10px] truncate max-w-[120px]">{e.user_id ?? '—'}</td>
-                            <td className="px-4 py-3 text-right text-slate-500 whitespace-nowrap">
+                            <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
                               {new Date(e.created_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {(!e.status || e.status === 'pending') ? (
+                                <div className="flex justify-end gap-1">
+                                  <button 
+                                    onClick={() => updateSecurityEvent(e.id, 'resolved')}
+                                    className="bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 px-2 py-1 rounded text-[10px] font-bold border border-emerald-500/30 transition"
+                                  >Resolver</button>
+                                  <button 
+                                    onClick={() => updateSecurityEvent(e.id, 'dismissed')}
+                                    className="bg-slate-800 hover:bg-slate-700 text-slate-400 px-2 py-1 rounded text-[10px] font-bold border border-slate-700 transition"
+                                  >Omitir</button>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-slate-600 italic">Gestionado</span>
+                              )}
                             </td>
                           </tr>
                         ))}
