@@ -260,7 +260,7 @@ export default function ConfiguracionPage() {
             Ajustes
           </h2>
           <nav className="space-y-1">
-            {groups.filter(g => g !== "Seguridad" && g !== "Soporte" && g !== "Predicciones (General)").map((group) => (
+            {groups.filter(g => g !== "Seguridad" && g !== "Soporte" && g !== "Predicciones (General)" && g !== "Niveles").map((group) => (
               <button
                 key={group}
                 onClick={() => { setActiveTab(group); setIsMenuOpen(false); }}
