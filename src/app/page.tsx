@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { POINTS_PER_BOLIS } from "@/lib/config";
 import { useLang } from "@/context/LangContext";
 import LevelProgressCard from "@/components/LevelProgressCard";
+import PromoCard from "@/components/PromoCard";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
@@ -60,7 +61,7 @@ function GameCard({ icon, label, desc, href, color, border, glow }: typeof MISSI
 
 export default function HomePage() {
   const { data: session, status } = useSession();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const loggedIn = !!session?.user || !REQUIRE_AUTH;
   const loading = REQUIRE_AUTH && status === "loading";
   const [tick, setTick] = useState(0);
@@ -160,16 +161,22 @@ export default function HomePage() {
         ))}
       </section>
 
-      {/* ═══════════════════════════════════════
-          WIDGET DE NIVEL (sólo logueados)     
-      ═══════════════════════════════════════ */}
       {loggedIn && !loading && (
-        <section>
-          <div className="mb-3 flex items-center gap-2">
-            <span className="text-lg">🎮</span>
-            <h2 className="text-base font-black text-slate-300 uppercase tracking-widest">{t("levels.title")}</h2>
+        <section className="grid gap-6 lg:grid-cols-2">
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="text-lg">🎮</span>
+              <h2 className="text-base font-black text-slate-300 uppercase tracking-widest">{t("levels.title")}</h2>
+            </div>
+            <LevelProgressCard />
           </div>
-          <LevelProgressCard />
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="text-lg">🎁</span>
+              <h2 className="text-base font-black text-slate-300 uppercase tracking-widest">{lang === "es" ? "Promoción Activa" : "Active Promotion"}</h2>
+            </div>
+            <PromoCard />
+          </div>
         </section>
       )}
 
