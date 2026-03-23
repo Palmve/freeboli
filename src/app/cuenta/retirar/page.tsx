@@ -127,27 +127,55 @@ export default function RetirarPage() {
 
         {/* Tarjeta de límite de retiro por rango */}
         {levelStats && (
-          <div className="mt-3 rounded-xl bg-emerald-900/20 border border-emerald-700/30 p-3">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{levelStats.icon}</span>
+          levelStats.maxWithdrawBolis === 0 ? (
+            /* ── SIN DERECHO A RETIRO ── */
+            <div className="mt-3 rounded-xl bg-red-900/20 border border-red-700/40 p-3">
+              <div className="flex items-start gap-2">
+                <span className="text-xl mt-0.5">🚫</span>
                 <div>
-                  <p className="text-xs text-slate-400">Rango actual</p>
-                  <p className={`text-sm font-black ${levelStats.color}`}>{levelStats.name}</p>
+                  <p className="text-sm font-black text-red-300">
+                    {levelStats.icon} {levelStats.name} — Sin derecho a retiro
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    Los niveles <strong className="text-white">Novato</strong> y <strong className="text-white">Aprendiz</strong> no pueden retirar BOLIS aún.
+                    Sube al nivel <strong className="text-blue-400">🥇 Jugador</strong> para desbloquear los retiros.
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Jugador desbloquea: <span className="text-emerald-400 font-bold">10 BOLIS / día</span> = 10,000 puntos mínimo
+                  </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-500">Retiro máximo por día</p>
-                <p className="text-lg font-black text-emerald-400">{levelStats.maxWithdrawBolis} <span className="text-xs font-medium">BOLIS</span></p>
-              </div>
+              <Link href="/recompensas" className="text-[10px] text-amber-400 hover:underline font-bold mt-2 inline-block">
+                Ver requisitos para subir de nivel →
+              </Link>
             </div>
-            <p className="text-[10px] text-slate-500 mt-2">
-              Sube de nivel para aumentar tu límite de retiro diario. Cada rango superior desbloquea más BOLIS por día.
-            </p>
-            <Link href="/recompensas#niveles" className="text-[10px] text-amber-400 hover:underline font-bold mt-1 inline-block">
-              Ver todos los límites por rango →
-            </Link>
-          </div>
+          ) : (
+            /* ── CON ACCESO A RETIRO ── */
+            <div className="mt-3 rounded-xl bg-emerald-900/20 border border-emerald-700/30 p-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{levelStats.icon}</span>
+                  <div>
+                    <p className="text-xs text-slate-400">Rango actual</p>
+                    <p className={`text-sm font-black ${levelStats.color}`}>{levelStats.name}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500">Retiro máximo por solicitud</p>
+                  <p className="text-lg font-black text-emerald-400">
+                    {levelStats.maxWithdrawBolis} <span className="text-xs font-medium">BOLIS</span>
+                    <span className="text-xs text-slate-500 ml-1">= {(levelStats.maxWithdrawBolis * 1000).toLocaleString()} pts</span>
+                  </p>
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-500 mt-2">
+                Sube de nivel para aumentar tu límite de retiro. Cada rango superior desbloquea más BOLIS.
+              </p>
+              <Link href="/recompensas" className="text-[10px] text-amber-400 hover:underline font-bold mt-1 inline-block">
+                Ver todos los límites por rango →
+              </Link>
+            </div>
+          )
         )}
       </div>
 

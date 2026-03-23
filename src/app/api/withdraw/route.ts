@@ -78,8 +78,15 @@ export async function POST(req: Request) {
   }
 
   if (requestedBolis > maxWithdrawBolis) {
+    // Si maxWithdrawBolis es 0, el nivel no tiene derecho a retiro
+    if (maxWithdrawBolis === 0) {
+      return NextResponse.json(
+        { error: `El nivel ${userLevel.icon} ${userLevel.name} no tiene derecho a retiro. Sube al nivel Jugador para desbloquear los retiros (mínimo 10,000 puntos).` },
+        { status: 403 }
+      );
+    }
     return NextResponse.json(
-      { error: `Tu nivel (${userLevel.name}) permite un retiro máximo de ${maxWithdrawBolis} BOLIS por solicitud.` },
+      { error: `Tu nivel (${userLevel.name}) permite un retiro máximo de ${maxWithdrawBolis} BOLIS (${(maxWithdrawBolis * POINTS_PER_BOLIS).toLocaleString()} puntos) por solicitud.` },
       { status: 400 }
     );
   }
