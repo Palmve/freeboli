@@ -239,32 +239,72 @@ export default function HomePage() {
         </div>
 
         {/* Barra visual de progresión de rangos */}
-        <div className="flex items-start justify-between gap-0 pt-4 overflow-x-auto pb-2 px-1">
-          {[
-            { icon: "🥉", name: t("home.rank_novice"), color: "text-slate-400", bg: "bg-slate-800", ring: "ring-slate-500" },
-            { icon: "🥈", name: t("home.rank_apprentice"), color: "text-sky-400", bg: "bg-sky-900/40", ring: "ring-sky-500" },
-            { icon: "🥇", name: t("home.rank_player"), color: "text-blue-400", bg: "bg-blue-900/40", ring: "ring-blue-500" },
-            { icon: "⭐", name: t("home.rank_veteran"), color: "text-purple-400", bg: "bg-purple-900/40", ring: "ring-purple-500" },
-            { icon: "💎", name: t("home.rank_expert"), color: "text-emerald-400", bg: "bg-emerald-900/40", ring: "ring-emerald-500" },
-            { icon: "👑", name: t("home.rank_master"), color: "text-amber-400", bg: "bg-amber-900/40", ring: "ring-amber-500" },
-            { icon: "🔥", name: t("home.rank_legend"), color: "text-red-400", bg: "bg-red-900/40", ring: "ring-red-500" },
-          ].map((lvl, i, arr) => (
-            <div key={lvl.name} className="flex items-center flex-1 min-w-0">
-              {/* Nodo del nivel */}
-              <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-                <div className={`w-9 h-9 xs:w-10 h-10 sm:w-14 sm:h-14 rounded-full ${lvl.bg} ring-1 sm:ring-2 ${lvl.ring} flex items-center justify-center text-xl sm:text-3xl shadow-lg shadow-black/30`}>
-                  {lvl.icon}
+        <div className="pt-4 pb-2 px-1">
+          {/* Desktop Layout: Una sola fila */}
+          <div className="hidden sm:flex items-start justify-between gap-0">
+            {[
+              { icon: "🥉", key: "novice",     color: "text-slate-400",   bg: "bg-slate-800",      ring: "ring-slate-500" },
+              { icon: "🥈", key: "apprentice", color: "text-sky-400",     bg: "bg-sky-900/40",     ring: "ring-sky-500" },
+              { icon: "🥇", key: "player",     color: "text-blue-400",    bg: "bg-blue-900/40",    ring: "ring-blue-500" },
+              { icon: "⭐", key: "veteran",    color: "text-purple-400",  bg: "bg-purple-900/40",  ring: "ring-purple-500" },
+              { icon: "💎", key: "expert",     color: "text-emerald-400", bg: "bg-emerald-900/40", ring: "ring-emerald-500" },
+              { icon: "👑", key: "master",     color: "text-amber-400",   bg: "bg-amber-900/40",   ring: "ring-amber-500" },
+              { icon: "🔥", key: "legend",     color: "text-red-400",     bg: "bg-red-900/40",     ring: "ring-red-500" },
+            ].map((lvl, i, arr) => (
+              <div key={lvl.key} className="flex items-center flex-1 min-w-0">
+                <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                  <div className={`w-14 h-14 rounded-full ${lvl.bg} ring-2 ${lvl.ring} flex items-center justify-center text-3xl shadow-lg shadow-black/30`}>
+                    {lvl.icon}
+                  </div>
+                  <span className={`text-[11px] font-black ${lvl.color} text-center whitespace-nowrap`}>
+                    {t(`home.rank_${lvl.key}`)}
+                  </span>
                 </div>
-                <span className={`text-[8px] xs:text-[9px] sm:text-[11px] font-black ${lvl.color} text-center whitespace-nowrap`}>
-                  {t(`home.rank_${lvl.name === "Novato" ? "novice" : lvl.name === "Aprendiz" ? "apprentice" : lvl.name === "Jugador" ? "player" : lvl.name === "Veterano" ? "veteran" : lvl.name === "Experto" ? "expert" : lvl.name === "Maestro" ? "master" : "legend"}`)}
-                </span>
+                {i < arr.length - 1 && (
+                  <div className="flex-1 h-[2px] bg-gradient-to-r from-slate-600 to-slate-700 mx-2 mb-5" />
+                )}
               </div>
-              {/* Conector — solo entre nodos, no al final */}
-              {i < arr.length - 1 && (
-                <div className="flex-1 h-[2px] bg-gradient-to-r from-slate-600 to-slate-700 mx-1 sm:mx-2 mb-5" />
-              )}
+            ))}
+          </div>
+
+          {/* Mobile Layout: Dos filas (3 y 4) */}
+          <div className="sm:hidden space-y-6">
+            {/* Fila 1: 3 niveles */}
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { icon: "🥉", key: "novice",     color: "text-slate-400",   bg: "bg-slate-800",      ring: "ring-slate-500" },
+                { icon: "🥈", key: "apprentice", color: "text-sky-400",     bg: "bg-sky-900/40",     ring: "ring-sky-500" },
+                { icon: "🥇", key: "player",     color: "text-blue-400",    bg: "bg-blue-900/40",    ring: "ring-blue-500" },
+              ].map((lvl) => (
+                <div key={lvl.key} className="flex flex-col items-center gap-1.5">
+                  <div className={`w-12 h-12 rounded-full ${lvl.bg} ring-1 ${lvl.ring} flex items-center justify-center text-2xl shadow-lg shadow-black/30`}>
+                    {lvl.icon}
+                  </div>
+                  <span className={`text-[10px] font-black ${lvl.color} text-center`}>
+                    {t(`home.rank_${lvl.key}`)}
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
+            {/* Fila 2: 4 niveles */}
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { icon: "⭐", key: "veteran",    color: "text-purple-400",  bg: "bg-purple-900/40",  ring: "ring-purple-500" },
+                { icon: "💎", key: "expert",     color: "text-emerald-400", bg: "bg-emerald-900/40", ring: "ring-emerald-500" },
+                { icon: "👑", key: "master",     color: "text-amber-400",   bg: "bg-amber-900/40",   ring: "ring-amber-500" },
+                { icon: "🔥", key: "legend",     color: "text-red-400",     bg: "bg-red-900/40",     ring: "ring-red-500" },
+              ].map((lvl) => (
+                <div key={lvl.key} className="flex flex-col items-center gap-1.5">
+                  <div className={`w-10 h-10 rounded-full ${lvl.bg} ring-1 ${lvl.ring} flex items-center justify-center text-xl shadow-lg shadow-black/30`}>
+                    {lvl.icon}
+                  </div>
+                  <span className={`text-[9px] font-black ${lvl.color} text-center`}>
+                    {t(`home.rank_${lvl.key}`)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 text-center text-sm">
