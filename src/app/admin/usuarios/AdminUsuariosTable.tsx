@@ -11,11 +11,31 @@ type Movement = {
   created_at: string;
 };
 
-const STATUS_CONFIG: Record<UserStatus, { label: string; bg: string; text: string }> = {
-  normal: { label: "Normal", bg: "bg-green-500/20", text: "text-green-400" },
-  evaluar: { label: "A Evaluar", bg: "bg-yellow-500/20", text: "text-yellow-400" },
-  suspendido: { label: "Suspendido", bg: "bg-orange-500/20", text: "text-orange-400" },
-  bloqueado: { label: "Bloqueado", bg: "bg-red-500/20", text: "text-red-400" },
+const STATUS_CONFIG: Record<UserStatus, { label: string; bg: string; text: string; description: string }> = {
+  normal: { 
+    label: "Normal", 
+    bg: "bg-green-500/20", 
+    text: "text-green-400",
+    description: "Usuario activo. Puede jugar, reclamar faucet y retirar libremente."
+  },
+  evaluar: { 
+    label: "A Evaluar", 
+    bg: "bg-yellow-500/20", 
+    text: "text-yellow-400",
+    description: "Bajo observación. El sistema ha detectado patrones sospechosos para revisión."
+  },
+  suspendido: { 
+    label: "Suspendido", 
+    bg: "bg-orange-500/20", 
+    text: "text-orange-400",
+    description: "Bloqueo temporal. El usuario no puede realizar retiros ni jugar."
+  },
+  bloqueado: { 
+    label: "Bloqueado", 
+    bg: "bg-red-500/20", 
+    text: "text-red-400",
+    description: "Bloqueo permanente. El acceso está totalmente denegado por fraude."
+  },
 };
 
 const STATUS_OPTIONS: UserStatus[] = ["normal", "evaluar", "suspendido", "bloqueado"];
@@ -306,25 +326,28 @@ export default function AdminUsuariosTable({ users, dbError }: { users: UserRow[
               {/* Status selector (Prioridad en móvil) */}
               <div className="bg-slate-900/40 p-3 rounded-xl border border-slate-700/50">
                 <p className="text-sm font-bold text-amber-400 mb-3 uppercase tracking-wider">Cambiar Estado:</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-3">
                   {STATUS_OPTIONS.map((s) => {
                     const c = STATUS_CONFIG[s];
                     const current = getStatus(detailUser);
                     return (
-                      <button
-                        key={s}
-                        onClick={() => {
-                          updateStatus(detailUser.id, s);
-                          setDetailUser({ ...detailUser, status: s });
-                        }}
-                        className={`rounded-lg px-3 py-2.5 text-xs font-bold transition-all shadow-md active:scale-95 border-2 ${
-                          current === s 
-                            ? "border-white bg-white/20 " + c.text 
-                            : "border-transparent opacity-60 hover:opacity-100 " + c.bg + " " + c.text
-                        }`}
-                      >
-                        {c.label}
-                      </button>
+                      <div key={s} className="space-y-1">
+                        <button
+                          onClick={() => {
+                            updateStatus(detailUser.id, s);
+                            setDetailUser({ ...detailUser, status: s });
+                          }}
+                          className={`w-full rounded-lg px-3 py-2 text-xs font-bold transition-all shadow-md active:scale-95 border-2 flex items-center justify-between ${
+                            current === s 
+                              ? "border-white bg-white/20 " + c.text 
+                              : "border-transparent opacity-60 hover:opacity-100 " + c.bg + " " + c.text
+                          }`}
+                        >
+                          <span>{c.label}</span>
+                          {current === s && <span className="text-[10px]">ACTUAL</span>}
+                        </button>
+                        <p className="text-[10px] text-slate-500 px-1 italic">{c.description}</p>
+                      </div>
                     );
                   })}
                 </div>
