@@ -9,7 +9,7 @@ const dictionaries: Record<Lang, any> = { es, en };
 
 interface LangContextType {
   lang: Lang;
-  t: (keyPath: string) => string;
+  t: (keyPath: string, ...args: any[]) => string;
   changeLang: (newLang: Lang) => void;
 }
 
@@ -41,23 +41,40 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("freeboli_lang", newLang);
   };
 
-  const t = (keyPath: string): any => {
+  const t = (keyPath: string, ...args: any[]): string => {
     const keys = keyPath.split(".");
     let current: any = dictionaries[lang];
+    let found = true;
     
     for (const key of keys) {
       if (!current || current[key] === undefined) {
-        // Fallback al español si no existe en el idioma actual
-        let fallback: any = dictionaries["es"];
-        for (const fKey of keys) {
-          if (!fallback || fallback[fKey] === undefined) return keyPath;
-          fallback = fallback[fKey];
-        }
-        return fallback !== undefined ? fallback : keyPath;
+        found = false;
+        break;
       }
       current = current[key];
     }
-    return current !== undefined ? current : keyPath;
+
+    if (!found) {
+      // Fallback al español
+      current = dictionaries["es"];
+      for (const key of keys) {
+        if (!current || current[key] === undefined) {
+          return keyPath;
+        }
+        current = current[key];
+      }
+    }
+
+    let result = (current !== undefined ? current : keyPath).toString();
+    
+    // Interpolación {0}, {1}, etc.
+    if (args && args.length > 0) {
+      args.forEach((arg, i) => {
+        result = result.replace(`{${i}}`, arg?.toString() || "");
+      });
+    }
+    
+    return result;
   };
 
   return (

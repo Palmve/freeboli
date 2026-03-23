@@ -67,10 +67,10 @@ export default function HomePage() {
 
   // Estadísticas (dentro del componente para que t() funcione correctamente)
   const PLATFORM_STATS = [
-    { value: fmt(POINTS_PER_BOLIS), label: t("home.stat_points_label") || "Puntos = 1 BOLIS", icon: "💎" },
-    { value: "7", label: t("home.stat_levels_label") || "Niveles de Jugador", icon: "🏅" },
-    { value: "+100K", label: t("home.stat_prize_label") || "Puntos de Premio en Leyenda", icon: "🔥" },
-    { value: "24h", label: t("home.stat_ranking_label") || "Recompensas Ranking", icon: "⏱️" },
+    { value: fmt(POINTS_PER_BOLIS), label: t("home.stat_points_label"), icon: "💎" },
+    { value: "7", label: t("home.stat_levels_label"), icon: "🏅" },
+    { value: "+100K", label: t("home.stat_prize_label"), icon: "🔥" },
+    { value: "24h", label: t("home.stat_ranking_label"), icon: "⏱️" },
   ];
 
   // Animación del contador del hero
@@ -96,7 +96,7 @@ export default function HomePage() {
         {/* Badge de plataforma */}
         <div className="relative mb-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-black uppercase tracking-widest">
           <span className="animate-pulse w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-          FreeBoli — Gana, Juega, Retira en Solana
+          {t("home.hero_badge")}
         </div>
 
         {/* Título hero */}
@@ -104,7 +104,7 @@ export default function HomePage() {
           {t("home.title")}
           <br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300">
-            en BOLIS 🔥
+            {t("home.in_bolis")} 🔥
           </span>
         </h1>
 
@@ -167,7 +167,7 @@ export default function HomePage() {
         <section>
           <div className="mb-3 flex items-center gap-2">
             <span className="text-lg">🎮</span>
-            <h2 className="text-base font-black text-slate-300 uppercase tracking-widest">Tu Progreso de Jugador</h2>
+            <h2 className="text-base font-black text-slate-300 uppercase tracking-widest">{t("levels.title")}</h2>
           </div>
           <LevelProgressCard />
         </section>
@@ -180,14 +180,47 @@ export default function HomePage() {
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-lg">⚡</span>
-            <h2 className="text-base font-black text-slate-300 uppercase tracking-widest">Misiones del Día</h2>
+            <h2 className="text-base font-black text-slate-300 uppercase tracking-widest">{t("home.missions_title")}</h2>
           </div>
-          <span className="text-xs text-slate-600 font-mono">Completa para subir de nivel</span>
+          <span className="text-xs text-slate-600 font-mono">{t("home.missions_subtitle")}</span>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {MISSIONS.map((m) => (
-            <GameCard key={m.href} {...m} />
-          ))}
+          <GameCard 
+            icon="🚰" 
+            label={t("faucet.title")} 
+            desc={t("home.faucet_desc")} 
+            href="/faucet" 
+            color="from-blue-600 to-cyan-500" 
+            border="border-cyan-500/40" 
+            glow="hover:shadow-cyan-500/20" 
+          />
+          <GameCard 
+            icon="📈" 
+            label={t("nav.prediction")} 
+            desc={t("home.btc_pred_desc")} 
+            href="/predicciones" 
+            color="from-amber-600 to-yellow-400" 
+            border="border-amber-500/40" 
+            glow="hover:shadow-amber-500/20" 
+          />
+          <GameCard 
+            icon="🎲" 
+            label={t("hilo.title")} 
+            desc={t("home.hilo_desc")} 
+            href="/hi-lo" 
+            color="from-purple-600 to-pink-500" 
+            border="border-purple-500/40" 
+            glow="hover:shadow-purple-500/20" 
+          />
+          <GameCard 
+            icon="🏆" 
+            label={t("nav.ranking")} 
+            desc={t("ranking.no_data_hint")} 
+            href="/clasificacion" 
+            color="from-emerald-600 to-teal-400" 
+            border="border-emerald-500/40" 
+            glow="hover:shadow-emerald-500/20" 
+          />
         </div>
       </section>
 
@@ -198,21 +231,23 @@ export default function HomePage() {
         <div className="pointer-events-none absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl" />
 
         <div className="mb-5 text-center">
-          <span className="inline-block px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-black uppercase tracking-widest mb-3">Sistema de Rangos</span>
-          <h2 className="text-2xl font-black text-white">Sube de nivel. Desbloquea más poder.</h2>
-          <p className="text-sm text-slate-500 mt-1">Cada rango te da mayores límites y premios en puntos</p>
+          <span className="inline-block px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-black uppercase tracking-widest mb-3">
+            {t("home.ranks_system_title")}
+          </span>
+          <h2 className="text-2xl font-black text-white">{t("home.ranks_system_subtitle")}</h2>
+          <p className="text-sm text-slate-500 mt-1">{t("home.ranks_system_desc")}</p>
         </div>
 
         {/* Barra visual de progresión de rangos */}
         <div className="flex items-start justify-between gap-0 pt-4 overflow-x-auto pb-2 px-1">
           {[
-            { icon: "🥉", name: "Novato",   color: "text-slate-400",   bg: "bg-slate-800",      ring: "ring-slate-500" },
-            { icon: "🥈", name: "Aprendiz", color: "text-sky-400",     bg: "bg-sky-900/40",     ring: "ring-sky-500" },
-            { icon: "🥇", name: "Jugador",  color: "text-blue-400",    bg: "bg-blue-900/40",    ring: "ring-blue-500" },
-            { icon: "⭐", name: "Veterano", color: "text-purple-400",  bg: "bg-purple-900/40",  ring: "ring-purple-500" },
-            { icon: "💎", name: "Experto",  color: "text-emerald-400", bg: "bg-emerald-900/40", ring: "ring-emerald-500" },
-            { icon: "👑", name: "Maestro",  color: "text-amber-400",   bg: "bg-amber-900/40",   ring: "ring-amber-500" },
-            { icon: "🔥", name: "Leyenda",  color: "text-red-400",     bg: "bg-red-900/40",     ring: "ring-red-500" },
+            { icon: "🥉", name: t("home.rank_novice"),     color: "text-slate-400",   bg: "bg-slate-800",      ring: "ring-slate-500" },
+            { icon: "🥈", name: t("home.rank_apprentice"), color: "text-sky-400",     bg: "bg-sky-900/40",     ring: "ring-sky-500" },
+            { icon: "🥇", name: t("home.rank_player"),     color: "text-blue-400",    bg: "bg-blue-900/40",    ring: "ring-blue-500" },
+            { icon: "⭐", name: t("home.rank_veteran"),    color: "text-purple-400",  bg: "bg-purple-900/40",  ring: "ring-purple-500" },
+            { icon: "💎", name: t("home.rank_expert"),     color: "text-emerald-400", bg: "bg-emerald-900/40", ring: "ring-emerald-500" },
+            { icon: "👑", name: t("home.rank_master"),     color: "text-amber-400",   bg: "bg-amber-900/40",   ring: "ring-amber-500" },
+            { icon: "🔥", name: t("home.rank_legend"),     color: "text-red-400",     bg: "bg-red-900/40",     ring: "ring-red-500" },
           ].map((lvl, i, arr) => (
             <div key={lvl.name} className="flex items-center flex-1 min-w-0">
               {/* Nodo del nivel */}
@@ -233,15 +268,15 @@ export default function HomePage() {
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 text-center text-sm">
           <div className="rounded-xl bg-slate-800/50 border border-slate-700 px-4 py-3">
             <div className="text-amber-400 font-black text-lg">+1,000 pts</div>
-            <div className="text-slate-500 text-xs">Premio al ser Veterano ⭐</div>
+            <div className="text-slate-500 text-xs">{t("home.prize_veteran")} ⭐</div>
           </div>
           <div className="rounded-xl bg-slate-800/50 border border-slate-700 px-4 py-3">
             <div className="text-emerald-400 font-black text-lg">+25,000 pts</div>
-            <div className="text-slate-500 text-xs">Premio al ser Maestro 👑</div>
+            <div className="text-slate-500 text-xs">{t("home.prize_master")} 👑</div>
           </div>
           <div className="rounded-xl bg-red-900/20 border border-red-800/30 px-4 py-3">
             <div className="text-red-400 font-black text-lg">+100,000 pts</div>
-            <div className="text-slate-500 text-xs">Premio al ser Leyenda 🔥</div>
+            <div className="text-slate-500 text-xs">{t("home.prize_legend")} 🔥</div>
           </div>
         </div>
 
@@ -249,7 +284,7 @@ export default function HomePage() {
           <Link href="/clasificacion"
             className="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold rounded-xl transition text-sm"
           >
-            Ver tabla de clasificación → 🏆
+            {t("home.btn_view_ranking")} → 🏆
           </Link>
         </div>
       </section>
@@ -263,14 +298,14 @@ export default function HomePage() {
         <p className="text-slate-400 text-sm relative mb-4">{t("home.footer_desc")}</p>
         <div className="relative inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
           <span className="text-2xl">💎</span>
-          <span className="text-emerald-400 font-black text-lg">{String(POINTS_PER_BOLIS)} {t("home.rate_prefix")}</span>
+          <span className="text-emerald-400 font-black text-lg">{t("home.rate_text", fmt(POINTS_PER_BOLIS))}</span>
         </div>
         {!loggedIn && !loading && (
           <div className="relative mt-6">
             <Link href="/auth/registro"
               className="inline-block px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-2xl transition shadow-xl shadow-emerald-500/20"
             >
-              Empezar gratis →
+              {t("home.btn_start_free")} →
             </Link>
           </div>
         )}

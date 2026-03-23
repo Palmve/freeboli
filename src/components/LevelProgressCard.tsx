@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { LEVELS, UserLevel } from "@/lib/levels";
+import { useLang } from "@/context/LangContext";
 
 interface LevelStats {
   betCount: number;
@@ -45,6 +46,7 @@ function MetricBar({ label, icon, value, max, pct }: { label: string; icon: stri
 }
 
 export default function LevelProgressCard({ compact = false }: Props) {
+  const { t } = useLang();
   const [stats, setStats] = useState<LevelStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
@@ -69,6 +71,7 @@ export default function LevelProgressCard({ compact = false }: Props) {
       <div className="card p-4 animate-pulse">
         <div className="h-4 bg-slate-700 rounded w-1/3 mb-2" />
         <div className="h-2 bg-slate-700 rounded w-full" />
+        <p className="text-[10px] text-slate-500 mt-2">{t("account.loading")}</p>
       </div>
     );
   }
@@ -110,16 +113,16 @@ export default function LevelProgressCard({ compact = false }: Props) {
             <div className={`text-lg font-extrabold tracking-wide ${currentLevel.color}`}>
               {currentLevel.name}
             </div>
-            <div className="text-xs text-slate-400">Nivel {currentLevel.level} de {LEVELS.length}</div>
+            <div className="text-xs text-slate-400">{t("levels.level_of", currentLevel.level, LEVELS.length)}</div>
           </div>
         </div>
         {currentLevel.level === LEVELS.length ? (
           <span className="text-xs px-2 py-1 rounded-full bg-red-500/20 text-red-400 font-bold animate-pulse border border-red-500/30">
-            🔥 MÁXIMO
+            🔥 {t("levels.max_level")}
           </span>
         ) : nextLevel && (
           <div className="text-right">
-            <div className="text-xs text-slate-500">Próximo</div>
+            <div className="text-xs text-slate-500">{t("levels.next_level")}</div>
             <div className={`text-sm font-bold ${nextLevel.color}`}>{nextLevel.icon} {nextLevel.name}</div>
           </div>
         )}
@@ -129,7 +132,7 @@ export default function LevelProgressCard({ compact = false }: Props) {
       {nextLevel && (
         <div>
           <div className="flex justify-between text-xs text-slate-400 mb-1.5">
-            <span>Progreso hacia <strong className={nextLevel.color}>{nextLevel.name}</strong></span>
+            <span>{t("levels.progress_to")} <strong className={nextLevel.color}>{nextLevel.name}</strong></span>
             <span className="font-mono font-bold text-white">{xpPercent}%</span>
           </div>
           <div className="h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
@@ -150,11 +153,11 @@ export default function LevelProgressCard({ compact = false }: Props) {
       {/* Beneficios actuales */}
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="rounded-lg bg-slate-800/60 border border-slate-700 p-2 text-center">
-          <div className="text-slate-400 mb-0.5">Apuesta máx.</div>
+          <div className="text-slate-400 mb-0.5">{t("levels.max_bet")}</div>
           <div className="font-bold text-amber-400">{currentLevel.benefits.maxBetPoints.toLocaleString()} pts</div>
         </div>
         <div className="rounded-lg bg-slate-800/60 border border-slate-700 p-2 text-center">
-          <div className="text-slate-400 mb-0.5">Retiro máx.</div>
+          <div className="text-slate-400 mb-0.5">{t("levels.max_withdraw")}</div>
           <div className="font-bold text-emerald-400">{currentLevel.benefits.maxWithdrawBolis} BOLIS</div>
         </div>
       </div>
@@ -166,34 +169,34 @@ export default function LevelProgressCard({ compact = false }: Props) {
             onClick={() => setShowAll(!showAll)}
             className="w-full text-xs text-slate-500 hover:text-slate-300 transition flex items-center justify-center gap-1 py-1"
           >
-            {showAll ? "▲ Ocultar detalles" : "▼ Ver requisitos del siguiente nivel"}
+            {showAll ? `▲ ${t("levels.hide_details")}` : `▼ ${t("levels.view_requirements")}`}
           </button>
-          {showAll && (
-            <div className="space-y-2 pt-1 border-t border-slate-700/50">
-              {nextLevel.minBets > 0 && (
-                <MetricBar label="Apuestas HI-LO" icon="🎲" value={betCount} max={nextLevel.minBets} pct={Math.min(betCount / nextLevel.minBets, 1)} />
-              )}
-              {nextLevel.minFaucet > 0 && (
-                <MetricBar label="Faucet" icon="🚰" value={faucetClaims} max={nextLevel.minFaucet} pct={Math.min(faucetClaims / nextLevel.minFaucet, 1)} />
-              )}
-              {nextLevel.minPredictions > 0 && (
-                <MetricBar label="Predicciones" icon="📈" value={predictionCount} max={nextLevel.minPredictions} pct={Math.min(predictionCount / nextLevel.minPredictions, 1)} />
-              )}
-              {nextLevel.minDaysSinceJoined > 0 && (
-                <MetricBar label="Días desde registro" icon="📅" value={daysSinceJoined} max={nextLevel.minDaysSinceJoined} pct={Math.min(daysSinceJoined / nextLevel.minDaysSinceJoined, 1)} />
-              )}
-              {nextLevel.requiresEmail && !emailVerified && (
-                <div className="text-xs text-amber-400 flex items-center gap-1.5">
-                  <span>📧</span> Verifica tu correo electrónico para avanzar.
+              {showAll && (
+                <div className="space-y-2 pt-1 border-t border-slate-700/50">
+                  {nextLevel.minBets > 0 && (
+                    <MetricBar label={t("levels.metric_hilo")} icon="🎲" value={betCount} max={nextLevel.minBets} pct={Math.min(betCount / nextLevel.minBets, 1)} />
+                  )}
+                  {nextLevel.minFaucet > 0 && (
+                    <MetricBar label={t("levels.metric_faucet")} icon="🚰" value={faucetClaims} max={nextLevel.minFaucet} pct={Math.min(faucetClaims / nextLevel.minFaucet, 1)} />
+                  )}
+                  {nextLevel.minPredictions > 0 && (
+                    <MetricBar label={t("levels.metric_preds")} icon="📈" value={predictionCount} max={nextLevel.minPredictions} pct={Math.min(predictionCount / nextLevel.minPredictions, 1)} />
+                  )}
+                  {nextLevel.minDaysSinceJoined > 0 && (
+                    <MetricBar label={t("levels.metric_days")} icon="📅" value={daysSinceJoined} max={nextLevel.minDaysSinceJoined} pct={Math.min(daysSinceJoined / nextLevel.minDaysSinceJoined, 1)} />
+                  )}
+                  {nextLevel.requiresEmail && !emailVerified && (
+                    <div className="text-xs text-amber-400 flex items-center gap-1.5">
+                      <span>📧</span> {t("levels.verify_email_hint")}
+                    </div>
+                  )}
+                  {nextLevel.rewardPoints > 0 && (
+                    <div className="text-xs text-emerald-400 flex items-center gap-1.5 mt-1">
+                      🎁 {t("levels.level_up_reward", `+${nextLevel.rewardPoints.toLocaleString()} pts`)}
+                    </div>
+                  )}
                 </div>
               )}
-              {nextLevel.rewardPoints > 0 && (
-                <div className="text-xs text-emerald-400 flex items-center gap-1.5 mt-1">
-                  🎁 Al subir de nivel ganarás <strong>+{nextLevel.rewardPoints.toLocaleString()} pts</strong>
-                </div>
-              )}
-            </div>
-          )}
         </>
       )}
     </div>
