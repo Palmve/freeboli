@@ -556,54 +556,128 @@ export default function ConfiguracionPage() {
               </div>
             </section>
           ) : activeTab === "Niveles" ? (
-            <section className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              {/* Toggle Auto-Envío */}
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <h3 className="text-base font-bold text-white mb-1">📧 Auto-Envío al Cambiar de Nivel</h3>
-                <p className="text-sm text-slate-400 mb-4">Cuando está activo, el sistema envía la tarjeta de nivel al usuario cada vez que asciende de rango.</p>
-                <div className="flex items-center justify-between">
-                  <span className={`font-medium ${autoLevelNotify ? "text-emerald-400" : "text-slate-500"}`}>
-                    {autoLevelNotify ? "🟢 Activo" : "🔴 Desactivado"}
+            <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {/* 1. Toggle Auto-Envío */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center justify-between shadow-lg">
+                <div>
+                  <h3 className="text-base font-bold text-white mb-1">📧 Auto-Envío al Cambiar de Nivel</h3>
+                  <p className="text-xs text-slate-400">Notificar al usuario por email cuando asciende de rango.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-bold uppercase ${autoLevelNotify ? "text-emerald-400" : "text-slate-500"}`}>
+                    {autoLevelNotify ? "Activo" : "Off"}
                   </span>
                   <button
                     onClick={() => setAutoLevelNotify(!autoLevelNotify)}
-                    className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${autoLevelNotify ? "bg-emerald-500" : "bg-slate-700"}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoLevelNotify ? "bg-emerald-500" : "bg-slate-700"}`}
                   >
-                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${autoLevelNotify ? "translate-x-8" : "translate-x-1"}`} />
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${autoLevelNotify ? "translate-x-6" : "translate-x-1"}`} />
                   </button>
                 </div>
               </div>
 
-              {/* Tabla de Niveles */}
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-800">
-                  <h3 className="text-base font-bold text-white">Configuración de Niveles</h3>
+              {/* 2. Editor Amigable de Límites (v1.088) */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+                 <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">💰 Ajustar Límites de Economía</h3>
+                    <span className="text-[10px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded font-black uppercase">Fácil Edición</span>
+                 </div>
+                 
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {getDynamicLevels(values.LEVEL_LIMITS).map((lvl) => (
+                      <div key={lvl.level} className="p-4 rounded-2xl bg-slate-800/30 border border-slate-700/50 space-y-4 hover:border-slate-600 transition group">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 font-black text-white text-sm">
+                             <span className="text-lg grayscale group-hover:grayscale-0 transition-all">{lvl.icon}</span>
+                             <span className="tracking-tighter">{lvl.name.toUpperCase()}</span>
+                          </div>
+                          <span className="text-[9px] text-slate-500 font-mono">NIVEL {lvl.level}</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                           <div className="space-y-1.5">
+                              <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest pl-1">Apuesta Máx (pts)</label>
+                              <input 
+                                type="number" 
+                                placeholder={String(lvl.benefits.maxBetPoints)}
+                                value={(() => {
+                                  try {
+                                    const ov = JSON.parse(values.LEVEL_LIMITS || "{}");
+                                    return ov[lvl.level]?.maxBet ?? "";
+                                  } catch { return ""; }
+                                })()}
+                                onChange={(e) => {
+                                  let ov = {};
+                                  try { ov = JSON.parse(values.LEVEL_LIMITS || "{}"); } catch {}
+                                  const val = parseInt(e.target.value);
+                                  (ov as any)[lvl.level] = { ...(ov as any)[lvl.level], maxBet: isNaN(val) ? undefined : val };
+                                  setValues(v => ({ ...v, LEVEL_LIMITS: JSON.stringify(ov, null, 2) }));
+                                }}
+                                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white font-mono text-xs focus:border-amber-500 focus:outline-none transition-colors shadow-inner" 
+                              />
+                           </div>
+                           <div className="space-y-1.5">
+                              <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest pl-1">Retiro Máx (BOLIS)</label>
+                              <input 
+                                type="number" 
+                                placeholder={String(lvl.benefits.maxWithdrawBolis)}
+                                value={(() => {
+                                  try {
+                                    const ov = JSON.parse(values.LEVEL_LIMITS || "{}");
+                                    return ov[lvl.level]?.maxWithdraw ?? "";
+                                  } catch { return ""; }
+                                })()}
+                                onChange={(e) => {
+                                  let ov = {};
+                                  try { ov = JSON.parse(values.LEVEL_LIMITS || "{}"); } catch {}
+                                  const val = parseInt(e.target.value);
+                                  (ov as any)[lvl.level] = { ...(ov as any)[lvl.level], maxWithdraw: isNaN(val) ? undefined : val };
+                                  setValues(v => ({ ...v, LEVEL_LIMITS: JSON.stringify(ov, null, 2) }));
+                                }}
+                                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-amber-400 font-mono text-xs focus:border-amber-500 focus:outline-none transition-colors shadow-inner" 
+                              />
+                           </div>
+                        </div>
+                      </div>
+                    ))}
+                 </div>
+
+                <button 
+                  onClick={handleSave} 
+                  disabled={saving} 
+                  className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl transition shadow-xl shadow-emerald-600/20 disabled:opacity-50 mt-2"
+                >
+                  {saving ? "🔄 Guardando..." : "💾 Actualizar Todos los Límites"}
+                </button>
+              </div>
+
+              {/* 3. Vista Previa de Requisitos */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden opacity-80 hover:opacity-100 transition shadow-lg">
+                <div className="px-5 py-3 border-b border-slate-800 bg-slate-800/20">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Requisitos para Nivel Siguiente (Informativo)</h3>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
+                  <table className="w-full text-[10px]">
                     <thead>
-                      <tr className="bg-slate-800/50 text-slate-400 text-left uppercase tracking-tight">
+                      <tr className="bg-slate-800/10 text-slate-500 text-left uppercase">
                         <th className="px-4 py-3">Rango</th>
-                        <th className="px-4 py-3 text-center">HI-LO</th>
+                        <th className="px-4 py-3 text-center">Apuestas</th>
                         <th className="px-4 py-3 text-center">Faucet</th>
                         <th className="px-4 py-3 text-center">Días</th>
-                        <th className="px-4 py-3 text-center">Premio</th>
-                        <th className="px-4 py-3 text-center">Apuesta Máx.</th>
+                        <th className="px-4 py-3 text-center">Beneficios Actuales</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800">
+                    <tbody className="divide-y divide-slate-800/50">
                       {getDynamicLevels(values.LEVEL_LIMITS).map((l) => (
-                        <tr key={l.level} className="hover:bg-slate-800/20 transition">
-                          <td className="px-4 py-3 font-bold">{l.icon} {l.name}</td>
-                          <td className="px-4 py-3 text-center text-slate-400 font-mono">{l.minBets.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-center text-slate-400 font-mono">{l.minFaucet.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-center text-slate-400 font-mono">{l.minDaysSinceJoined > 0 ? `${l.minDaysSinceJoined}d` : "-"}</td>
-                          <td className="px-4 py-3 text-center text-amber-400 font-mono font-bold">{l.rewardPoints > 0 ? `+${l.rewardPoints.toLocaleString()}` : "-"}</td>
-                          <td className="px-4 py-3 text-center text-emerald-400 font-mono">
-                            <div className="flex flex-col items-center">
-                              <span className="text-white font-bold">{l.benefits.maxBetPoints.toLocaleString()} pts</span>
-                              <span className="text-[10px] text-slate-500">Retiro: {l.benefits.maxWithdrawBolis} BOLIS</span>
-                            </div>
+                        <tr key={l.level} className="hover:bg-slate-800/10 transition">
+                          <td className="px-4 py-2 font-bold">{l.icon} {l.name}</td>
+                          <td className="px-4 py-2 text-center text-slate-400 font-mono">{l.minBets.toLocaleString()}</td>
+                          <td className="px-4 py-2 text-center text-slate-400 font-mono">{l.minFaucet.toLocaleString()}</td>
+                          <td className="px-4 py-2 text-center text-slate-400 font-mono">{l.minDaysSinceJoined > 0 ? `${l.minDaysSinceJoined}d` : "-"}</td>
+                          <td className="px-4 py-2 text-center">
+                            <span className="text-white font-mono bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700">
+                              {l.benefits.maxBetPoints.toLocaleString()} pts / {l.benefits.maxWithdrawBolis} B
+                            </span>
                           </td>
                         </tr>
                       ))}
@@ -612,10 +686,9 @@ export default function ConfiguracionPage() {
                 </div>
               </div>
 
-              {/* Envío Manual Individual */}
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-                <h3 className="text-base font-bold text-white">📤 Enviar Tarjeta a un Usuario</h3>
-                <p className="text-xs text-slate-400">Introduce el User ID para enviar manualmente la tarjeta de nivel actual.</p>
+              {/* 4. Envío Manual Individual */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 shadow-lg">
+                <h3 className="text-sm font-bold text-white uppercase tracking-widest">📤 Envío Manual de Tarjeta</h3>
                 <div className="flex gap-2">
                   <input id="level-user-id" type="text" placeholder="User ID (6 dígitos o UUID)"
                     className="flex-1 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-white font-mono text-sm focus:border-amber-500 focus:outline-none" />
@@ -626,70 +699,32 @@ export default function ConfiguracionPage() {
                       setLevelMsg("Enviando...");
                       const r = await fetch('/api/admin/levels/notify-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ userId: uid }) });
                       const d = await r.json();
-                      setLevelMsg(d.ok ? `✅ Enviado a ${d.email} (Nivel: ${d.level})` : `❌ ${d.error}`);
+                      setLevelMsg(d.ok ? `✅ Enviado a ${d.email}` : `❌ ${d.error}`);
                     }}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm transition"
                   >Enviar</button>
                 </div>
-                {levelMsg && <p className="text-sm font-medium text-slate-300 border border-slate-700 rounded-lg px-3 py-2">{levelMsg}</p>}
+                {levelMsg && <p className="text-xs font-medium text-slate-400 italic">Estado: {levelMsg}</p>}
               </div>
 
-              {/* Envío Masivo */}
-              <div className="bg-slate-900 border border-red-500/20 rounded-2xl p-5 space-y-3">
-                <h3 className="text-base font-bold text-red-400">📣 Envío Masivo - Anuncio de Niveles</h3>
-                <p className="text-xs text-slate-400">Envía la tarjeta de nivel personalizada a TODOS los usuarios registrados con email verificado.</p>
+              {/* 5. Envío Masivo */}
+              <div className="bg-slate-900 border border-red-500/20 rounded-2xl p-5 space-y-3 shadow-lg">
+                <h3 className="text-sm font-bold text-red-400 uppercase tracking-widest">📣 Envío Masivo</h3>
+                <p className="text-[11px] text-slate-500">Enviar email masivo a todos con su tarjeta de nivel actual.</p>
                 <button
                   disabled={levelSending}
                   onClick={async () => {
-                    if (!confirm("¿Enviar email a TODOS los usuarios? Esta acción puede tardar varios minutos.")) return;
+                    if (!confirm("¿Enviar email a TODOS?")) return;
                     setLevelSending(true);
-                    setLevelMsg("⏳ Procesando envío masivo...");
+                    setLevelMsg("⏳ Procesando...");
                     const r = await fetch('/api/admin/levels/sync-and-notify', { method: 'POST' });
                     const d = await r.json();
                     setLevelSending(false);
-                    setLevelMsg(d.ok ? `✅ Completado: ${d.sent} enviados, ${d.errors} errores de ${d.total} usuarios.` : `❌ ${d.error}`);
+                    setLevelMsg(d.ok ? "✅ Completado" : `❌ ${d.error}`);
                   }}
-                  className="w-full py-3 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400 font-bold rounded-xl transition disabled:opacity-50"
+                  className="w-full py-3 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-500 font-bold rounded-xl text-xs transition disabled:opacity-50"
                 >
-                  {levelSending ? "⏳ Enviando a todos los usuarios..." : "🚀 Iniciar Envío Masivo"}
-                </button>
-              </div>
-
-              {/* Campos Dinámicos de Niveles (Límites JSON, etc) */}
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
-                <h3 className="text-base font-bold text-white mb-2">⚙️ Ajustes Avanzados de Niveles</h3>
-                {FIELDS.filter((f) => f.group === "Niveles").map((field) => (
-                  <div key={field.key} className="space-y-2">
-                    <div className="flex justify-between items-baseline">
-                      <label className="text-sm font-black text-slate-300 uppercase tracking-tighter">{field.label}</label>
-                      {field.defaultValue !== undefined && (
-                        <span className="text-[10px] text-amber-500/60 font-bold uppercase">Por defecto: {field.defaultValue}</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-500 leading-relaxed">{field.description}</p>
-                    {field.type === "json" ? (
-                      <textarea
-                        value={values[field.key] ?? ""}
-                        onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
-                        rows={6}
-                        className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 font-mono text-sm text-amber-200 focus:border-amber-500 focus:outline-none"
-                      />
-                    ) : (
-                      <input
-                        type={field.key.includes("EDGE") || field.key.includes("PERCENT") ? "text" : "number"}
-                        value={values[field.key] ?? ""}
-                        onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
-                        className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white font-mono focus:border-amber-500 focus:outline-none"
-                      />
-                    )}
-                  </div>
-                ))}
-                <button 
-                  onClick={handleSave} 
-                  disabled={saving} 
-                  className="w-full py-4 bg-amber-500 text-slate-950 font-black rounded-2xl hover:bg-amber-400 transition shadow-xl shadow-amber-500/20 disabled:opacity-50 mt-4"
-                >
-                  {saving ? "Guardando..." : "Guardar Ajustes de Niveles"}
+                  {levelSending ? "⏳ Enviando..." : "🚀 Iniciar Envío Masivo"}
                 </button>
               </div>
             </section>
