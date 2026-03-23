@@ -59,7 +59,8 @@ function PredictionsContent() {
   const [stats, setStats] = useState<Stats>({ day: 0, week: 0, month: 0, total: 0 });
   const [type, setType] = useState<"hourly" | "mini" | "micro">("hourly");
   
-  const [amount, setAmount] = useState("100");
+  const [amount, setAmount] = useState("1");
+  const [levelMaxBet, setLevelMaxBet] = useState(10000);
   const [loading, setLoading] = useState(false);
   const [betting, setBetting] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
@@ -128,6 +129,12 @@ function PredictionsContent() {
   useEffect(() => {
     if (session?.user) {
         fetchBalance();
+        fetch("/api/user/level-stats")
+          .then(r => r.json())
+          .then(d => {
+              if (d.currentLevel) setLevelMaxBet(d.currentLevel.benefits?.maxBetPoints || 500);
+          })
+          .catch(() => {});
     }
   }, [session?.user, fetchBalance]);
 
@@ -466,11 +473,15 @@ function PredictionsContent() {
             </div>
 
             <div className="mb-2">
-              <label className="block text-sm font-bold text-slate-300 mb-2 uppercase tracking-wide">{t("predictions.bet_amount_label")}</label>
+              <div className="flex justify-between mb-2">
+                <label className="block text-sm font-bold text-slate-300 uppercase tracking-wide">{t("predictions.bet_amount_label")}</label>
+                <span className="text-[10px] font-black text-amber-500/70 uppercase">Max por nivel: {levelMaxBet.toLocaleString()} pts</span>
+              </div>
               <div className="relative">
                   <input
                     type="number"
-                    max={10000}
+                    min={1}
+                    max={levelMaxBet}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     className="w-full rounded-xl border border-slate-700 bg-slate-800 pl-4 pr-12 py-3 sm:py-4 text-xl font-mono text-white focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
@@ -478,7 +489,7 @@ function PredictionsContent() {
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">PTS</span>
               </div>
               <div className="mt-2 flex gap-2">
-                 {[10, 100, 500, 2500].map(v => (
+                 {[1, 10, 100, 1000].map(v => (
                      <button key={v} onClick={() => setAmount(String(v))} className="flex-1 text-xs py-1.5 rounded bg-slate-800 text-slate-400 hover:bg-slate-700 transition">
                          {v >= 1000 ? `${v/1000}K` : v}
                      </button>

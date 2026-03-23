@@ -58,8 +58,8 @@ export default function HiLoPage() {
 
   // Manual
   const [bet, setBet] = useState(() => {
-    if (typeof window === "undefined") return "10";
-    return localStorage.getItem("hilo_last_bet") || "10";
+    if (typeof window === "undefined") return "1";
+    return localStorage.getItem("hilo_last_bet") || "1";
   });
   const [choice, setChoice] = useState<"hi" | "lo" | null>(null);
   const [loading, setLoading] = useState(false);
@@ -71,7 +71,8 @@ export default function HiLoPage() {
   const lastEditedRef = useRef<"odds" | "chance">("odds");
 
   // Auto
-  const [autoBaseBet, setAutoBaseBet] = useState("10");
+  const [autoBaseBet, setAutoBaseBet] = useState("1");
+  const [levelMaxBet, setLevelMaxBet] = useState<number>(MAX_BET_POINTS);
   const [autoMaxBet, setAutoMaxBet] = useState("100");
   const [autoNumRolls, setAutoNumRolls] = useState("100");
   const [autoBetOn, setAutoBetOn] = useState<"hi" | "lo" | "alternate">("lo");
@@ -109,7 +110,15 @@ export default function HiLoPage() {
   }
 
   useEffect(() => {
-    if (session?.user || !REQUIRE_AUTH) fetchBalance();
+    if (session?.user || !REQUIRE_AUTH) {
+      fetchBalance();
+      fetch("/api/user/level-stats")
+        .then(r => r.json())
+        .then(d => {
+           if (d.currentLevel) setLevelMaxBet(d.currentLevel.benefits?.maxBetPoints || 500);
+        })
+        .catch(() => {});
+    }
   }, [session?.user]);
 
   useEffect(() => {
@@ -130,7 +139,7 @@ export default function HiLoPage() {
 
   const betNum = Math.floor(Number(bet)) || 0;
   const minBet = 1;
-  const maxBet = balance != null ? Math.min(balance, MAX_BET_POINTS) : MAX_BET_POINTS;
+  const maxBet = balance != null ? Math.min(balance, levelMaxBet) : levelMaxBet;
   const oddsNum = Math.max(ODDS_MIN, Math.min(ODDS_MAX, Number(betOdds) || 2));
   const winChanceNum = Math.max(WIN_CHANCE_MIN, Math.min(WIN_CHANCE_MAX, Number(winChance) || 49));
 
@@ -356,9 +365,16 @@ export default function HiLoPage() {
         <p className="mt-1 text-xs text-slate-400 sm:text-sm">
           {t("hilo.banner_desc")}
         </p>
-        <p className="mt-1 text-xs text-slate-500">
-          {t("hilo.banner_limits").replace("{0}", MAX_BET_POINTS.toLocaleString()).replace("{1}", MAX_WIN_POINTS.toLocaleString())}
-        </p>
+        <div className="mt-1 flex flex-col sm:flex-row items-center justify-center gap-2 text-xs">
+          <span className="text-slate-400 uppercase tracking-widest font-black">Tu Límite de Apuesta:</span>
+          <span className="text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-500/20">
+            {levelMaxBet.toLocaleString()} pts
+          </span>
+          <span className="hidden sm:inline text-slate-700">|</span>
+          <span className="text-slate-500">
+            Max Ganancia: {MAX_WIN_POINTS.toLocaleString()} pts
+          </span>
+        </div>
       </div>
 
       {/* Tabs */}

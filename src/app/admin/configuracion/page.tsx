@@ -33,9 +33,8 @@ const FIELDS: SettingField[] = [
   { key: "PRIZE_MONTHLY_1", label: "Premio mensual 1er lugar", type: "number", description: "Puntos para el 1er lugar del ranking mensual", group: "Premios Ranking" },
   { key: "PRIZE_MONTHLY_2", label: "Premio mensual 2do lugar", type: "number", description: "Puntos para el 2do lugar del ranking mensual", group: "Premios Ranking" },
   { key: "PRIZE_MONTHLY_3", label: "Premio mensual 3er lugar", type: "number", description: "Puntos para el 3er lugar del ranking mensual", group: "Premios Ranking" },
-  { key: "MAX_BET_POINTS", label: "Apuesta maxima (pts)", type: "number", description: "Maximo de puntos que un usuario puede apostar en una jugada", group: "Limites de Juego" },
   { key: "MAX_WIN_POINTS", label: "Ganancia maxima/jugada (pts)", type: "number", description: "Maximo de puntos que un usuario puede ganar en una jugada", group: "Limites de Juego" },
-  { key: "MAX_DAILY_WIN_POINTS", label: "Ganancia maxima/dia (pts)", type: "number", description: "Maximo de puntos que un usuario puede ganar en un dia", group: "Limites de Juego" },
+  { key: "MAX_DAILY_WIN_POINTS", label: "Ganancia maxima/dia (pts)", type: "number", description: "Maximo de puntos que un usuario puede ganar en un dia", group: "Limites de Juego", defaultValue: "1000000" },
   // Seguridad y antibot (todos con valor por defecto y nota)
   { key: "MAX_SESSIONS_PER_IP", label: "Máx. sesiones por IP", type: "number", description: "Máximo de cuentas distintas que pueden usar la misma IP para reclamar faucet. Más bajo = más estricto.", group: "Seguridad", defaultValue: "3" },
   { key: "REGISTER_BURST_MAX", label: "Registro: máx. intentos (ráfaga)", type: "number", description: "Máximo de intentos de registro por IP en la ventana de ráfaga.", group: "Seguridad", defaultValue: "3" },
@@ -50,9 +49,6 @@ const FIELDS: SettingField[] = [
   { key: "WITHDRAWAL_AUTO_APPROVE_ENABLED", label: "Retiros automáticos habilitados", type: "number", description: "1 = permitir pagos automáticos; 0 = forzar todas las solicitudes a Pendiente", group: "Seguridad", defaultValue: "0" },
   { key: "MAX_DAILY_AFFILIATE_COMMISSION", label: "Tope diario comisiones referidos (pts)", type: "number", description: "Máximo de puntos que un usuario puede recibir por comisiones de referidos en 24h. Evita el farming entre cuentas propias.", group: "Seguridad", defaultValue: "5000" },
   // Predicciones
-  { key: "BTC_MAX_BET", label: "BTC: Apuesta máxima", type: "number", description: "Límite de puntos para BTC", group: "Predicciones (BTC)", defaultValue: "10000" },
-  { key: "SOL_MAX_BET", label: "SOL: Apuesta máxima", type: "number", description: "Límite de puntos para SOL", group: "Predicciones (SOL)", defaultValue: "10000" },
-  { key: "BOLIS_MAX_BET", label: "BOLIS: Apuesta máxima", type: "number", description: "Límite de puntos para BOLIS", group: "Predicciones (BOLIS)", defaultValue: "10000" },
   { key: "PREDICTION_HOUSE_EDGE", label: "Comisión Casa (%)", type: "number", description: "Porcentaje de comisión (0.05 = 5%)", group: "Predicciones (General)", defaultValue: "0.05" },
   { key: "PREDICTION_CUTOFF_SECONDS", label: "Tiempo de Cierre (s)", type: "number", description: "Segundos antes del fin de hora para cerrar (600 = 10 min)", group: "Predicciones (General)", defaultValue: "600" },
   // Soporte

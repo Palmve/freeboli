@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Datos de apuesta inválidos." }, { status: 400 });
   }
 
-  const minBet = await getSetting<number>("PREDICTION_MIN_BET", 10);
+  const minBet = await getSetting<number>("PREDICTION_MIN_BET", 1);
   const maxBet = userLevel.benefits.maxBetPoints;
   
   // Cutoff dinámico: 10 min rounds (60s defecto), 1 hour (600s defecto), micro (60s)

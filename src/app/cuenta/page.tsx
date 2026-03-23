@@ -36,6 +36,7 @@ export default function CuentaPage() {
     withdrawalsTotal: number;
     predictionPrizes: number;
   }>(null);
+  const [levelStats, setLevelStats] = useState<{ currentLevel: { name: string; icon: string; benefits: { maxBetPoints: number } } } | null>(null);
 
   useEffect(() => {
     if (!REQUIRE_AUTH) {
@@ -54,6 +55,10 @@ export default function CuentaPage() {
       .then((r) => r.json())
       .then((d) => setPersonal(d.stats ?? null))
       .catch(() => setPersonal(null));
+    fetch("/api/user/level-stats")
+      .then((r) => r.json())
+      .then((d) => setLevelStats(d))
+      .catch(() => setLevelStats(null));
   }, [session?.user, localUser]);
   
   useEffect(() => {
@@ -214,6 +219,26 @@ export default function CuentaPage() {
           {String(POINTS_PER_BOLIS)} {t("account.balance_rate")}
         </p>
       </div>
+
+      {/* Rango y Apuesta Máxima */}
+      {levelStats && (
+        <div className="card text-left border-l-4 border-amber-500 bg-amber-500/5">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-3xl">{levelStats.currentLevel.icon}</span>
+            <div>
+              <h2 className="text-lg font-bold text-white leading-tight">Tu Nivel: {levelStats.currentLevel.name}</h2>
+              <p className="text-xs text-amber-500/80 font-black uppercase tracking-widest">Beneficios de Juego</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-700/50 mt-4">
+            <span className="text-sm text-slate-400 font-bold">Límite de Apuesta</span>
+            <span className="text-xl font-mono font-black text-white">{levelStats.currentLevel.benefits.maxBetPoints.toLocaleString()} <span className="text-[10px] text-slate-500 font-bold">PTS</span></span>
+          </div>
+          <p className="mt-3 text-[10px] text-slate-500 leading-tight italic">
+            Participa más para subir de rango y aumentar tus límites de apuesta y retiro.
+          </p>
+        </div>
+      )}
 
       {/* Affiliate link */}
       <div className="card text-left">
