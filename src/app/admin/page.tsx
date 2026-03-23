@@ -1,8 +1,15 @@
-import { createClient } from "@/lib/supabase/server";
-import { getSetting } from "@/lib/site-settings";
-import AdminEmergencyPanel from "@/components/admin/AdminEmergencyPanel";
+import { getAdminUser } from "@/lib/current-user";
+import { redirect } from "next/navigation";
 
 export default async function AdminPage() {
+  const user = await getAdminUser();
+  if (!user) redirect("/auth/login");
+  
+  // Si es staff (no Super Admin), redirigir a configuración directamente
+  if (user.isStaff) {
+    redirect("/admin/configuracion");
+  }
+
   const supabase = await createClient();
 
   // Fetch critical values and counts
