@@ -49,5 +49,8 @@ export async function GET() {
     nextLevel,
     xpPercent,
     levels: LEVELS,
+    maxBetPoints: currentLevel.benefits.maxBetPoints,
+    maxWithdrawBolis: currentLevel.benefits.maxWithdrawBolis,
+    rewardPoints: currentLevel.rewardPoints,
   });
 }

@@ -7,6 +7,7 @@ import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
 import { SupportModal } from "@/components/SupportModal";
 import { APP_VERSION } from "@/lib/version";
 import { useLang } from "@/context/LangContext";
+import LevelProgressCard from "@/components/LevelProgressCard";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
@@ -15,6 +16,7 @@ export default function RetirarPage() {
   const { t } = useLang();
   const [localUser, setLocalUser] = useState<{ id?: string } | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
+  const [levelStats, setLevelStats] = useState<{ maxWithdrawBolis: number; name: string; level: number; icon: string; color: string } | null>(null);
   const [withdrawPoints, setWithdrawPoints] = useState("");
   const [withdrawWallet, setWithdrawWallet] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,6 +37,20 @@ export default function RetirarPage() {
       .then((r) => r.json())
       .then((d) => setBalance(d.points ?? 0))
       .catch(() => setBalance(0));
+    fetch("/api/user/level-stats")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.currentLevel) {
+          setLevelStats({
+            maxWithdrawBolis: d.maxWithdrawBolis ?? d.currentLevel.benefits?.maxWithdrawBolis ?? 10,
+            name: d.currentLevel.name,
+            level: d.currentLevel.level,
+            icon: d.currentLevel.icon,
+            color: d.currentLevel.color,
+          });
+        }
+      })
+      .catch(() => {});
   }, [session?.user, localUser]);
 
   const isValidWallet = (w: string) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(w.trim());
@@ -100,6 +116,41 @@ export default function RetirarPage() {
   return (
     <div className="mx-auto max-w-lg space-y-6 py-8 px-4 text-left">
       <h1 className="text-2xl font-bold text-white">{t("withdraw.title")}</h1>
+
+      {/* ═══ WIDGET DE NIVEL Y LÍMITES DE RETIRO ═══ */}
+      <div className="rounded-2xl border border-slate-700 bg-slate-900/60 p-4 space-y-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-lg">🎮</span>
+          <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">{t("levels.title")}</h2>
+        </div>
+        <LevelProgressCard compact />
+
+        {/* Tarjeta de límite de retiro por rango */}
+        {levelStats && (
+          <div className="mt-3 rounded-xl bg-emerald-900/20 border border-emerald-700/30 p-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{levelStats.icon}</span>
+                <div>
+                  <p className="text-xs text-slate-400">Rango actual</p>
+                  <p className={`text-sm font-black ${levelStats.color}`}>{levelStats.name}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-slate-500">Retiro máximo por día</p>
+                <p className="text-lg font-black text-emerald-400">{levelStats.maxWithdrawBolis} <span className="text-xs font-medium">BOLIS</span></p>
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-500 mt-2">
+              Sube de nivel para aumentar tu límite de retiro diario. Cada rango superior desbloquea más BOLIS por día.
+            </p>
+            <Link href="/recompensas#niveles" className="text-[10px] text-amber-400 hover:underline font-bold mt-1 inline-block">
+              Ver todos los límites por rango →
+            </Link>
+          </div>
+        )}
+      </div>
+
       <div className="card">
         <p className="text-slate-500 text-sm mb-2 font-medium">
           {t("withdraw.rate").replace("{0}", String(POINTS_PER_BOLIS))}

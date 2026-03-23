@@ -172,6 +172,34 @@ export default function DepositarPage() {
                {verifyResult.msg}
              </div>
            )}
+
+           {/* ─── NOTA INFORMATIVA ─── */}
+           <div className="mt-4 rounded-xl bg-blue-900/20 border border-blue-700/30 p-4 space-y-2">
+             <div className="flex items-start gap-2">
+               <span className="text-lg mt-0.5">ℹ️</span>
+               <div className="flex-1">
+                 <p className="text-xs text-blue-300 font-black uppercase tracking-widest mb-1.5">¿Por qué hacer esta verificación?</p>
+                 <p className="text-xs text-slate-300 leading-relaxed">
+                   Una vez que hayas enviado tus BOLIS, <strong className="text-white">es necesario presionar el botón de arriba</strong> para que el sistema convierta 
+                   los BOLIS depositados en Puntos y actualice tu saldo de cuenta.
+                 </p>
+                 <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                   ⏱️ El proceso es <strong className="text-slate-300">completamente automático</strong> y puede tardar desde unos pocos segundos hasta varios minutos, 
+                   dependiendo del nivel de congestión actual de la <strong className="text-slate-300">red de Solana</strong>.
+                 </p>
+               </div>
+             </div>
+             <p className="text-[10px] text-slate-500 border-t border-slate-700/50 pt-2">
+               Si pasó mucho tiempo y tu saldo no se actualizó,{" "}
+               <button
+                 onClick={() => setSupportOpen(true)}
+                 className="text-amber-400 hover:underline font-bold"
+               >
+                 haz clic aquí para reportar un incidente
+               </button>
+               {" "}y nuestro equipo revisará tu transacción.
+             </p>
+           </div>
         </div>
       </div>
       <Link href="/cuenta" className="text-amber-400 hover:underline inline-block font-bold">
