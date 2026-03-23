@@ -5,7 +5,9 @@ import { playHiLo } from "@/lib/hilo";
 import { AFFILIATE_GAME_PERCENT, MAX_WIN_POINTS, MAX_DAILY_WIN_POINTS } from "@/lib/config";
 import { fetchUserLevel } from "@/lib/levels";
 import { getSetting } from "@/lib/site-settings";
-import { alertLargeWin } from "@/lib/telegram";
+import { alertLargeWin, alertSuspiciousActivity } from "@/lib/telegram";
+import { rateLimit } from "@/lib/rate-limit";
+import { logSecurityEvent } from "@/lib/security";
 
 export async function POST(req: Request) {
   const currentUser = await getCurrentUser();
@@ -14,6 +16,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Tu cuenta está suspendida o bloqueada." }, { status: 403 });
   }
   const userId = currentUser.id;
+
+  // Rate-limit de sesión: 1 jugada por segundo para bloquear bots concurrentes
+  const { allowed: rateLimitAllowed } = rateLimit(`hilo:${userId}`, 1, 1000);
+  if (!rateLimitAllowed) {
+    return NextResponse.json(
+      { error: "Demasiadas jugadas en muy poco tiempo. Espera un momento." },
+      { status: 429 }
+    );
+  }
 
   const body = await req.json().catch(() => ({}));
   const bet = Math.floor(Number(body.bet));
@@ -123,6 +134,21 @@ export async function POST(req: Request) {
     },
   });
   if (result.payout > 0) {
+    // Detectar win-rate anómalo (> 5x sobre lo apostado hoy = sospecha)
+    const totalBetToday = Math.abs((todayWins ?? []).reduce((s, m) => s + (Number(m.points) || 0), 0));
+    if (totalBetToday > 0) {
+      const winRate = totalWonToday / totalBetToday;
+      if (winRate > 5) {
+        await logSecurityEvent({
+          eventType: "hilo_suspicious_win_rate",
+          userId,
+          details: { winRate: winRate.toFixed(2), totalWonToday, totalBetToday },
+          severity: "high",
+        });
+        await alertSuspiciousActivity(currentUser.email, `Win rate sospechoso en HI-LO: ${winRate.toFixed(2)}x (${totalWonToday.toLocaleString()} pts ganados hoy)`);
+      }
+    }
+
     // 2. Acreditar premio de forma atómica y verificar límite diario
     const { data: addData, error: addError } = await supabase.rpc("atomic_add_hilo_prize", {
         p_user_id: userId,

@@ -176,6 +176,9 @@ export default function ConfiguracionPage() {
   // Seguridad
   const [secEvents, setSecEvents] = useState<any[]>([]);
   const [loadingSec, setLoadingSec] = useState(false);
+  const [maintenanceResults, setMaintenanceResults] = useState<any[]>([]);
+  const [loadingMaintenance, setLoadingMaintenance] = useState(false);
+  const [lastMaintenance, setLastMaintenance] = useState<string | null>(null);
 
   // Tickets
   const [tickets, setTickets] = useState<any[]>([]);
@@ -376,6 +379,50 @@ export default function ConfiguracionPage() {
                     download
                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition shadow-lg shadow-emerald-600/20"
                   >⬇ Descargar BD</a>
+                </div>
+
+                {/* Panel de Mantenimiento de BD */}
+                <div className="px-5 py-4 border-b border-slate-800 space-y-3 bg-slate-900/30">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-white font-semibold">🛠️ Mantenimiento de Base de Datos</p>
+                      <p className="text-[11px] text-slate-500">Purga logs, audita balances y detecta depósitos huérfanos</p>
+                    </div>
+                    <button
+                      disabled={loadingMaintenance}
+                      onClick={async () => {
+                        setLoadingMaintenance(true);
+                        setMaintenanceResults([]);
+                        try {
+                          const res = await fetch("/api/admin/db-maintenance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+                          const data = await res.json();
+                          setMaintenanceResults(data.results || []);
+                          setLastMaintenance(data.executed_at ? new Date(data.executed_at).toLocaleString() : null);
+                        } finally {
+                          setLoadingMaintenance(false);
+                        }
+                      }}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition shadow-lg shadow-indigo-600/20"
+                    >
+                      {loadingMaintenance ? "⏳ Ejecutando..." : "▶ Ejecutar Mantenimiento"}
+                    </button>
+                  </div>
+                  {lastMaintenance && <p className="text-[10px] text-slate-500">Ultimo mantenimiento: {lastMaintenance}</p>}
+                  {maintenanceResults.length > 0 && (
+                    <div className="space-y-1">
+                      {maintenanceResults.map((r, i) => (
+                        <div key={i} className={`flex items-start gap-2 px-3 py-2 rounded-lg text-[11px] ${
+                          r.status === "OK" ? "bg-green-500/10 text-green-400" :
+                          r.status === "ALERTA" ? "bg-yellow-500/10 text-yellow-400" :
+                          r.status === "SKIP" ? "bg-slate-700/50 text-slate-400" :
+                          "bg-red-500/10 text-red-400"
+                        }`}>
+                          <span>{r.status === "OK" ? "✅" : r.status === "ALERTA" ? "⚠️" : r.status === "SKIP" ? "⏭️" : "❌"}</span>
+                          <div><span className="font-bold">{r.task}:</span> {r.detail}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {loadingSec ? (

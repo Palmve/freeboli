@@ -1,0 +1,201 @@
+--- REPORTE DE ANALISIS FORENSE (BACKUP 2026-03-23T02:38:29.293Z) ---
+Total usuarios analizados: 9
+
+================================================================
+USUARIO: johnjohnnss@gmail.com (ID: e9cf5257-afbb-42b1-a837-33381f2de270)
+ESTADO: SUSPENDIDO | REGISTRO: 2026-03-22T14:01:18.701823+00:00
+
+RESUMEN DE PUNTOS:
+  - comision_afiliado        :      149,850 pts (3 trans)
+  - retiro_bolis             :     -100,000 pts (1 trans)
+  - recompensa               :          100 pts (1 trans)
+  TOTAL CALCULADO: 49,950 pts
+AFILIACION: Trajo 11 referidos:
+  - vokytyhtdu@gmail.com [NORMAL]
+  - dlihxcmjzs@gmail.com [NORMAL]
+  - upjkhprzcg@gmail.com [NORMAL]
+  - jngnpbfspo@gmail.com [NORMAL]
+  - xdkqptgtxx@gmail.com [NORMAL]
+  - jrldomuosz@gmail.com [NORMAL]
+  - dbcwcflehn@gmail.com [NORMAL]
+  - rnilvpdosj@gmail.com [NORMAL]
+  - nrxrlmzkck@gmail.com [NORMAL]
+  - bdbpzantgp@gmail.com [NORMAL]
+  - vgljwfzllw@gmail.com [NORMAL]
+
+HISTORIAL DE RETIROS:
+  - [pending   ] |     100000 pts | Wallet: n/a | Fecha: 2026-03-22T14:04:34.963269+00:00
+================================================================
+USUARIO: fasdlfsdakm@gmail.com (ID: 78d75092-88bb-4b9a-9f16-86f00f5c4da2)
+ESTADO: SUSPENDIDO | REGISTRO: 2026-03-22T13:13:06.236457+00:00
+
+RESUMEN DE PUNTOS:
+  - comision_afiliado        :      314,695 pts (7 trans)
+  - retiro_bolis             :     -264,000 pts (2 trans)
+  - apuesta_hi_lo            :         -100 pts (10 trans)
+  - recompensa               :          100 pts (1 trans)
+  TOTAL CALCULADO: 50,695 pts
+
+AFILIACION: Referido por johngsfnk@gmail.com
+AFILIACION: Trajo 24 referidos:
+  - swavdubkiy@gmail.com [NORMAL]
+  - cvmpuxhbvu@gmail.com [NORMAL]
+  - lcmeaqjjne@gmail.com [NORMAL]
+  - pljlctxegz@gmail.com [NORMAL]
+  - dqmxgyjsvz@gmail.com [NORMAL]
+  - gcjneyqlce@gmail.com [NORMAL]
+  - tyjmuufslm@gmail.com [NORMAL]
+  - jvagplvfcw@gmail.com [NORMAL]
+  - dvpawktrkb@gmail.com [NORMAL]
+  - tjluwtadnd@gmail.com [NORMAL]
+  - rungoxagsn@gmail.com [NORMAL]
+  - stkgvtfewk@gmail.com [NORMAL]
+  - frazzhhlfc@gmail.com [NORMAL]
+  - uxvjowownr@gmail.com [NORMAL]
+  - ssqauatnep@gmail.com [NORMAL]
+  - otdfkjfcte@gmail.com [NORMAL]
+  - afsdjkfsnadjnk@gmail.com [NORMAL]
+  - fdsajkfnds@gmail.com [NORMAL]
+  - fsdafkdsmf@gmail.com [NORMAL]
+  - adfskmfads@gmail.com [NORMAL]
+  - fajdksnfkm@gmail.com [NORMAL]
+  - asdfjknj@gmail.com [NORMAL]
+  - kasfsdj@gmail.com [NORMAL]
+  - jsnkdfjkn@gmail.com [NORMAL]
+
+HISTORIAL DE RETIROS:
+  - [pending   ] |     165000 pts | Wallet: n/a | Fecha: 2026-03-22T14:00:25.320542+00:00
+  - [completed ] |      99000 pts | Wallet: n/a | Fecha: 2026-03-22T13:25:08.259596+00:00
+================================================================
+USUARIO: johngsfnk@gmail.com (ID: b210d89a-0525-4b93-9141-a1944a4c9cfe)
+ESTADO: SUSPENDIDO | REGISTRO: 2026-03-22T13:12:30.323992+00:00
+
+RESUMEN DE PUNTOS:
+  - retiro_bolis             :      -45,000 pts (2 trans)
+  - comision_afiliado        :       44,955 pts (9 trans)
+  - recompensa               :          100 pts (1 trans)
+  TOTAL CALCULADO: 55 pts
+AFILIACION: Trajo 1 referidos:
+  - fasdlfsdakm@gmail.com [SUSPENDIDO]
+
+HISTORIAL DE RETIROS:
+  - [completed ] |      35000 pts | Wallet: n/a | Fecha: 2026-03-22T13:15:55.227912+00:00
+  - [completed ] |      10000 pts | Wallet: n/a | Fecha: 2026-03-22T13:13:52.507641+00:00
+================================================================
+USUARIO: dsalfmkg@gmail.com (ID: 3e9d220f-7d71-447b-84a1-c8acd3ac202f)
+ESTADO: SUSPENDIDO | REGISTRO: 2026-03-22T05:13:28.196848+00:00
+
+RESUMEN DE PUNTOS:
+  - retiro_bolis             :      -10,000 pts (1 trans)
+  - comision_afiliado        :        9,990 pts (1 trans)
+  - recompensa               :          100 pts (1 trans)
+  TOTAL CALCULADO: 90 pts
+AFILIACION: Trajo 1 referidos:
+  - fdasjnfjnd@gmail.com [NORMAL]
+
+HISTORIAL DE RETIROS:
+  - [pending   ] |      10000 pts | Wallet: n/a | Fecha: 2026-03-22T05:14:29.349139+00:00
+================================================================
+USUARIO: johnjonh@gmail.com (ID: 394c9a2c-c58c-43d5-9298-b48b2deae907)
+ESTADO: SUSPENDIDO | REGISTRO: 2026-03-22T04:45:32.591351+00:00
+
+RESUMEN DE PUNTOS:
+  - retiro_bolis             :      -10,000 pts (1 trans)
+  - comision_afiliado        :       14,985 pts (3 trans)
+  - recompensa               :          100 pts (1 trans)
+  TOTAL CALCULADO: 5,085 pts
+AFILIACION: Trajo 1 referidos:
+  - fasdmkjng@gmail.com [NORMAL]
+
+HISTORIAL DE RETIROS:
+  - [completed ] |      10000 pts | Wallet: n/a | Fecha: 2026-03-22T04:47:04.119577+00:00
+================================================================
+USUARIO: fkasdmfkm@gmail.com (ID: 67251f11-87f8-4cb8-8bc5-aec7ac5c43a7)
+ESTADO: SUSPENDIDO | REGISTRO: 2026-03-22T04:42:57.252891+00:00
+
+RESUMEN DE PUNTOS:
+  - retiro_bolis             :      -50,000 pts (1 trans)
+  - comision_afiliado        :       49,950 pts (1 trans)
+  - recompensa               :          100 pts (1 trans)
+  TOTAL CALCULADO: 50 pts
+AFILIACION: Trajo 1 referidos:
+  - faksdmkmng@gmail.com [NORMAL]
+
+HISTORIAL DE RETIROS:
+  - [pending   ] |      50000 pts | Wallet: n/a | Fecha: 2026-03-22T04:43:58.239927+00:00
+================================================================
+USUARIO: johnjohn@gmail.com (ID: 0b39bc60-8f64-4436-b6ff-f2564029a4a5)
+ESTADO: SUSPENDIDO | REGISTRO: 2026-03-22T04:35:33.622815+00:00
+
+RESUMEN DE PUNTOS:
+  - retiro_bolis             :     -100,000 pts (2 trans)
+  - comision_afiliado        :       99,900 pts (2 trans)
+  - recompensa               :          100 pts (1 trans)
+  TOTAL CALCULADO: 0 pts
+AFILIACION: Trajo 3 referidos:
+  - fjaksdnfjkn@gmail.com [NORMAL]
+  - jfkadssk@gmail.com [NORMAL]
+  - jfkadsk@gmail.com [NORMAL]
+
+HISTORIAL DE RETIROS:
+  - [pending   ] |      50000 pts | Wallet: n/a | Fecha: 2026-03-22T04:42:18.478679+00:00
+  - [completed ] |      50000 pts | Wallet: n/a | Fecha: 2026-03-22T04:39:17.629663+00:00
+================================================================
+USUARIO: salmon2697@sharebot.net (ID: 88f9151b-c5fc-46b6-acc3-4b0a05a82aa9)
+ESTADO: SUSPENDIDO | REGISTRO: 2026-03-22T00:07:11.728415+00:00
+
+RESUMEN DE PUNTOS:
+  - comision_afiliado        :      126,401 pts (12 trans)
+  - retiro_bolis             :     -110,000 pts (11 trans)
+  - logro                    :          700 pts (2 trans)
+  - apuesta_hi_lo            :       -6,690 pts (40 trans)
+  - faucet                   :          100 pts (1 trans)
+  - premio_hi_lo             :       49,000 pts (3 trans)
+  - recompensa               :          100 pts (1 trans)
+  TOTAL CALCULADO: 59,611 pts
+AFILIACION: Trajo 6 referidos:
+  - dfkasjkmnbg@gmail.com [NORMAL]
+  - jnajnbf@gmail.com [NORMAL]
+  - 2061tomato@gmail.com [NORMAL]
+  - aqua9178@dollicons.com [NORMAL]
+  - fasdmkmk@gmail.com [NORMAL]
+  - sadkmkmasdn@gmail.com [NORMAL]
+
+HISTORIAL DE RETIROS:
+  - [completed ] |      10000 pts | Wallet: n/a | Fecha: 2026-03-22T04:30:32.574183+00:00
+  - [completed ] |      10000 pts | Wallet: n/a | Fecha: 2026-03-22T04:30:18.159732+00:00
+  - [completed ] |      10000 pts | Wallet: n/a | Fecha: 2026-03-22T04:30:06.85846+00:00
+  - [completed ] |      10000 pts | Wallet: n/a | Fecha: 2026-03-22T04:29:37.396656+00:00
+  - [completed ] |      10000 pts | Wallet: n/a | Fecha: 2026-03-22T04:29:01.351431+00:00
+  - [completed ] |      10000 pts | Wallet: n/a | Fecha: 2026-03-22T04:28:52.307023+00:00
+  - [completed ] |      10000 pts | Wallet: n/a | Fecha: 2026-03-22T04:28:38.486101+00:00
+  - [completed ] |      10000 pts | Wallet: n/a | Fecha: 2026-03-22T04:08:39.151292+00:00
+  - [completed ] |      10000 pts | Wallet: n/a | Fecha: 2026-03-22T00:14:16.521495+00:00
+  - [pending   ] |      10000 pts | Wallet: n/a | Fecha: 2026-03-22T00:13:24.10612+00:00
+  - [pending   ] |      10000 pts | Wallet: n/a | Fecha: 2026-03-22T00:08:42.719743+00:00
+
+⚠️ ANOMALIA DETECTADA: Win Rate de HI-LO sospechoso (7.32x)
+================================================================
+USUARIO: jadeagathe@sharebot.net (ID: b19bf4d4-2e53-4831-8a6d-0c5e160513b3)
+ESTADO: SUSPENDIDO | REGISTRO: 2026-03-21T23:48:43.397152+00:00
+
+RESUMEN DE PUNTOS:
+  - retiro_bolis             :   -4,804,000 pts (4 trans)
+  - premio_hi_lo             :    4,863,210 pts (10 trans)
+  - apuesta_hi_lo            :      -59,730 pts (13 trans)
+  - faucet                   :          100 pts (1 trans)
+  - logro                    :          700 pts (2 trans)
+  - recompensa               :          100 pts (1 trans)
+  TOTAL CALCULADO: 380 pts
+
+HISTORIAL DE RETIROS:
+  - [pending   ] |    3694000 pts | Wallet: n/a | Fecha: 2026-03-22T00:00:48.078629+00:00
+  - [pending   ] |    1000000 pts | Wallet: n/a | Fecha: 2026-03-21T23:59:37.88992+00:00
+  - [completed ] |     100000 pts | Wallet: n/a | Fecha: 2026-03-21T23:57:50.277106+00:00
+  - [completed ] |      10000 pts | Wallet: n/a | Fecha: 2026-03-21T23:51:02.541252+00:00
+
+⚠️ ANOMALIA DETECTADA: Win Rate de HI-LO sospechoso (81.42x)
+
+================================================================
+--- ANALISIS DE REDES DE REFERIDOS ---
+  CADENA: johngsfnk@gmail.com -> fasdlfsdakm@gmail.com
