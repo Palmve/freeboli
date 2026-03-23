@@ -64,11 +64,12 @@ export async function POST() {
     html: htmlTemplate
   });
 
-  if (!emailSent) {
+  if (!emailSent && process.env.NODE_ENV !== "development") {
     return NextResponse.json({ 
-      error: "Error de envío (Resend API). Revisa tu consola si estás en localhost." 
+      error: "Error de envío (Resend API). Verifica tu configuración SMTP o API Key." 
     }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, message: "PIN OTP enviado correctamente al correo." });
+  // En local, aunque el email falle, permitimos el paso si el PIN se mostró en consola
+  return NextResponse.json({ success: true, message: "PIN generado correctamente." });
 }
