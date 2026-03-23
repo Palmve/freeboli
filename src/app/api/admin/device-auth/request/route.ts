@@ -51,6 +51,13 @@ export async function POST() {
     </div>
   `;
 
+  // 🛡️ OPTIMIZACIÓN v1.083: Solo en desarrollo, mostramos el PIN en consola para debug
+  if (process.env.NODE_ENV === "development") {
+    console.log("------------------------------------------");
+    console.log("🔐 [DEV DEBUG] - FreeBoli OTP PIN:", pin);
+    console.log("------------------------------------------");
+  }
+
   const emailSent = await sendEmailViaResend({
     to: user.email,
     subject: "Autorización de Dispositivo Administrativo - FreeBoli",
@@ -58,7 +65,9 @@ export async function POST() {
   });
 
   if (!emailSent) {
-    return NextResponse.json({ error: "No se pudo enviar el correo de verificación TCP" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Error de envío (Resend API). Revisa tu consola si estás en localhost." 
+    }, { status: 500 });
   }
 
   return NextResponse.json({ success: true, message: "PIN OTP enviado correctamente al correo." });
