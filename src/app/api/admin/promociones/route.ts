@@ -38,13 +38,13 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { id, nombre, nombre_en, palabra, puntos_totales, puntos_por_usuario, link_fuente, is_active } = body;
+    const { id, nombre, nombre_en, palabra, puntos_totales, puntos_restantes, puntos_por_usuario, link_fuente, is_active } = body;
 
     if (id) {
       // Update
       const { data, error } = await supabase
         .from("promociones")
-        .update({ nombre, nombre_en, palabra, puntos_totales, puntos_por_usuario, link_fuente, is_active })
+        .update({ nombre, nombre_en, palabra, puntos_totales, puntos_restantes, puntos_por_usuario, link_fuente, is_active })
         .eq("id", id)
         .select()
         .single();
