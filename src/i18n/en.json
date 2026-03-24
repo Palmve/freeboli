@@ -309,6 +309,7 @@
     "rule_4": "Odds {0}x · approx. win chance {1}% · theoretical RTP 98%",
     "rules_pf_hint": "Verifiable rolls (provably fair): use the VER link in history.",
     "strategy_title": "Strategy",
+    "strategy_next_overrides_alternate": "If you set Next bet (HI/LO/contrary), it overrides Alternate mode on the following roll.",
     "strategy_tab_win": "ON WIN",
     "strategy_tab_lose": "ON LOSS",
     "strategy_next_choice": "Next choice",

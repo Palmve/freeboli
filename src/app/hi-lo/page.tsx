@@ -22,6 +22,26 @@ const DEFAULT_HILO_CHANCE = "49.00";
 type Tab = "manual" | "auto";
 type StrategyTab = "win" | "lose";
 
+/** Copia fija al iniciar AUTO: evita reinicios del bucle al editar el formulario durante la sesión. */
+type AutoSessionSnapshot = {
+  baseBetNum: number;
+  maxBetNum: number;
+  rolls: number;
+  stopProfit: number | null;
+  stopLoss: number | null;
+  autoBetOn: "hi" | "lo" | "alternate";
+  onWinReturnBase: boolean;
+  onWinIncreasePct: string;
+  onWinChangeOdds: string;
+  onLoseReturnBase: boolean;
+  onLoseIncreasePct: string;
+  onLoseChangeOdds: string;
+  onMaxStop: boolean;
+  onMaxReturnBase: boolean;
+  onWinNextChoice: "hi" | "lo" | "contrary";
+  onLoseNextChoice: "hi" | "lo" | "contrary";
+};
+
 type Result = {
   roll: number;
   choice: string;
@@ -97,6 +117,10 @@ export default function HiLoPage() {
   const [autoSessionPL, setAutoSessionPL] = useState(0);
   const [autoRunning, setAutoRunning] = useState(false);
   const autoAbortRef = useRef(false);
+  const autoSessionRef = useRef<{ snapshot: AutoSessionSnapshot | null; odds: number }>({
+    snapshot: null,
+    odds: 2,
+  });
 
   const [lastAutoBand, setLastAutoBand] = useState<{ choice: "HI" | "LO"; win: boolean; profit: number } | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -208,6 +232,21 @@ export default function HiLoPage() {
     setHistory((prev) => [{ ...entry, id }, ...prev].slice(0, 50));
   }
 
+  /** Alinea inputs con la cuota que usará el servidor (clamp + probabilidad). */
+  function normalizeManualOddsState() {
+    const o = Math.max(ODDS_MIN, Math.min(ODDS_MAX, Number(manualBetOdds) || 2));
+    const c = HOUSE_EDGE_FACTOR / o;
+    setManualBetOdds(o.toFixed(2));
+    setManualWinChance(Math.max(WIN_CHANCE_MIN, Math.min(WIN_CHANCE_MAX, c)).toFixed(2));
+    return o;
+  }
+
+  function tryApplyStrategyOdds(raw: string) {
+    const p = parseFloat(String(raw).replace(",", "."));
+    if (!Number.isFinite(p) || p < ODDS_MIN || p > ODDS_MAX) return;
+    autoSessionRef.current.odds = p;
+  }
+
   const playOne = useCallback(async (betAmount: number, choiceHiLo: "hi" | "lo", odds: number): Promise<Result | null> => {
     const res = await fetch("/api/hi-lo/play", {
       method: "POST",
@@ -236,7 +275,8 @@ export default function HiLoPage() {
     setError("");
     setLoading(true);
     setLastResult(null);
-    const data = await playOne(amount, c, oddsNumManual);
+    const oddsPlay = normalizeManualOddsState();
+    const data = await playOne(amount, c, oddsPlay);
     setLoading(false);
     if (!data) {
       setChoice(null); // Clear selection even on error
@@ -256,7 +296,7 @@ export default function HiLoPage() {
       choice: c === "hi" ? "HI" : "LO",
       roll: data.roll,
       stake: data.bet,
-      mult: data.win ? oddsNumManual : 0,
+      mult: data.win ? oddsPlay : 0,
       profit,
       verification: data.verification,
     });
@@ -268,25 +308,33 @@ export default function HiLoPage() {
     return () => clearTimeout(t);
   }, [lastResult?.roll]);
 
-  // Auto Bet loop
+  // Auto Bet loop: depende solo de autoRunning; parámetros congelados en autoSessionRef al iniciar.
   useEffect(() => {
     if (!autoRunning) return;
 
-    let currentBet = Math.floor(Number(autoBaseBet)) || 1;
-    let rollsLeft = Math.min(Math.floor(Number(autoNumRolls)) || 10, 10000);
-    const stopProfit = autoStopProfit ? Math.floor(Number(autoStopProfit)) : null;
-    const stopLoss = autoStopLoss ? Math.floor(Number(autoStopLoss)) : null;
+    const snap = autoSessionRef.current.snapshot;
+    if (!snap) {
+      setAutoRunning(false);
+      return;
+    }
+
+    let currentBet = snap.baseBetNum;
+    let rollsLeft = snap.rolls;
     let totalProfit = 0;
     let alternateNext: "hi" | "lo" = "lo";
     let overrideNextChoice: "hi" | "lo" | null = null;
 
     const run = async () => {
       while (rollsLeft > 0 && !autoAbortRef.current) {
-        const choiceToUse = overrideNextChoice ?? (autoBetOn === "alternate" ? alternateNext : autoBetOn);
-        if (autoBetOn === "alternate" && overrideNextChoice == null) alternateNext = alternateNext === "hi" ? "lo" : "hi";
+        const choiceToUse =
+          overrideNextChoice ?? (snap.autoBetOn === "alternate" ? alternateNext : snap.autoBetOn);
+        if (snap.autoBetOn === "alternate" && overrideNextChoice == null) {
+          alternateNext = alternateNext === "hi" ? "lo" : "hi";
+        }
         overrideNextChoice = null;
 
-        const data = await playOne(currentBet, choiceToUse, oddsNumAuto);
+        const oddsPlay = autoSessionRef.current.odds;
+        const data = await playOne(currentBet, choiceToUse, oddsPlay);
         if (!data) break;
         setBalance(data.newBalance);
         if (typeof window !== "undefined") {
@@ -305,28 +353,38 @@ export default function HiLoPage() {
           choice: choiceToUse === "hi" ? "HI" : "LO",
           roll: data.roll,
           stake: data.bet,
-          mult: data.win ? oddsNumAuto : 0,
+          mult: data.win ? oddsPlay : 0,
           profit,
           verification: data.verification,
         });
 
-        const baseBetNum = Math.floor(Number(autoBaseBet)) || 1;
-        const maxBetNum = Math.floor(Number(autoMaxBet)) || 100;
         if (data.win) {
-          if (autoOnWinReturnBase) currentBet = baseBetNum;
-          else if (autoOnWinIncreasePct) currentBet = Math.min(maxBetNum, Math.floor(currentBet * (1 + Number(autoOnWinIncreasePct) / 100)) || baseBetNum);
+          if (snap.onWinReturnBase) currentBet = snap.baseBetNum;
+          else if (snap.onWinIncreasePct) {
+            currentBet = Math.min(
+              snap.maxBetNum,
+              Math.floor(currentBet * (1 + Number(snap.onWinIncreasePct) / 100)) || snap.baseBetNum
+            );
+          }
+          if (snap.onWinChangeOdds.trim()) tryApplyStrategyOdds(snap.onWinChangeOdds);
         } else {
-          if (autoOnLoseReturnBase) currentBet = baseBetNum;
-          else if (autoOnLoseIncreasePct) currentBet = Math.min(maxBetNum, Math.floor(currentBet * (1 + Number(autoOnLoseIncreasePct) / 100)) || baseBetNum);
+          if (snap.onLoseReturnBase) currentBet = snap.baseBetNum;
+          else if (snap.onLoseIncreasePct) {
+            currentBet = Math.min(
+              snap.maxBetNum,
+              Math.floor(currentBet * (1 + Number(snap.onLoseIncreasePct) / 100)) || snap.baseBetNum
+            );
+          }
+          if (snap.onLoseChangeOdds.trim()) tryApplyStrategyOdds(snap.onLoseChangeOdds);
         }
-        if (currentBet > maxBetNum) {
-          if (autoOnMaxStop) break;
-          if (autoOnMaxReturnBase) currentBet = baseBetNum;
+        if (currentBet > snap.maxBetNum) {
+          if (snap.onMaxStop) break;
+          if (snap.onMaxReturnBase) currentBet = snap.baseBetNum;
         }
 
-        const nextRule = data.win ? autoOnWinNextChoice : autoOnLoseNextChoice;
+        const nextRule = data.win ? snap.onWinNextChoice : snap.onLoseNextChoice;
         overrideNextChoice =
-          nextRule === "hi" ? "hi" : nextRule === "lo" ? "lo" : (choiceToUse === "hi" ? "lo" : "hi");
+          nextRule === "hi" ? "hi" : nextRule === "lo" ? "lo" : choiceToUse === "hi" ? "lo" : "hi";
 
         setAutoRollsPlayed((c) => c + 1);
         setAutoRollsRemaining(rollsLeft - 1);
@@ -335,8 +393,8 @@ export default function HiLoPage() {
         setAutoSessionPL(totalProfit);
 
         rollsLeft--;
-        if (stopProfit != null && totalProfit >= stopProfit) break;
-        if (stopLoss != null && totalProfit <= -stopLoss) break;
+        if (snap.stopProfit != null && totalProfit >= snap.stopProfit) break;
+        if (snap.stopLoss != null && totalProfit <= -snap.stopLoss) break;
         await new Promise((r) => setTimeout(r, 250));
       }
       setAutoRunning(false);
@@ -348,33 +406,46 @@ export default function HiLoPage() {
     return () => {
       autoAbortRef.current = true;
     };
-  }, [
-    autoRunning, 
-    autoBaseBet, 
-    autoNumRolls, 
-    autoStopProfit, 
-    autoStopLoss, 
-    autoBetOn, 
-    lang, 
-    oddsNumAuto, 
-    playOne, 
-    autoMaxBet, 
-    autoOnWinReturnBase, 
-    autoOnWinIncreasePct, 
-    autoOnLoseReturnBase, 
-    autoOnLoseIncreasePct, 
-    autoOnMaxStop, 
-    autoOnMaxReturnBase, 
-    autoOnWinNextChoice, 
-    autoOnLoseNextChoice
-  ]);
+    // Snapshot y odds mutables en autoSessionRef al pulsar Iniciar; no re-enlazar al cambiar inputs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRunning, playOne]);
 
   const startAuto = () => {
+    const baseBetNum = Math.floor(Number(autoBaseBet)) || 1;
+    const maxBetNum = Math.floor(Number(autoMaxBet)) || 100;
+    const rolls = Math.min(Math.floor(Number(autoNumRolls)) || 10, 10000);
+    const spRaw = autoStopProfit ? Math.floor(Number(autoStopProfit)) : null;
+    const slRaw = autoStopLoss ? Math.floor(Number(autoStopLoss)) : null;
+    const stopProfit = spRaw != null && spRaw > 0 ? spRaw : null;
+    const stopLoss = slRaw != null && slRaw > 0 ? slRaw : null;
+    const initialOdds = Math.max(ODDS_MIN, Math.min(ODDS_MAX, Number(autoBetOdds) || 2));
+
+    autoSessionRef.current = {
+      snapshot: {
+        baseBetNum,
+        maxBetNum,
+        rolls,
+        stopProfit,
+        stopLoss,
+        autoBetOn,
+        onWinReturnBase: autoOnWinReturnBase,
+        onWinIncreasePct: autoOnWinIncreasePct,
+        onWinChangeOdds: autoOnWinChangeOdds,
+        onLoseReturnBase: autoOnLoseReturnBase,
+        onLoseIncreasePct: autoOnLoseIncreasePct,
+        onLoseChangeOdds: autoOnLoseChangeOdds,
+        onMaxStop: autoOnMaxStop,
+        onMaxReturnBase: autoOnMaxReturnBase,
+        onWinNextChoice: autoOnWinNextChoice,
+        onLoseNextChoice: autoOnLoseNextChoice,
+      },
+      odds: initialOdds,
+    };
+
     autoAbortRef.current = false;
     setLastAutoBand(null);
     setAutoRollsPlayed(0);
-    const total = Math.min(Math.floor(Number(autoNumRolls)) || 10, 10000);
-    setAutoRollsRemaining(total);
+    setAutoRollsRemaining(rolls);
     setAutoBiggestBet(0);
     setAutoBiggestWin(0);
     setAutoSessionPL(0);
@@ -742,7 +813,8 @@ export default function HiLoPage() {
               {autoStrategyTab === "win" ? (
                 <div className="mt-3 space-y-2 text-sm">
                   <p className="text-slate-400 text-xs font-semibold uppercase">{t("hilo.strategy_next_choice")}</p>
-                  <div className="flex flex-wrap gap-2">
+                  <p className="text-slate-500 text-[10px] leading-snug mt-1">{t("hilo.strategy_next_overrides_alternate")}</p>
+                  <div className="flex flex-wrap gap-2 mt-2">
                     {(["hi", "lo", "contrary"] as const).map((opt) => (
                       <label key={opt} className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
                         <input
@@ -756,11 +828,30 @@ export default function HiLoPage() {
                     ))}
                   </div>
                   <label className="flex items-center gap-2 text-slate-300 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={autoOnWinReturnBase} onChange={(e) => setAutoOnWinReturnBase(e.target.checked)} />
+                    <input
+                      type="checkbox"
+                      checked={autoOnWinReturnBase}
+                      onChange={(e) => {
+                        const on = e.target.checked;
+                        setAutoOnWinReturnBase(on);
+                        if (on) setAutoOnWinIncreasePct("");
+                      }}
+                    />
                     {t("hilo.strategy_return_base")}
                   </label>
                   <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
-                    <input type="checkbox" checked={!!autoOnWinIncreasePct} onChange={(e) => setAutoOnWinIncreasePct(e.target.checked ? "10" : "")} />
+                    <input
+                      type="checkbox"
+                      checked={!!autoOnWinIncreasePct}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setAutoOnWinIncreasePct((prev) => prev || "10");
+                          setAutoOnWinReturnBase(false);
+                        } else {
+                          setAutoOnWinIncreasePct("");
+                        }
+                      }}
+                    />
                     {t("hilo.strategy_increase_pct")}
                     <input
                       type="number"
@@ -786,7 +877,8 @@ export default function HiLoPage() {
               ) : (
                 <div className="mt-3 space-y-2 text-sm">
                   <p className="text-slate-400 text-xs font-semibold uppercase">{t("hilo.strategy_next_choice")}</p>
-                  <div className="flex flex-wrap gap-2">
+                  <p className="text-slate-500 text-[10px] leading-snug mt-1">{t("hilo.strategy_next_overrides_alternate")}</p>
+                  <div className="flex flex-wrap gap-2 mt-2">
                     {(["hi", "lo", "contrary"] as const).map((opt) => (
                       <label key={opt} className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
                         <input
@@ -800,11 +892,30 @@ export default function HiLoPage() {
                     ))}
                   </div>
                   <label className="flex items-center gap-2 text-slate-300 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={autoOnLoseReturnBase} onChange={(e) => setAutoOnLoseReturnBase(e.target.checked)} />
+                    <input
+                      type="checkbox"
+                      checked={autoOnLoseReturnBase}
+                      onChange={(e) => {
+                        const on = e.target.checked;
+                        setAutoOnLoseReturnBase(on);
+                        if (on) setAutoOnLoseIncreasePct("");
+                      }}
+                    />
                     {t("hilo.strategy_return_base")}
                   </label>
                   <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
-                    <input type="checkbox" checked={!!autoOnLoseIncreasePct} onChange={(e) => setAutoOnLoseIncreasePct(e.target.checked ? "10" : "")} />
+                    <input
+                      type="checkbox"
+                      checked={!!autoOnLoseIncreasePct}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setAutoOnLoseIncreasePct((prev) => prev || "10");
+                          setAutoOnLoseReturnBase(false);
+                        } else {
+                          setAutoOnLoseIncreasePct("");
+                        }
+                      }}
+                    />
                     {t("hilo.strategy_increase_pct")}
                     <input
                       type="number"

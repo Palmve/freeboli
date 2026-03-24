@@ -309,6 +309,7 @@
     "rule_4": "Cuota {0}x · acierto aprox. {1}% · RTP teórico 98%",
     "rules_pf_hint": "Tiradas verificables (provably fair): usa el enlace VER del historial.",
     "strategy_title": "Estrategia",
+    "strategy_next_overrides_alternate": "Si eliges «próxima apuesta» (HI/LO/contraria), en la siguiente tirada sustituye al modo «Alternar».",
     "strategy_tab_win": "AL GANAR",
     "strategy_tab_lose": "AL PERDER",
     "strategy_next_choice": "Próxima apuesta",
