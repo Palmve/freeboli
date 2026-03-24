@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { POINTS_PER_BOLIS } from "@/lib/config";
+import { LEVELS, type UserLevel } from "@/lib/levels";
 import { useLang } from "@/context/LangContext";
 import LevelProgressCard from "@/components/LevelProgressCard";
 import PromoCard from "@/components/PromoCard";
@@ -60,6 +61,7 @@ export default function HomePage() {
   const loading = REQUIRE_AUTH && status === "loading";
   const [tick, setTick] = useState(0);
   const [promo, setPromo] = useState<any>(null);
+  const [levelRows, setLevelRows] = useState<UserLevel[]>(LEVELS);
 
   const PLATFORM_STATS = [
     { value: fmt(POINTS_PER_BOLIS), label: t("home.stat_points_label"), icon: "💎" },
@@ -78,6 +80,15 @@ export default function HomePage() {
       .then(res => res.json())
       .then(data => setPromo(data.promo))
       .catch(err => console.error(err));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/levels")
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d.levels) && d.levels.length > 0) setLevelRows(d.levels);
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -223,15 +234,21 @@ export default function HomePage() {
         </div>
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 text-center text-sm">
           <div className="rounded-xl bg-slate-800/50 border border-slate-700 px-4 py-3">
-            <div className="text-amber-400 font-black text-lg">+1,000 pts</div>
+            <div className="text-amber-400 font-black text-lg">
+              +{fmt(levelRows.find((l) => l.level === 4)?.rewardPoints ?? 0)} pts
+            </div>
             <div className="text-slate-500 text-xs">{t("home.prize_veteran")} ⭐</div>
           </div>
           <div className="rounded-xl bg-slate-800/50 border border-slate-700 px-4 py-3">
-            <div className="text-emerald-400 font-black text-lg">+25,000 pts</div>
+            <div className="text-emerald-400 font-black text-lg">
+              +{fmt(levelRows.find((l) => l.level === 6)?.rewardPoints ?? 0)} pts
+            </div>
             <div className="text-slate-500 text-xs">{t("home.prize_master")} 👑</div>
           </div>
           <div className="rounded-xl bg-red-900/20 border border-red-800/30 px-4 py-3">
-            <div className="text-red-400 font-black text-lg">+100,000 pts</div>
+            <div className="text-red-400 font-black text-lg">
+              +{fmt(levelRows.find((l) => l.level === 7)?.rewardPoints ?? 0)} pts
+            </div>
             <div className="text-slate-500 text-xs">{t("home.prize_legend")} 🔥</div>
           </div>
         </div>

@@ -82,37 +82,52 @@ export const LEVELS: UserLevel[] = [
   { 
     level: 6, name: "Maestro", icon: "👑", color: "text-amber-400", glow: "shadow-amber-500/50",
     minBets: 5000, minFaucet: 100, minPredictions: 150, minDaysSinceJoined: 15, requiresEmail: true,
-    rewardPoints: 25000,
+    rewardPoints: 10000,
     benefits: { maxBetPoints: 10000, maxWithdrawBolis: 100 }
   },
   { 
     level: 7, name: "Leyenda", icon: "🔥", color: "text-red-400", glow: "shadow-red-500/60",
     minBets: 10000, minFaucet: 200, minPredictions: 400, minDaysSinceJoined: 30, requiresEmail: true,
-    rewardPoints: 100000,
+    rewardPoints: 25000,
     benefits: { maxBetPoints: 10000, maxWithdrawBolis: 250 }
   },
 ];
 
 /**
- * Aplica sobreescrituras desde JSON si existen en la configuración 'LEVEL_LIMITS'.
- * Formato esperado: { "1": { "maxBet": 1000, "maxWithdraw": 5 }, "2": ... }
+ * Convierte el valor JSON de site_settings (string u objeto) a string para getDynamicLevels.
+ */
+export function parseLevelLimitsValue(value: unknown): string | undefined {
+  if (value == null || value === "") return undefined;
+  if (typeof value === "string") return value;
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return undefined;
+    }
+  }
+  return String(value);
+}
+
+/**
+ * Aplica sobreescrituras desde JSON si existen en la configuración 'LEVEL_LIMITS' (site_settings).
+ * Formato: { "1": { "maxBet": 1000, "maxWithdraw": 5, "rewardPoints": 0 }, "2": ... }
  */
 export function getDynamicLevels(overridesJson?: string): UserLevel[] {
   if (!overridesJson) return LEVELS;
   try {
     const overrides = JSON.parse(overridesJson);
-    return LEVELS.map(lvl => {
-      const ov = overrides[lvl.level] || overrides[lvl.name];
-      if (ov) {
-        return {
-          ...lvl,
-          benefits: {
-            maxBetPoints: typeof ov.maxBet === 'number' ? ov.maxBet : lvl.benefits.maxBetPoints,
-            maxWithdrawBolis: typeof ov.maxWithdraw === 'number' ? ov.maxWithdraw : lvl.benefits.maxWithdrawBolis,
-          }
-        };
-      }
-      return lvl;
+    return LEVELS.map((lvl) => {
+      const ov = overrides[lvl.level] ?? overrides[String(lvl.level)] ?? overrides[lvl.name];
+      if (!ov || typeof ov !== "object") return lvl;
+      return {
+        ...lvl,
+        rewardPoints: typeof ov.rewardPoints === "number" ? ov.rewardPoints : lvl.rewardPoints,
+        benefits: {
+          maxBetPoints: typeof ov.maxBet === "number" ? ov.maxBet : lvl.benefits.maxBetPoints,
+          maxWithdrawBolis: typeof ov.maxWithdraw === "number" ? ov.maxWithdraw : lvl.benefits.maxWithdrawBolis,
+        },
+      };
     });
   } catch (e) {
     console.error("[Levels] Error parsing LEVEL_LIMITS override:", e);
@@ -120,15 +135,24 @@ export function getDynamicLevels(overridesJson?: string): UserLevel[] {
   }
 }
 
-export function getUserLevel(stats: {
-  betCount: number;
-  faucetClaims: number;
-  predictionCount: number;
-  daysSinceJoined: number;    // Días desde la inscripción
-  emailVerified: boolean;
-}): UserLevel {
-  let result = LEVELS[0];
-  for (const lvl of LEVELS) {
+/** Niveles efectivos desde BD (site_settings.LEVEL_LIMITS). */
+export async function fetchActiveLevels(supabase: { from: (t: string) => any }): Promise<UserLevel[]> {
+  const { data } = await supabase.from("site_settings").select("value").eq("key", "LEVEL_LIMITS").maybeSingle();
+  return getDynamicLevels(parseLevelLimitsValue(data?.value));
+}
+
+export function getUserLevel(
+  stats: {
+    betCount: number;
+    faucetClaims: number;
+    predictionCount: number;
+    daysSinceJoined: number; // Días desde la inscripción
+    emailVerified: boolean;
+  },
+  allLevels: UserLevel[] = LEVELS
+): UserLevel {
+  let result = allLevels[0];
+  for (const lvl of allLevels) {
     if (lvl.requiresEmail && !stats.emailVerified) continue;
     if (
       stats.betCount >= lvl.minBets && 
@@ -142,9 +166,10 @@ export function getUserLevel(stats: {
   return result;
 }
 
-export function getNextLevel(current: UserLevel): UserLevel | null {
-  const idx = LEVELS.findIndex((l) => l.level === current.level);
-  return idx < LEVELS.length - 1 ? LEVELS[idx + 1] : null;
+export function getNextLevel(current: UserLevel, allLevels: UserLevel[] = LEVELS): UserLevel | null {
+  const idx = allLevels.findIndex((l) => l.level === current.level);
+  if (idx < 0 || idx >= allLevels.length - 1) return null;
+  return allLevels[idx + 1];
 }
 
 export function getLevelProgress(stats: {
@@ -164,13 +189,15 @@ export function getLevelProgress(stats: {
 }
 
 /** Obtiene el nivel de un usuario desde la BD (usando contadores cacheados en profile). */
-export async function fetchUserLevel(supabase: any, userId: string): Promise<UserLevel> {
-  const [{ data: p }, { data: settings }] = await Promise.all([
-     supabase.from("profiles").select("hilo_bet_count, faucet_claim_count, prediction_count, email_verified_at, created_at").eq("id", userId).single(),
-     supabase.from("settings").select("value").eq("key", "LEVEL_LIMITS").maybeSingle()
+export async function fetchUserLevel(
+  supabase: any,
+  userId: string,
+  preloadedLevels?: UserLevel[]
+): Promise<UserLevel> {
+  const [{ data: p }, activeLevels] = await Promise.all([
+    supabase.from("profiles").select("hilo_bet_count, faucet_claim_count, prediction_count, email_verified_at, created_at").eq("id", userId).single(),
+    preloadedLevels ? Promise.resolve(preloadedLevels) : fetchActiveLevels(supabase),
   ]);
-
-  const activeLevels = getDynamicLevels(settings?.value);
   if (!p) return activeLevels[0];
 
   const daysSinceJoined = p.created_at
@@ -206,7 +233,8 @@ export async function fetchUserLevel(supabase: any, userId: string): Promise<Use
  */
 export async function checkAndNotifyLevelUp(supabase: any, userId: string, email: string, name?: string) {
   const { data: p } = await supabase.from("profiles").select("last_notified_level").eq("id", userId).single();
-  const currentLevel = await fetchUserLevel(supabase, userId);
+  const activeLevels = await fetchActiveLevels(supabase);
+  const currentLevel = await fetchUserLevel(supabase, userId, activeLevels);
   const lastLevel = p?.last_notified_level ?? 1;
 
   if (currentLevel.level > lastLevel) {
@@ -246,7 +274,7 @@ export async function checkAndNotifyLevelUp(supabase: any, userId: string, email
 
     try {
       const { getLevelCardEmail } = await import("./mail-templates");
-      const nextLvl = getNextLevel(currentLevel);
+      const nextLvl = getNextLevel(currentLevel, activeLevels);
 
       await sendEmailViaResend({
         to: email,

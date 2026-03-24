@@ -56,7 +56,7 @@ const FIELDS: SettingField[] = [
   // Soporte
   { key: "TELEGRAM_BOT_TOKEN", label: "Telegram Bot Token", type: "text" as any, description: "Token del bot para notificaciones de soporte", group: "Soporte" },
   { key: "TELEGRAM_CHAT_ID", label: "ID de Chat Telegram", type: "text", description: "Chat ID para alertas (numérico)", group: "Soporte" },
-  { key: "LEVEL_LIMITS", label: "Sobreescritura de Límites (JSON)", type: "json", description: 'Define límites personalizados por nivel. Formato: { "1": { "maxBet": 1000, "maxWithdraw": 5 }, "2": ... }', group: "Niveles" },
+  { key: "LEVEL_LIMITS", label: "Sobreescritura de Límites (JSON)", type: "json", description: 'Por nivel: maxBet (pts), maxWithdraw (BOLIS), rewardPoints (premio al alcanzar el nivel). Ej.: { "4": { "maxBet": 5000, "maxWithdraw": 25, "rewardPoints": 1000 } }', group: "Niveles" },
 ];
 
 interface Promotion {
@@ -698,7 +698,7 @@ export default function ConfiguracionPage() {
                           <span className="text-[9px] text-slate-500 font-mono">NIVEL {lvl.level}</span>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                            <div className="space-y-1.5">
                               <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest pl-1">Apuesta Máx (pts)</label>
                               <input 
@@ -713,8 +713,11 @@ export default function ConfiguracionPage() {
                                 onChange={(e) => {
                                   let ov = {};
                                   try { ov = JSON.parse(values.LEVEL_LIMITS || "{}"); } catch {}
-                                  const val = parseInt(e.target.value);
-                                  (ov as any)[lvl.level] = { ...(ov as any)[lvl.level], maxBet: isNaN(val) ? undefined : val };
+                                  const val = parseInt(e.target.value, 10);
+                                  (ov as Record<number, Record<string, unknown>>)[lvl.level] = {
+                                    ...(ov as Record<number, Record<string, unknown>>)[lvl.level],
+                                    maxBet: Number.isNaN(val) ? undefined : val,
+                                  };
                                   setValues(v => ({ ...v, LEVEL_LIMITS: JSON.stringify(ov, null, 2) }));
                                 }}
                                 className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white font-mono text-xs focus:border-amber-500 focus:outline-none transition-colors shadow-inner" 
@@ -734,11 +737,45 @@ export default function ConfiguracionPage() {
                                 onChange={(e) => {
                                   let ov = {};
                                   try { ov = JSON.parse(values.LEVEL_LIMITS || "{}"); } catch {}
-                                  const val = parseInt(e.target.value);
-                                  (ov as any)[lvl.level] = { ...(ov as any)[lvl.level], maxWithdraw: isNaN(val) ? undefined : val };
+                                  const val = parseInt(e.target.value, 10);
+                                  (ov as Record<number, Record<string, unknown>>)[lvl.level] = {
+                                    ...(ov as Record<number, Record<string, unknown>>)[lvl.level],
+                                    maxWithdraw: Number.isNaN(val) ? undefined : val,
+                                  };
                                   setValues(v => ({ ...v, LEVEL_LIMITS: JSON.stringify(ov, null, 2) }));
                                 }}
                                 className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-amber-400 font-mono text-xs focus:border-amber-500 focus:outline-none transition-colors shadow-inner" 
+                              />
+                           </div>
+                           <div className="space-y-1.5">
+                              <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest pl-1">Premio al subir (pts)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                placeholder={String(lvl.rewardPoints)}
+                                value={(() => {
+                                  try {
+                                    const ov = JSON.parse(values.LEVEL_LIMITS || "{}");
+                                    return ov[lvl.level]?.rewardPoints ?? "";
+                                  } catch {
+                                    return "";
+                                  }
+                                })()}
+                                onChange={(e) => {
+                                  let ov: Record<string, Record<string, unknown>> = {};
+                                  try {
+                                    ov = JSON.parse(values.LEVEL_LIMITS || "{}") as Record<string, Record<string, unknown>>;
+                                  } catch {
+                                    ov = {};
+                                  }
+                                  const val = parseInt(e.target.value, 10);
+                                  ov[lvl.level] = {
+                                    ...ov[lvl.level],
+                                    rewardPoints: Number.isNaN(val) ? undefined : val,
+                                  };
+                                  setValues((v) => ({ ...v, LEVEL_LIMITS: JSON.stringify(ov, null, 2) }));
+                                }}
+                                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-emerald-400 font-mono text-xs focus:border-emerald-500 focus:outline-none transition-colors shadow-inner"
                               />
                            </div>
                         </div>
@@ -779,9 +816,14 @@ export default function ConfiguracionPage() {
                           <td className="px-4 py-2 text-center text-slate-400 font-mono">{l.minFaucet.toLocaleString()}</td>
                           <td className="px-4 py-2 text-center text-slate-400 font-mono">{l.minDaysSinceJoined > 0 ? `${l.minDaysSinceJoined}d` : "-"}</td>
                           <td className="px-4 py-2 text-center">
-                            <span className="text-white font-mono bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700">
+                            <span className="text-white font-mono bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700 block sm:inline">
                               {l.benefits.maxBetPoints.toLocaleString()} pts / {l.benefits.maxWithdrawBolis} B
                             </span>
+                            {l.rewardPoints > 0 && (
+                              <span className="text-emerald-400 text-[10px] font-bold block mt-1">
+                                +{l.rewardPoints.toLocaleString()} pts al subir
+                              </span>
+                            )}
                           </td>
                         </tr>
                       ))}

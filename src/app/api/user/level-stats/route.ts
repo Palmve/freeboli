@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
-import { getUserLevel, getNextLevel, getLevelProgress, LEVELS } from "@/lib/levels";
+import { getUserLevel, getNextLevel, getLevelProgress, fetchActiveLevels } from "@/lib/levels";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -30,8 +30,9 @@ export async function GET() {
     emailVerified: !!p.email_verified_at,
   };
 
-  const currentLevel = getUserLevel(stats);
-  const nextLevel = getNextLevel(currentLevel);
+  const activeLevels = await fetchActiveLevels(supabase);
+  const currentLevel = getUserLevel(stats, activeLevels);
+  const nextLevel = getNextLevel(currentLevel, activeLevels);
 
   // Calcular XP global: promedio ponderado de las métricas necesarias para el SIGUIENTE nivel
   let xpPercent = 100;
@@ -48,7 +49,7 @@ export async function GET() {
     currentLevel,
     nextLevel,
     xpPercent,
-    levels: LEVELS,
+    levels: activeLevels,
     maxBetPoints: currentLevel.benefits.maxBetPoints,
     maxWithdrawBolis: currentLevel.benefits.maxWithdrawBolis,
     rewardPoints: currentLevel.rewardPoints,

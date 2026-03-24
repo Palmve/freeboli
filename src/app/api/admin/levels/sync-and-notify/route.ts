@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminUser } from "@/lib/current-user";
-import { fetchUserLevel } from "@/lib/levels";
+import { fetchActiveLevels, getUserLevel } from "@/lib/levels";
 import { sendEmailViaResend } from "@/lib/resend";
 import { getNewLevelsConfigEmail, getUserStatusEmail } from "@/lib/mail-templates";
 
@@ -20,6 +20,8 @@ export async function POST(req: Request) {
 
   console.log(`[LevelSync] Iniciando envío masivo para ${profiles.length} usuarios...`);
 
+  const activeLevels = await fetchActiveLevels(supabase);
+
   let sentCount = 0;
   let errorCount = 0;
 
@@ -31,17 +33,19 @@ export async function POST(req: Request) {
 
     try {
       // 1. Calcular nivel actual con la nueva lógica
-      const levels = await import("@/lib/levels");
       const daysSinceJoined = p.created_at
         ? Math.floor((Date.now() - new Date(p.created_at).getTime()) / 86400000)
         : 0;
-      const currentLevel = levels.getUserLevel({
-        betCount: p.hilo_bet_count ?? 0,
-        faucetClaims: p.faucet_claim_count ?? 0,
-        predictionCount: p.prediction_count ?? 0,
-        daysSinceJoined,
-        emailVerified: !!p.email_verified_at
-      });
+      const currentLevel = getUserLevel(
+        {
+          betCount: p.hilo_bet_count ?? 0,
+          faucetClaims: p.faucet_claim_count ?? 0,
+          predictionCount: p.prediction_count ?? 0,
+          daysSinceJoined,
+          emailVerified: !!p.email_verified_at,
+        },
+        activeLevels
+      );
 
       // 2. Enviar anuncio de nueva configuración
       const baseOk = await sendEmailViaResend({

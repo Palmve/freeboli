@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LEVELS, translateLevelName } from "@/lib/levels";
+import { LEVELS, translateLevelName, type UserLevel } from "@/lib/levels";
 import { POINTS_PER_BOLIS } from "@/lib/config";
 import { useLang } from "@/context/LangContext";
 import LevelProgressCard from "@/components/LevelProgressCard";
@@ -31,6 +31,7 @@ const RANK_MEDAL: Record<number, string> = {
 
 export default function ClasificacionPage() {
   const { lang, t } = useLang();
+  const [levelRows, setLevelRows] = useState<UserLevel[]>(LEVELS);
   const [period, setPeriod] = useState<Period>("all");
   const [top10, setTop10] = useState<Entry[]>([]);
   const [userSection, setUserSection] = useState<Entry[] | null>(null);
@@ -45,6 +46,15 @@ export default function ClasificacionPage() {
     { value: "month", label: t("ranking.tab_month") },
     { value: "all", label: t("ranking.tab_all") },
   ];
+
+  useEffect(() => {
+    fetch("/api/levels")
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d.levels) && d.levels.length > 0) setLevelRows(d.levels);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -250,7 +260,7 @@ export default function ClasificacionPage() {
               </tr>
             </thead>
             <tbody>
-              {LEVELS.map((l) => (
+              {levelRows.map((l) => (
                 <tr key={l.level} className="border-b border-slate-700/50 hover:bg-slate-800/30 transition">
                   <td className="p-2 text-left">
                     <span className={`${l.color} font-bold`}>
