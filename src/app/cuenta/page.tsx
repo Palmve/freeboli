@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { POINTS_PER_BOLIS } from "@/lib/config";
+import { translateLevelName } from "@/lib/levels";
 import { SupportModal } from "@/components/SupportModal";
 import { useLang } from "@/context/LangContext";
 
@@ -35,7 +36,9 @@ export default function CuentaPage() {
     withdrawalsTotal: number;
     predictionPrizes: number;
   }>(null);
-  const [levelStats, setLevelStats] = useState<{ currentLevel: { name: string; icon: string; benefits: { maxBetPoints: number } } } | null>(null);
+  const [levelStats, setLevelStats] = useState<{
+    currentLevel: { level: number; name: string; icon: string; benefits: { maxBetPoints: number } };
+  } | null>(null);
 
   useEffect(() => {
     if (!REQUIRE_AUTH) {
@@ -102,10 +105,10 @@ export default function CuentaPage() {
     const data = await res.json().catch(() => ({}));
     setVerifyLoading(false);
     if (!res.ok) {
-      setVerifyMsg(data.error || "Error");
+      setVerifyMsg(data.error || t("common.error_title"));
       return;
     }
-    setVerifyMsg(data.alreadyVerified ? "Verified" : "Sent");
+    setVerifyMsg(data.alreadyVerified ? "verified" : "sent");
   }
 
   return (
@@ -125,7 +128,7 @@ export default function CuentaPage() {
                 : "border-slate-800 bg-slate-800/50 text-slate-400 hover:border-slate-700"
             }`}
           >
-            <span className="text-xl">🇪🇸</span> Español
+            <span className="text-xl">🇪🇸</span> {t("account.lang_es")}
           </button>
           <button
             onClick={() => changeLang("en")}
@@ -135,7 +138,7 @@ export default function CuentaPage() {
                 : "border-slate-800 bg-slate-800/50 text-slate-400 hover:border-slate-700"
             }`}
           >
-            <span className="text-xl">🇺🇸</span> English
+            <span className="text-xl">🇺🇸</span> {t("account.lang_en")}
           </button>
         </div>
       </div>
@@ -148,8 +151,18 @@ export default function CuentaPage() {
             {t("account.verify_desc")}
           </p>
           {verifyMsg && (
-            <div className={`rounded p-2 text-sm ${verifyMsg === "Sent" ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
-              {verifyMsg === "Sent" ? t("account.verify_hint") : verifyMsg}
+            <div
+              className={`rounded p-2 text-sm ${
+                verifyMsg === "sent" || verifyMsg === "verified"
+                  ? "bg-green-500/20 text-green-300"
+                  : "bg-red-500/20 text-red-300"
+              }`}
+            >
+              {verifyMsg === "sent"
+                ? t("account.verify_resend_sent")
+                : verifyMsg === "verified"
+                  ? t("account.verify_resend_verified")
+                  : verifyMsg}
             </div>
           )}
           <button
@@ -225,17 +238,20 @@ export default function CuentaPage() {
           <div className="flex items-center gap-3 mb-2">
             <span className="text-3xl">{levelStats.currentLevel.icon}</span>
             <div>
-              <h2 className="text-lg font-bold text-white leading-tight">Tu Nivel: {levelStats.currentLevel.name}</h2>
-              <p className="text-xs text-amber-500/80 font-black uppercase tracking-widest">Beneficios de Juego</p>
+              <h2 className="text-lg font-bold text-white leading-tight">
+                {t("account.level_you_label")}{" "}
+                {translateLevelName(t, levelStats.currentLevel.level, levelStats.currentLevel.name)}
+              </h2>
+              <p className="text-xs text-amber-500/80 font-black uppercase tracking-widest">
+                {t("account.level_benefits_tagline")}
+              </p>
             </div>
           </div>
           <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-700/50 mt-4">
-            <span className="text-sm text-slate-400 font-bold">Límite de Apuesta</span>
+            <span className="text-sm text-slate-400 font-bold">{t("account.level_bet_limit_row")}</span>
             <span className="text-xl font-mono font-black text-white">{levelStats.currentLevel.benefits.maxBetPoints.toLocaleString()} <span className="text-[10px] text-slate-500 font-bold">PTS</span></span>
           </div>
-          <p className="mt-3 text-[10px] text-slate-500 leading-tight italic">
-            Participa más para subir de rango y aumentar tus límites de apuesta y retiro.
-          </p>
+          <p className="mt-3 text-[10px] text-slate-500 leading-tight italic">{t("account.level_rank_hint")}</p>
         </div>
       )}
 

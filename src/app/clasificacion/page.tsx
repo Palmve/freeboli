@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LEVELS } from "@/lib/levels";
+import { LEVELS, translateLevelName } from "@/lib/levels";
+import { POINTS_PER_BOLIS } from "@/lib/config";
 import { useLang } from "@/context/LangContext";
 import LevelProgressCard from "@/components/LevelProgressCard";
 
@@ -164,7 +165,10 @@ export default function ClasificacionPage() {
                       )}
                     </td>
                     <td className="p-3 text-center">
-                      <span className={e.level.color} title={e.level.name}>
+                      <span
+                        className={e.level.color}
+                        title={translateLevelName(t, e.level.level, e.level.name)}
+                      >
                         {e.level.icon}
                       </span>
                     </td>
@@ -201,7 +205,10 @@ export default function ClasificacionPage() {
                           )}
                         </td>
                         <td className="p-3 text-center">
-                          <span className={e.level.color} title={e.level.name}>
+                          <span
+                            className={e.level.color}
+                            title={translateLevelName(t, e.level.level, e.level.name)}
+                          >
                             {e.level.icon}
                           </span>
                         </td>
@@ -238,7 +245,7 @@ export default function ClasificacionPage() {
                 <th className="p-2 text-center">{t("ranking.th_lvl_faucet")}</th>
                 <th className="p-2 text-center">{t("ranking.th_lvl_preds")}</th>
                 <th className="p-2 text-center">{t("ranking.th_lvl_days")}</th>
-                <th className="p-2 text-center text-emerald-400">Retiro Máx.</th>
+                <th className="p-2 text-center text-emerald-400">{t("ranking.th_lvl_withdraw")}</th>
                 <th className="p-2 text-center">{t("ranking.th_lvl_reward")}</th>
               </tr>
             </thead>
@@ -246,14 +253,18 @@ export default function ClasificacionPage() {
               {LEVELS.map((l) => (
                 <tr key={l.level} className="border-b border-slate-700/50 hover:bg-slate-800/30 transition">
                   <td className="p-2 text-left">
-                    <span className={`${l.color} font-bold`}>{l.icon} {l.name}</span>
+                    <span className={`${l.color} font-bold`}>
+                      {l.icon} {translateLevelName(t, l.level, l.name)}
+                    </span>
                   </td>
                   <td className="p-2 text-center text-slate-300 font-mono">{l.minBets > 0 ? l.minBets.toLocaleString() : "-"}</td>
                   <td className="p-2 text-center text-slate-300 font-mono">{l.minFaucet > 0 ? l.minFaucet.toLocaleString() : "-"}</td>
                   <td className="p-2 text-center text-slate-300 font-mono">{l.minPredictions > 0 ? l.minPredictions.toLocaleString() : "-"}</td>
                   <td className="p-2 text-center text-slate-300 font-mono">{l.minDaysSinceJoined > 0 ? `${l.minDaysSinceJoined}d` : "-"}</td>
                   <td className="p-2 text-center text-emerald-400 font-mono font-bold">
-                    {l.benefits.maxWithdrawBolis > 0 ? `${(l.benefits.maxWithdrawBolis * 1000).toLocaleString()} pts` : "—"}
+                    {l.benefits.maxWithdrawBolis > 0
+                      ? `${(l.benefits.maxWithdrawBolis * POINTS_PER_BOLIS).toLocaleString()} pts`
+                      : "—"}
                   </td>
                   <td className="p-2 text-center text-amber-400 font-mono font-bold">
                     {l.rewardPoints > 0 ? `+${l.rewardPoints.toLocaleString()}` : "-"}

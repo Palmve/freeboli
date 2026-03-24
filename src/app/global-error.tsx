@@ -16,7 +16,7 @@ export default function GlobalError({
           onClick={() => reset()}
           style={{ marginTop: "1rem", padding: "0.5rem 1rem", background: "#f59e0b", color: "#000", border: "none", borderRadius: "0.5rem", cursor: "pointer" }}
         >
-          Reintentar
+          Retry / Reintentar
         </button>
       </body>
     </html>

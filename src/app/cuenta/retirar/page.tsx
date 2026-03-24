@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
+import { translateLevelName } from "@/lib/levels";
 import { SupportModal } from "@/components/SupportModal";
 import { useLang } from "@/context/LangContext";
 import LevelProgressCard from "@/components/LevelProgressCard";
@@ -60,8 +61,8 @@ export default function RetirarPage() {
     setMessage("");
 
     if (!isValidWallet(withdrawWallet)) {
-        setError("La dirección de billetera no parece ser de la red Solana. Por favor, verifícala.");
-        return;
+      setError(t("withdraw.invalid_wallet_solana"));
+      return;
     }
 
     setLoading(true);
@@ -133,7 +134,9 @@ export default function RetirarPage() {
                 <span className="text-xl mt-0.5">🚫</span>
                 <div>
                   <p className="text-sm font-black text-red-300">
-                    {t("withdraw.card_blocked_title").replace("{0}", levelStats.icon).replace("{1}", levelStats.name)}
+                    {t("withdraw.card_blocked_title")
+                      .replace("{0}", levelStats.icon)
+                      .replace("{1}", translateLevelName(t, levelStats.level, levelStats.name))}
                   </p>
                   <p
                     className="text-xs text-slate-400 mt-1 leading-relaxed"
@@ -161,7 +164,9 @@ export default function RetirarPage() {
                   <span className="text-xl">{levelStats.icon}</span>
                   <div>
                     <p className="text-xs text-slate-400">{t("withdraw.card_ok_rank_label")}</p>
-                    <p className={`text-sm font-black ${levelStats.color}`}>{levelStats.name}</p>
+                    <p className={`text-sm font-black ${levelStats.color}`}>
+                      {translateLevelName(t, levelStats.level, levelStats.name)}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -225,7 +230,9 @@ export default function RetirarPage() {
               placeholder={t("withdraw.placeholder_wallet")}
               required
             />
-            {isWalletInvalid && <p className="text-[10px] text-red-400 mt-1 font-bold italic">Dirección de red Solana no válida</p>}
+            {isWalletInvalid && (
+              <p className="text-[10px] text-red-400 mt-1 font-bold italic">{t("withdraw.invalid_wallet_solana")}</p>
+            )}
           </div>
           <button
             type="submit"

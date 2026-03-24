@@ -190,7 +190,10 @@ function PredictionsContent() {
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
-  const modeName = type === "mini" ? t("predictions.mode_mini") : type === "micro" ? "Micro (2m)" : t("predictions.mode_normal");
+  const modeName =
+    type === "mini" ? t("predictions.mode_mini") : type === "micro" ? t("predictions.mode_micro") : t("predictions.mode_normal");
+  const guideModeLabel =
+    type === "hourly" ? t("predictions.mode_normal") : type === "mini" ? t("predictions.mode_mini") : t("predictions.mode_micro");
 
   const totalTimeSec = type === "mini" ? 600 : type === "micro" ? 120 : 3600;
   const cutoffLimit = type === "mini" ? 120 : type === "micro" ? 60 : 600;
@@ -268,7 +271,9 @@ function PredictionsContent() {
                    )}
                 </div>
                 <div>
-                   <h4 className="text-xs font-black uppercase tracking-widest mb-0.5">{notification.type === "success" ? "Éxito" : "Atención"}</h4>
+                   <h4 className="text-xs font-black uppercase tracking-widest mb-0.5">
+                     {notification.type === "success" ? t("predictions.notify_success") : t("predictions.notify_attention")}
+                   </h4>
                    <p className="text-sm font-bold leading-tight">{notification.message}</p>
                 </div>
                 <button 
@@ -303,7 +308,7 @@ function PredictionsContent() {
                       <h3 className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
                         type === "micro" ? "text-amber-500" : type === "mini" ? "text-sky-500" : "text-indigo-500"
                       }`}>
-                        Guía del Modo {type === "hourly" ? "Normal" : type.toUpperCase()}
+                        {t("predictions.guide_title", guideModeLabel)}
                       </h3>
                       <p className="text-sm text-slate-300 leading-relaxed font-medium">
                          {type === "hourly" ? t("predictions.desc_hourly") : type === "mini" ? t("predictions.desc_mini") : t("predictions.desc_micro")}
@@ -334,7 +339,7 @@ function PredictionsContent() {
                            target="_blank"
                            rel="noopener noreferrer"
                            className="text-slate-500 hover:text-amber-400 transition inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-full w-4 h-4 sm:w-5 sm:h-5"
-                           title={lang === "es" ? "Ver fuente del precio" : "View price source"}
+                           title={t("predictions.price_source_tooltip")}
                          >
                            <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5 sm:h-3 sm:w-3" viewBox="0 0 20 20" fill="currentColor">
                              <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
@@ -468,13 +473,17 @@ function PredictionsContent() {
             
             <div className="mb-6">
                 <p className="text-sm font-bold text-slate-400 uppercase">{t("predictions.balance_title")}</p>
-                <p className="text-3xl font-mono font-bold text-amber-400">{balance?.toLocaleString() || "0"} pts</p>
+                <p className="text-3xl font-mono font-bold text-amber-400">
+                  {balance?.toLocaleString() || "0"} {t("account.balance_pts")}
+                </p>
             </div>
 
             <div className="mb-2">
               <div className="flex justify-between mb-2">
                 <label className="block text-sm font-bold text-slate-300 uppercase tracking-wide">{t("predictions.bet_amount_label")}</label>
-                <span className="text-[10px] font-black text-amber-500/70 uppercase">Max por nivel: {levelMaxBet.toLocaleString()} pts</span>
+                <span className="text-[10px] font-black text-amber-500/70 uppercase">
+                  {t("predictions.max_per_level", levelMaxBet.toLocaleString())}
+                </span>
               </div>
               <div className="relative">
                   <input
@@ -499,7 +508,7 @@ function PredictionsContent() {
             {type === "micro" && (
                 <div className="my-4 text-center p-3 sm:p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
                     <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">
-                        PAGO DINÁMICO ACTUAL
+                        {t("predictions.payout_dynamic")}
                     </p>
                     <p className="text-3xl sm:text-5xl font-black text-amber-500 font-mono tracking-tighter">
                         x{data?.odds?.micro || "?"}
@@ -519,7 +528,11 @@ function PredictionsContent() {
                          onClick={() => handleBet(String(num))}
                          disabled={disabled}
                          className={`group relative flex flex-col items-center justify-center overflow-hidden rounded-xl py-3 sm:py-5 text-white transition disabled:opacity-30 ${isCurrentDigit ? "bg-slate-800 border-2 border-slate-700 opacity-50 cursor-not-allowed" : "bg-slate-700 hover:bg-slate-600 border-transparent"}`}
-                         title={isCurrentDigit ? "El Oráculo declina apuestas idénticas al precio activo." : `Apostar al número ${num}`}
+                         title={
+                           isCurrentDigit
+                             ? t("predictions.oracle_same_digit")
+                             : t("predictions.bet_on_number", String(num))
+                         }
                        >
                          <span className="text-2xl sm:text-3xl font-black font-mono">{num}</span>
                        </button>
@@ -561,8 +574,8 @@ function PredictionsContent() {
             {data && timeLeft <= cutoffLimit && !(asset === "BOLIS" && type === "mini") && (
               <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/30 p-3">
                   <p className="text-center text-[10px] sm:text-[11px] text-red-500 font-bold uppercase leading-tight">
-                    {type === "micro" 
-                        ? "Apuestas Bloqueadas. Oráculo Analizando Resultado Final..." 
+                    {type === "micro"
+                        ? t("predictions.market_locked_micro")
                         : t("predictions.market_locked_time").replace("{0}", type === "mini" ? "2" : "10")}
                   </p>
               </div>

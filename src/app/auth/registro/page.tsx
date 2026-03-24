@@ -3,8 +3,10 @@
 import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useLang } from "@/context/LangContext";
 
 export default function RegistroPage() {
+  const { t } = useLang();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -28,21 +30,21 @@ export default function RegistroPage() {
     setError("");
     setMessage("");
     if (!termsAccepted) {
-      setError("Debes aceptar los terminos y condiciones para registrarte.");
+      setError(t("auth.error_terms"));
       return;
     }
     setLoading(true);
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        email, 
-        password, 
-        referrerCode: referral || undefined, 
-        _hp: hp, 
+      body: JSON.stringify({
+        email,
+        password,
+        referrerCode: referral || undefined,
+        _hp: hp,
         _ts: formTs,
         captchaAnswer,
-        captchaToken: captcha?.token
+        captchaToken: captcha?.token,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -51,20 +53,20 @@ export default function RegistroPage() {
       if (data.requireCaptcha) {
         setCaptcha(data.captcha);
         setCaptchaAnswer("");
-        setError(data.error || "Se requiere CAPTCHA.");
+        setError(data.error || t("auth.error_captcha"));
       } else {
-        setError(data.error || "Error al registrar.");
+        setError(data.error || t("auth.error_register"));
       }
       return;
     }
-    setMessage("Cuenta creada. Redirigiendo…");
+    setMessage(t("auth.success_register_redirect"));
     await signIn("credentials", { email, password, redirect: false });
     window.location.href = "/";
   }
 
   return (
     <div className="mx-auto max-w-md space-y-6 py-12">
-      <h1 className="text-2xl font-bold text-white">Crear cuenta</h1>
+      <h1 className="text-2xl font-bold text-white">{t("auth.register_title")}</h1>
       {error && (
         <div className="rounded-lg bg-red-500/20 p-3 text-red-300">{error}</div>
       )}
@@ -73,7 +75,7 @@ export default function RegistroPage() {
       )}
       <form onSubmit={handleSubmit} className="card space-y-4">
         <div>
-          <label className="block text-sm text-slate-400">Correo</label>
+          <label className="block text-sm text-slate-400">{t("auth.email")}</label>
           <input
             type="email"
             value={email}
@@ -83,7 +85,7 @@ export default function RegistroPage() {
           />
         </div>
         <div>
-          <label className="block text-sm text-slate-400">Contraseña</label>
+          <label className="block text-sm text-slate-400">{t("auth.password")}</label>
           <div className="relative mt-1">
             <input
               type={showPassword ? "text" : "password"}
@@ -97,7 +99,7 @@ export default function RegistroPage() {
               type="button"
               onClick={() => setShowPassword((v) => !v)}
               className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-white"
-              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              aria-label={showPassword ? t("auth.aria_hide_password") : t("auth.aria_show_password")}
             >
               {showPassword ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -115,7 +117,7 @@ export default function RegistroPage() {
           </div>
         </div>
         <div>
-          <label className="block text-sm text-slate-400">Código de referido (opcional)</label>
+          <label className="block text-sm text-slate-400">{t("auth.referral_optional")}</label>
           <input
             type="text"
             value={referral}
@@ -123,12 +125,9 @@ export default function RegistroPage() {
             className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white"
           />
         </div>
-        {/* CAPTCHA */}
         {captcha && (
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-4 animate-in fade-in slide-in-from-top-4 duration-300">
-            <label className="block text-sm font-medium text-blue-300 mb-2">
-              Verificación de Seguridad
-            </label>
+            <label className="block text-sm font-medium text-blue-300 mb-2">{t("auth.captcha_label")}</label>
             <div className="flex items-center gap-4">
               <div className="bg-slate-800 px-4 py-2 rounded-lg font-mono text-xl text-white border border-slate-700">
                 {captcha.question}
@@ -142,12 +141,9 @@ export default function RegistroPage() {
                 className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
               />
             </div>
-            <p className="text-xs text-blue-400/70 mt-2">
-              Resuelve esta operación para confirmar que eres humano.
-            </p>
+            <p className="text-xs text-blue-400/70 mt-2">{t("auth.captcha_hint")}</p>
           </div>
         )}
-        {/* Terms acceptance */}
         <div className="flex items-start gap-2">
           <input
             type="checkbox"
@@ -157,14 +153,13 @@ export default function RegistroPage() {
             className="mt-1 shrink-0"
           />
           <label htmlFor="terms" className="text-sm text-slate-400">
-            He leido y acepto los{" "}
+            {t("auth.terms_label")}{" "}
             <Link href="/terminos" target="_blank" className="text-amber-400 hover:underline">
-              Terminos y Condiciones
-            </Link>
-            {" "}de juego. Confirmo que soy mayor de 18 anos.
+              {t("auth.terms_link")}
+            </Link>{" "}
+            {t("auth.terms_suffix")}
           </label>
         </div>
-        {/* Honeypot - invisible to real users, bots auto-fill it */}
         <div className="absolute -left-[9999px] opacity-0 h-0 overflow-hidden" aria-hidden="true">
           <input
             type="text"
@@ -176,7 +171,7 @@ export default function RegistroPage() {
           />
         </div>
         <button type="submit" className="btn-primary w-full" disabled={loading || !termsAccepted}>
-          {loading ? "Creando..." : "Registrarse"}
+          {loading ? t("auth.btn_register_loading") : t("auth.btn_register")}
         </button>
       </form>
       {process.env.NEXT_PUBLIC_GOOGLE_ENABLED === "true" && (
@@ -186,14 +181,14 @@ export default function RegistroPage() {
             onClick={() => signIn("google", { callbackUrl: "/" })}
             className="w-full rounded-lg border border-slate-600 bg-slate-800 py-2 font-medium hover:bg-slate-700"
           >
-            Continuar con Google
+            {t("auth.google_continue")}
           </button>
         </div>
       )}
       <p className="text-center text-slate-400">
-        ¿Ya tienes cuenta?{" "}
+        {t("auth.have_account")}{" "}
         <Link href="/auth/login" className="text-amber-400 hover:underline">
-          Entrar
+          {t("auth.btn_login")}
         </Link>
       </p>
     </div>

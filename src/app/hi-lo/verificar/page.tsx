@@ -3,12 +3,8 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useLang } from "@/context/LangContext";
 
-/**
- * Calcula SHA256 en el navegador (misma fórmula que el servidor para provably fair).
- * combined = server_seed + ":" + client_seed + ":" + nonce
- * roll = (primeros 4 bytes del hash como uint32 BE) % 10000
- */
 async function sha256Hex(message: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(message);
@@ -35,6 +31,7 @@ async function rollFromSeedsClient(
 }
 
 function VerificarContent() {
+  const { t } = useLang();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
   const [hashMatches, setHashMatches] = useState<boolean | null>(null);
@@ -48,14 +45,14 @@ function VerificarContent() {
     const nonce = searchParams.get("nonce");
 
     if (!server_seed || !server_seed_hash || !client_seed || nonce === null || nonce === "") {
-      setErrorMsg("Faltan parámetros (server_seed, server_seed_hash, client_seed, nonce).");
+      setErrorMsg(t("hilo_verify.error_params"));
       setStatus("error");
       return;
     }
 
     const nonceNum = parseInt(nonce, 10);
     if (!Number.isInteger(nonceNum) || nonceNum < 0) {
-      setErrorMsg("Nonce inválido.");
+      setErrorMsg(t("hilo_verify.error_nonce"));
       setStatus("error");
       return;
     }
@@ -68,10 +65,10 @@ function VerificarContent() {
       setRoll(r);
       setStatus("ok");
     } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : "Error al verificar.");
+      setErrorMsg(e instanceof Error ? e.message : t("hilo_verify.error_verify"));
       setStatus("error");
     }
-  }, [searchParams]);
+  }, [searchParams, t]);
 
   useEffect(() => {
     run();
@@ -79,27 +76,23 @@ function VerificarContent() {
 
   return (
     <div className="mx-auto max-w-lg space-y-6 py-8">
-      <h1 className="text-2xl font-bold text-white">Verificador de tirada HI-LO</h1>
-      <p className="text-slate-400 text-sm">
-        Introduce los datos de la tirada (o usa el enlace VER del historial) para comprobar que el número salió de forma
-        verificable: el servidor se comprometió con el hash del seed antes del roll y el número se obtiene con la misma
-        fórmula aquí en tu navegador.
-      </p>
+      <h1 className="text-2xl font-bold text-white">{t("hilo_verify.title")}</h1>
+      <p className="text-slate-400 text-sm">{t("hilo_verify.intro")}</p>
 
-      {status === "loading" && <p className="text-slate-500">Verificando…</p>}
+      {status === "loading" && <p className="text-slate-500">{t("hilo_verify.loading")}</p>}
       {status === "error" && (
         <div className="rounded-lg bg-red-500/20 p-4 text-red-300">{errorMsg}</div>
       )}
       {status === "ok" && (
         <div className="card space-y-4">
           {hashMatches ? (
-            <p className="text-lg font-semibold text-green-400">El hash del server seed coincide.</p>
+            <p className="text-lg font-semibold text-green-400">{t("hilo_verify.hash_ok")}</p>
           ) : (
-            <p className="text-lg font-semibold text-red-400">El hash del server seed NO coincide.</p>
+            <p className="text-lg font-semibold text-red-400">{t("hilo_verify.hash_bad")}</p>
           )}
           {roll !== null && (
             <div>
-              <p className="text-slate-400 text-sm">Número obtenido (0–9999):</p>
+              <p className="text-slate-400 text-sm">{t("hilo_verify.roll_label")}</p>
               <p className="font-mono text-4xl font-bold text-white">{roll}</p>
             </div>
           )}
@@ -107,15 +100,20 @@ function VerificarContent() {
       )}
 
       <Link href="/hi-lo" className="text-amber-400 hover:underline">
-        ← Volver a HI-LO
+        {t("hilo_verify.back_hilo")}
       </Link>
     </div>
   );
 }
 
+function VerificarLoadingFallback() {
+  const { t } = useLang();
+  return <div className="mx-auto max-w-lg py-8 text-slate-500">{t("common.loading")}</div>;
+}
+
 export default function VerificarPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-lg py-8 text-slate-500">Cargando…</div>}>
+    <Suspense fallback={<VerificarLoadingFallback />}>
       <VerificarContent />
     </Suspense>
   );

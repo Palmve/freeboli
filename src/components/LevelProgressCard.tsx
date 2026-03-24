@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LEVELS, UserLevel } from "@/lib/levels";
+import { LEVELS, translateLevelName, UserLevel } from "@/lib/levels";
 import { useLang } from "@/context/LangContext";
 
 interface LevelStats {
@@ -92,7 +92,7 @@ export default function LevelProgressCard({ compact = false }: Props) {
         <span className="text-xl">{currentLevel.icon}</span>
         <div>
           <div className={`text-xs font-bold ${currentLevel.color}`}>
-            {t(`home.rank_${currentLevel.name === "Novato" ? "novice" : currentLevel.name === "Aprendiz" ? "apprentice" : currentLevel.name === "Jugador" ? "player" : currentLevel.name === "Veterano" ? "veteran" : currentLevel.name === "Experto" ? "expert" : currentLevel.name === "Maestro" ? "master" : "legend"}`)}
+            {translateLevelName(t, currentLevel.level, currentLevel.name)}
           </div>
           <div className="h-1 w-16 bg-slate-700 rounded-full overflow-hidden mt-0.5">
             <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-700" style={{ width: `${xpPercent}%` }} />
@@ -113,7 +113,7 @@ export default function LevelProgressCard({ compact = false }: Props) {
           <span className="text-4xl drop-shadow-lg">{currentLevel.icon}</span>
           <div>
             <div className={`text-lg font-extrabold tracking-wide ${currentLevel.color}`}>
-              {t(`home.rank_${currentLevel.name === "Novato" ? "novice" : currentLevel.name === "Aprendiz" ? "apprentice" : currentLevel.name === "Jugador" ? "player" : currentLevel.name === "Veterano" ? "veteran" : currentLevel.name === "Experto" ? "expert" : currentLevel.name === "Maestro" ? "master" : "legend"}`)}
+              {translateLevelName(t, currentLevel.level, currentLevel.name)}
             </div>
             <div className="text-xs text-slate-400">{t("levels.level_of", currentLevel.level, LEVELS.length)}</div>
           </div>
@@ -126,7 +126,7 @@ export default function LevelProgressCard({ compact = false }: Props) {
           <div className="text-right">
             <div className="text-xs text-slate-500">{t("levels.next_level")}</div>
             <div className={`text-sm font-bold ${nextLevel.color}`}>
-              {nextLevel.icon} {t(`home.rank_${nextLevel.name === "Novato" ? "novice" : nextLevel.name === "Aprendiz" ? "apprentice" : nextLevel.name === "Jugador" ? "player" : nextLevel.name === "Veterano" ? "veteran" : nextLevel.name === "Experto" ? "expert" : nextLevel.name === "Maestro" ? "master" : "legend"}`)}
+              {nextLevel.icon} {translateLevelName(t, nextLevel.level, nextLevel.name)}
             </div>
           </div>
         )}
@@ -136,7 +136,12 @@ export default function LevelProgressCard({ compact = false }: Props) {
       {nextLevel && (
         <div>
           <div className="flex justify-between text-xs text-slate-400 mb-1.5">
-            <span>{t("levels.progress_to")} <strong className={nextLevel.color}>{t(`home.rank_${nextLevel.name === "Novato" ? "novice" : nextLevel.name === "Aprendiz" ? "apprentice" : nextLevel.name === "Jugador" ? "player" : nextLevel.name === "Veterano" ? "veteran" : nextLevel.name === "Experto" ? "expert" : nextLevel.name === "Maestro" ? "master" : "legend"}`)}</strong></span>
+            <span>
+              {t("levels.progress_to")}{" "}
+              <strong className={nextLevel.color}>
+                {translateLevelName(t, nextLevel.level, nextLevel.name)}
+              </strong>
+            </span>
             <span className="font-mono font-bold text-white">{xpPercent}%</span>
           </div>
           <div className="h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">

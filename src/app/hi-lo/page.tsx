@@ -362,13 +362,13 @@ export default function HiLoPage() {
           {t("hilo.banner_desc")}
         </p>
         <div className="mt-1 flex flex-col sm:flex-row items-center justify-center gap-2 text-xs">
-          <span className="text-slate-400 uppercase tracking-widest font-black">Tu Límite de Apuesta:</span>
+          <span className="text-slate-400 uppercase tracking-widest font-black">{t("hilo.banner_bet_limit_label")}</span>
           <span className="text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-500/20">
-            {levelMaxBet.toLocaleString()} pts
+            {levelMaxBet.toLocaleString()} {t("account.balance_pts")}
           </span>
           <span className="hidden sm:inline text-slate-700">|</span>
           <span className="text-slate-500">
-            Max Ganancia: {MAX_WIN_POINTS.toLocaleString()} pts
+            {t("hilo.banner_max_win", MAX_WIN_POINTS.toLocaleString())}
           </span>
         </div>
       </div>

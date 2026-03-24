@@ -6,8 +6,9 @@ import { Providers } from "@/components/Providers";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 
 export const metadata: Metadata = {
-  title: "FreeBoli - Puntos, BOLIS y Juegos",
-  description: "Gana puntos gratis, juega y retira en BOLIS (Solana). Faucet, HI-LO y programa de afiliados.",
+  title: "FreeBoli — Points, BOLIS & games | Puntos, BOLIS y juegos",
+  description:
+    "Earn free points, play HI-LO and predictions, withdraw BOLIS on Solana. Faucet & affiliates. | Gana puntos gratis, juega y retira BOLIS (Solana). Faucet, HI-LO y afiliados.",
 };
 
 export default function RootLayout({

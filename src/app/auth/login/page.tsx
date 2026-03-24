@@ -3,8 +3,10 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import Link from "next/link";
+import { useLang } from "@/context/LangContext";
 
 export default function LoginPage() {
+  const { t } = useLang();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -22,16 +24,16 @@ export default function LoginPage() {
         redirect: false,
       });
       if (res?.error) {
-        setError("Correo o contraseña incorrectos. ¿Ejecutaste /api/seed-admin?");
+        setError(t("auth.error_credentials"));
         return;
       }
       if (res?.ok) {
         window.location.href = "/";
         return;
       }
-      setError("No hubo respuesta. Revisa la consola del servidor (terminal).");
-    } catch (err) {
-      setError("Error de conexión. Intenta de nuevo.");
+      setError(t("auth.error_no_response"));
+    } catch {
+      setError(t("auth.error_connection"));
     } finally {
       setLoading(false);
     }
@@ -39,13 +41,13 @@ export default function LoginPage() {
 
   return (
     <div className="mx-auto max-w-md space-y-6 py-12">
-      <h1 className="text-2xl font-bold text-white">Entrar</h1>
+      <h1 className="text-2xl font-bold text-white">{t("auth.login_title")}</h1>
       {error && (
         <div className="rounded-lg bg-red-500/20 p-3 text-red-300">{error}</div>
       )}
       <form onSubmit={handleCredentials} className="card space-y-4">
         <div>
-          <label className="block text-sm text-slate-400">Correo</label>
+          <label className="block text-sm text-slate-400">{t("auth.email")}</label>
           <input
             type="email"
             value={email}
@@ -55,7 +57,7 @@ export default function LoginPage() {
           />
         </div>
         <div>
-          <label className="block text-sm text-slate-400">Contraseña (opcional si solo usas Google)</label>
+          <label className="block text-sm text-slate-400">{t("auth.password_optional_google")}</label>
           <div className="relative mt-1">
             <input
               type={showPassword ? "text" : "password"}
@@ -67,7 +69,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => setShowPassword((v) => !v)}
               className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-white"
-              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              aria-label={showPassword ? t("auth.aria_hide_password") : t("auth.aria_show_password")}
             >
               {showPassword ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -85,11 +87,11 @@ export default function LoginPage() {
           </div>
         </div>
         <button type="submit" className="btn-primary w-full" disabled={loading}>
-          {loading ? "Entrando…" : "Entrar"}
+          {loading ? t("auth.btn_login_loading") : t("auth.btn_login")}
         </button>
         <p className="text-center text-sm text-slate-500">
           <Link href="/auth/forgot-password" className="text-slate-400 hover:text-amber-400 hover:underline">
-            ¿Olvidaste tu contraseña?
+            {t("auth.forgot_password")}
           </Link>
         </p>
       </form>
@@ -100,19 +102,19 @@ export default function LoginPage() {
             onClick={() => signIn("google", { callbackUrl: "/" })}
             className="w-full rounded-lg border border-slate-600 bg-slate-800 py-2 font-medium hover:bg-slate-700"
           >
-            Continuar con Google
+            {t("auth.google_continue")}
           </button>
         </div>
       )}
       <p className="text-center text-slate-400">
-        ¿No tienes cuenta?{" "}
+        {t("auth.no_account")}{" "}
         <Link href="/auth/registro" className="text-amber-400 hover:underline">
-          Registrarse
+          {t("auth.btn_register")}
         </Link>
       </p>
       <p className="text-center text-sm text-slate-500">
         <Link href="/terminos" className="text-slate-400 hover:text-amber-400 hover:underline">
-          Condiciones de uso
+          {t("auth.terms_footer_link")}
         </Link>
       </p>
     </div>

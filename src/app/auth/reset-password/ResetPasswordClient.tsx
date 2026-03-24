@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
+import { useLang } from "@/context/LangContext";
 
 export default function ResetPasswordClient({ token }: { token: string }) {
+  const { t } = useLang();
   const router = useRouter();
 
   const [newPassword, setNewPassword] = useState("");
@@ -19,15 +21,15 @@ export default function ResetPasswordClient({ token }: { token: string }) {
     setError("");
 
     if (!token) {
-      setError("Token inválido.");
+      setError(t("auth.error_token_invalid"));
       return;
     }
     if (newPassword.length < 8) {
-      setError("La contraseña debe tener al menos 8 caracteres.");
+      setError(t("auth.error_password_short"));
       return;
     }
     if (newPassword !== confirm) {
-      setError("Las contraseñas no coinciden.");
+      setError(t("auth.error_password_mismatch"));
       return;
     }
 
@@ -41,11 +43,11 @@ export default function ResetPasswordClient({ token }: { token: string }) {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "No se pudo restablecer la contraseña.");
+        setError(data.error || t("auth.error_reset_failed"));
         return;
       }
 
-      setMessage("Contraseña actualizada. Ya puedes iniciar sesión.");
+      setMessage(t("auth.reset_success"));
       setNewPassword("");
       setConfirm("");
 
@@ -53,7 +55,7 @@ export default function ResetPasswordClient({ token }: { token: string }) {
         router.push("/auth/login");
       }, 1500);
     } catch {
-      setError("Error de conexión. Intenta nuevamente.");
+      setError(t("auth.error_connection"));
     } finally {
       setLoading(false);
     }
@@ -61,11 +63,11 @@ export default function ResetPasswordClient({ token }: { token: string }) {
 
   return (
     <div className="mx-auto max-w-md space-y-6 py-12">
-      <h1 className="text-2xl font-bold text-white">Restablecer contraseña</h1>
+      <h1 className="text-2xl font-bold text-white">{t("auth.reset_title")}</h1>
 
       {!token && (
         <div className="card border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
-          No se recibió un token válido.
+          {t("auth.error_no_token")}
         </div>
       )}
 
@@ -82,7 +84,7 @@ export default function ResetPasswordClient({ token }: { token: string }) {
 
       <form onSubmit={handleSubmit} className="card space-y-4">
         <div>
-          <label className="block text-sm text-slate-400">Nueva contraseña</label>
+          <label className="block text-sm text-slate-400">{t("auth.reset_new_password")}</label>
           <input
             type="password"
             value={newPassword}
@@ -92,7 +94,7 @@ export default function ResetPasswordClient({ token }: { token: string }) {
           />
         </div>
         <div>
-          <label className="block text-sm text-slate-400">Confirmar contraseña</label>
+          <label className="block text-sm text-slate-400">{t("auth.reset_confirm")}</label>
           <input
             type="password"
             value={confirm}
@@ -103,17 +105,16 @@ export default function ResetPasswordClient({ token }: { token: string }) {
         </div>
 
         <button type="submit" className="btn-primary w-full" disabled={loading || !token}>
-          {loading ? "Actualizando…" : "Actualizar contraseña"}
+          {loading ? t("auth.reset_updating") : t("auth.reset_btn")}
         </button>
       </form>
 
       <p className="text-center text-slate-400">
-        ¿Ya la tienes?{" "}
+        {t("auth.reset_have_login")}{" "}
         <Link href="/auth/login" className="text-amber-400 hover:underline">
-          Entrar
+          {t("auth.btn_login")}
         </Link>
       </p>
     </div>
   );
 }
-

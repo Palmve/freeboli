@@ -10,15 +10,17 @@ import PromoCard from "@/components/PromoCard";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
-// Metas diarias (misiones motivacionales)
-const MISSIONS = [
-  { icon: "🚰", label: "Reclama el Faucet", desc: "Cada hora, puntos gratis → Sube tu nivel", href: "/faucet", color: "from-blue-600 to-cyan-500", border: "border-cyan-500/40", glow: "hover:shadow-cyan-500/20" },
-  { icon: "📈", label: "Predice el mercado", desc: "Acierta la dirección y multiplica tus puntos", href: "/predicciones", color: "from-amber-600 to-yellow-400", border: "border-amber-500/40", glow: "hover:shadow-amber-500/20" },
-  { icon: "🎲", label: "Juega HI-LO", desc: "Apuesta y multiplica. Provably Fair.", href: "/hi-lo", color: "from-purple-600 to-pink-500", border: "border-purple-500/40", glow: "hover:shadow-purple-500/20" },
-  { icon: "🏆", label: "Sube al top del ranking", desc: "Compite con otros jugadores por premios diarios", href: "/clasificacion", color: "from-emerald-600 to-teal-400", border: "border-emerald-500/40", glow: "hover:shadow-emerald-500/20" },
-];
-
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n);
+
+type GameCardProps = {
+  icon: string;
+  label: string;
+  desc: string;
+  href: string;
+  color: string;
+  border: string;
+  glow: string;
+};
 
 function StatBar({ value, label, icon }: { value: string; label: string; icon: string }) {
   return (
@@ -30,7 +32,7 @@ function StatBar({ value, label, icon }: { value: string; label: string; icon: s
   );
 }
 
-function GameCard({ icon, label, desc, href, color, border, glow }: typeof MISSIONS[0]) {
+function GameCard({ icon, label, desc, href, color, border, glow }: GameCardProps) {
   return (
     <Link href={href}
       className={`group relative overflow-hidden rounded-2xl border ${border} bg-slate-900 p-5 flex flex-col gap-3 transition-all duration-300 hover:shadow-2xl ${glow} hover:-translate-y-2 active:translate-y-0`}
@@ -53,7 +55,7 @@ function GameCard({ icon, label, desc, href, color, border, glow }: typeof MISSI
 
 export default function HomePage() {
   const { data: session, status } = useSession();
-  const { t, lang } = useLang();
+  const { t } = useLang();
   const loggedIn = !!session?.user || !REQUIRE_AUTH;
   const loading = REQUIRE_AUTH && status === "loading";
   const [tick, setTick] = useState(0);
@@ -139,7 +141,7 @@ export default function HomePage() {
               <div className="mb-3 flex items-center gap-2">
                 <span className="text-lg">🎁</span>
                 <h2 className="text-base font-black text-slate-300 uppercase tracking-widest">
-                  {lang === "es" ? "Promoción Activa" : "Active Promotion"}
+                  {t("home.promo_active_title")}
                 </h2>
               </div>
               <PromoCard initialPromo={promo} />

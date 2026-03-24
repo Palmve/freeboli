@@ -16,6 +16,38 @@ export interface UserLevel {
   };
 }
 
+/** Índice por `level` (1–7) → clave `home.rank_<slug>` en i18n */
+export const LEVEL_RANK_SLUGS = [
+  "novice",
+  "apprentice",
+  "player",
+  "veteran",
+  "expert",
+  "master",
+  "legend",
+] as const;
+
+export type LevelRankSlug = (typeof LEVEL_RANK_SLUGS)[number];
+
+export function levelRankSlug(levelNumber: number): LevelRankSlug | undefined {
+  const i = levelNumber - 1;
+  if (i < 0 || i >= LEVEL_RANK_SLUGS.length) return undefined;
+  return LEVEL_RANK_SLUGS[i];
+}
+
+/** Nombre de rango según idioma (fallback al `name` en español de LEVELS). */
+export function translateLevelName(
+  t: (key: string) => string,
+  levelNumber: number,
+  fallbackName: string
+): string {
+  const slug = levelRankSlug(levelNumber);
+  if (!slug) return fallbackName;
+  const key = `home.rank_${slug}`;
+  const translated = t(key);
+  return translated === key ? fallbackName : translated;
+}
+
 export const LEVELS: UserLevel[] = [
   { 
     level: 1, name: "Novato", icon: "🥉", color: "text-slate-400", glow: "shadow-slate-500/30",

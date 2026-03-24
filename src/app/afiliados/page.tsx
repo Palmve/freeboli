@@ -372,8 +372,8 @@ export default function AfiliadosPage() {
       )}
 
       <div className="flex justify-center gap-6 text-sm">
-        <Link href="/recompensas" className="text-amber-400 hover:underline font-bold uppercase tracking-wider">Recompensas</Link>
-        <Link href="/faucet" className="text-amber-400 hover:underline font-bold uppercase tracking-wider">Faucet</Link>
+        <Link href="/recompensas" className="text-amber-400 hover:underline font-bold uppercase tracking-wider">{t("nav.rewards")}</Link>
+        <Link href="/faucet" className="text-amber-400 hover:underline font-bold uppercase tracking-wider">{t("nav.faucet")}</Link>
       </div>
 
       <button

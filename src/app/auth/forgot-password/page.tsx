@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useLang } from "@/context/LangContext";
 
 export default function ForgotPasswordPage() {
+  const { t } = useLang();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -20,14 +22,13 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email }),
       });
 
-      // Evitamos enumeración: siempre mostramos el mismo mensaje
       if (res.ok) {
-        setMessage("Si el correo existe, te enviaremos un enlace para restablecer tu contraseña.");
+        setMessage(t("auth.forgot_message"));
       } else {
-        setMessage("Si el correo existe, te enviaremos un enlace para restablecer tu contraseña.");
+        setMessage(t("auth.forgot_message"));
       }
     } catch {
-      setMessage("No se pudo conectar. Intenta nuevamente.");
+      setMessage(t("auth.forgot_error_connect"));
     } finally {
       setLoading(false);
     }
@@ -35,10 +36,8 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="mx-auto max-w-md space-y-6 py-12">
-      <h1 className="text-2xl font-bold text-white">Olvidé mi contraseña</h1>
-      <p className="text-sm text-slate-400">
-        Ingresa tu correo. Te enviaremos un enlace para restablecerla.
-      </p>
+      <h1 className="text-2xl font-bold text-white">{t("auth.forgot_title")}</h1>
+      <p className="text-sm text-slate-400">{t("auth.forgot_desc")}</p>
 
       {message && (
         <div className="card border border-slate-700/80 bg-slate-800/30 p-3 text-sm text-slate-200">
@@ -48,7 +47,7 @@ export default function ForgotPasswordPage() {
 
       <form onSubmit={handleSubmit} className="card space-y-4">
         <div>
-          <label className="block text-sm text-slate-400">Correo</label>
+          <label className="block text-sm text-slate-400">{t("auth.email")}</label>
           <input
             type="email"
             value={email}
@@ -58,17 +57,16 @@ export default function ForgotPasswordPage() {
           />
         </div>
         <button type="submit" className="btn-primary w-full" disabled={loading}>
-          {loading ? "Enviando…" : "Enviar enlace"}
+          {loading ? t("auth.btn_sending") : t("auth.btn_send_link")}
         </button>
       </form>
 
       <p className="text-center text-slate-400">
-        ¿Volver a iniciar sesión?{" "}
+        {t("auth.back_to_login")}{" "}
         <Link href="/auth/login" className="text-amber-400 hover:underline">
-          Entrar
+          {t("auth.btn_login")}
         </Link>
       </p>
     </div>
   );
 }
-
