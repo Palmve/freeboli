@@ -529,7 +529,16 @@
     "support_hint": "¿Problemas con tu retiro? Reportar incidencia aquí",
     "login_hint": "Entra para retirar.",
     "btn_login": "Entrar",
-    "loading": "Cargando…"
+    "loading": "Cargando…",
+    "card_blocked_title": "{0} {1} — Sin derecho a retiro",
+    "card_blocked_body": "Los niveles <strong class=\"text-white\">Novato</strong> y <strong class=\"text-white\">Aprendiz</strong> no pueden retirar BOLIS aún. Sube al nivel <strong class=\"text-blue-400\">🥇 Jugador</strong> para desbloquear los retiros.",
+    "card_blocked_unlock": "Jugador desbloquea: <span class=\"text-emerald-400 font-bold\">{0} BOLIS / día</span> = {1} puntos mínimo",
+    "card_blocked_link": "Ver requisitos para subir de nivel →",
+    "card_ok_rank_label": "Rango actual",
+    "card_ok_max_label": "Retiro máximo por solicitud",
+    "card_ok_bolis": "BOLIS",
+    "card_ok_footer": "Sube de nivel para aumentar tu límite de retiro. Cada rango superior desbloquea más BOLIS.",
+    "card_ok_link": "Ver todos los límites por rango →"
   },
   "footer": {
     "bolis_info": "Para más información sobre el comercio de Bolis de Solana {0}"

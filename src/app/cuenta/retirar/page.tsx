@@ -133,19 +133,24 @@ export default function RetirarPage() {
                 <span className="text-xl mt-0.5">🚫</span>
                 <div>
                   <p className="text-sm font-black text-red-300">
-                    {levelStats.icon} {levelStats.name} — Sin derecho a retiro
+                    {t("withdraw.card_blocked_title").replace("{0}", levelStats.icon).replace("{1}", levelStats.name)}
                   </p>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    Los niveles <strong className="text-white">Novato</strong> y <strong className="text-white">Aprendiz</strong> no pueden retirar BOLIS aún.
-                    Sube al nivel <strong className="text-blue-400">🥇 Jugador</strong> para desbloquear los retiros.
-                  </p>
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    Jugador desbloquea: <span className="text-emerald-400 font-bold">10 BOLIS / día</span> = 10,000 puntos mínimo
-                  </p>
+                  <p
+                    className="text-xs text-slate-400 mt-1 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: t("withdraw.card_blocked_body") }}
+                  />
+                  <p
+                    className="text-[10px] text-slate-500 mt-1"
+                    dangerouslySetInnerHTML={{
+                      __html: t("withdraw.card_blocked_unlock")
+                        .replace("{0}", "10")
+                        .replace("{1}", (10 * POINTS_PER_BOLIS).toLocaleString()),
+                    }}
+                  />
                 </div>
               </div>
               <Link href="/recompensas" className="text-[10px] text-amber-400 hover:underline font-bold mt-2 inline-block">
-                Ver requisitos para subir de nivel →
+                {t("withdraw.card_blocked_link")}
               </Link>
             </div>
           ) : (
@@ -155,23 +160,24 @@ export default function RetirarPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-xl">{levelStats.icon}</span>
                   <div>
-                    <p className="text-xs text-slate-400">Rango actual</p>
+                    <p className="text-xs text-slate-400">{t("withdraw.card_ok_rank_label")}</p>
                     <p className={`text-sm font-black ${levelStats.color}`}>{levelStats.name}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-slate-500">Retiro máximo por solicitud</p>
+                  <p className="text-xs text-slate-500">{t("withdraw.card_ok_max_label")}</p>
                   <p className="text-lg font-black text-emerald-400">
-                    {levelStats.maxWithdrawBolis} <span className="text-xs font-medium">BOLIS</span>
-                    <span className="text-xs text-slate-500 ml-1">= {(levelStats.maxWithdrawBolis * 1000).toLocaleString()} pts</span>
+                    {levelStats.maxWithdrawBolis}{" "}
+                    <span className="text-xs font-medium">{t("withdraw.card_ok_bolis")}</span>
+                    <span className="text-xs text-slate-500 ml-1">
+                      = {(levelStats.maxWithdrawBolis * POINTS_PER_BOLIS).toLocaleString()} pts
+                    </span>
                   </p>
                 </div>
               </div>
-              <p className="text-[10px] text-slate-500 mt-2">
-                Sube de nivel para aumentar tu límite de retiro. Cada rango superior desbloquea más BOLIS.
-              </p>
+              <p className="text-[10px] text-slate-500 mt-2">{t("withdraw.card_ok_footer")}</p>
               <Link href="/recompensas" className="text-[10px] text-amber-400 hover:underline font-bold mt-1 inline-block">
-                Ver todos los límites por rango →
+                {t("withdraw.card_ok_link")}
               </Link>
             </div>
           )

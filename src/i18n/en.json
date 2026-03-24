@@ -529,7 +529,16 @@
     "support_hint": "Problems with your withdrawal? Report issue here",
     "login_hint": "Login to withdraw.",
     "btn_login": "Login",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "card_blocked_title": "{0} {1} — Withdrawals not available",
+    "card_blocked_body": "The <strong class=\"text-white\">Rookie</strong> and <strong class=\"text-white\">Learner</strong> ranks cannot withdraw BOLIS yet. Reach <strong class=\"text-blue-400\">🥇 Player</strong> rank to unlock withdrawals.",
+    "card_blocked_unlock": "Player unlocks: <span class=\"text-emerald-400 font-bold\">{0} BOLIS / day</span> = {1} minimum points",
+    "card_blocked_link": "See requirements to level up →",
+    "card_ok_rank_label": "Current rank",
+    "card_ok_max_label": "Maximum per withdrawal request",
+    "card_ok_bolis": "BOLIS",
+    "card_ok_footer": "Level up to increase your withdrawal limit. Higher ranks unlock more BOLIS.",
+    "card_ok_link": "See all limits by rank →"
   },
   "footer": {
     "bolis_info": "For more information about Solana Bolis trading {0}"
