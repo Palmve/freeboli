@@ -990,14 +990,23 @@ export default function ConfiguracionPage() {
                           required
                         />
                       </div>
-                      <input 
-                        type="number" 
-                        value={editingPromo?.puntos_totales || ""} 
-                        onChange={(e) => setEditingPromo({...editingPromo, puntos_totales: parseInt(e.target.value)})}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white"
-                        placeholder="Pozo Total (Puntos)"
-                        required
-                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <input 
+                          type="number" 
+                          value={editingPromo?.puntos_totales || ""} 
+                          onChange={(e) => setEditingPromo({...editingPromo, puntos_totales: parseInt(e.target.value)})}
+                          className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white"
+                          placeholder="Pozo Total"
+                          required
+                        />
+                        <input 
+                          type="number" 
+                          value={editingPromo?.puntos_restantes ?? editingPromo?.puntos_totales ?? ""} 
+                          onChange={(e) => setEditingPromo({...editingPromo, puntos_restantes: parseInt(e.target.value)})}
+                          className="w-full bg-slate-800 border border-amber-500/30 rounded-xl px-4 py-2 text-xs text-amber-500 font-bold"
+                          placeholder="Quedan (Sync)"
+                        />
+                      </div>
                       <input 
                         type="url" 
                         value={editingPromo?.link_fuente || ""} 
