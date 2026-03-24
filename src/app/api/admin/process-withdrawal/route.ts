@@ -16,39 +16,56 @@ export async function POST(req: Request) {
   }
 
   const supabase = await createClient();
-  const { data: w, error: fetchErr } = await supabase
+  
+  // 1. Bloqueo de estado atómico (Evita que dos admins procesen el mismo retiro simultáneamente)
+  const { data: w, error: updateErr } = await supabase
     .from("withdrawals")
-    .select("id, user_id, points, wallet_destination, status")
+    .update({ status: "processing" })
     .eq("id", withdrawalId)
+    .eq("status", "pending")
+    .select("id, user_id, points, wallet_destination")
     .single();
 
-  if (fetchErr || !w || w.status !== "pending") {
+  if (updateErr || !w) {
     return NextResponse.json(
-      { error: "Retiro no encontrado o ya procesado." },
-      { status: 400 }
+      { error: "La solicitud ya está siendo procesada o no existe." },
+      { status: 409 }
     );
   }
 
   const amountBolis = Number(w.points) / POINTS_PER_BOLIS;
-  const sig = await sendBolisToWallet(w.wallet_destination, amountBolis);
-  if (!sig) {
-    return NextResponse.json(
-      { error: "Error al enviar BOLIS (revisa wallet y saldo)." },
-      { status: 500 }
-    );
-  }
-
-  await supabase
-    .from("withdrawals")
-    .update({
-      status: "completed",
-      tx_signature: sig,
-      processed_at: new Date().toISOString(),
-    })
-    .eq("id", withdrawalId);
   
-  const { data: u } = await supabase.from("profiles").select("email").eq("id", w.user_id).single();
-  await alertWithdrawalCompleted(u?.email ?? String(w.user_id), Number(w.points), sig);
+  try {
+    const sig = await sendBolisToWallet(w.wallet_destination, amountBolis);
+    
+    if (!sig) {
+      // Revertir a pending si falló el oráculo (e.g. sin saldo en master wallet)
+      await supabase.from("withdrawals").update({ status: "pending" }).eq("id", withdrawalId);
+      return NextResponse.json(
+        { error: "Error al enviar BOLIS (revisa wallet y saldo)." },
+        { status: 500 }
+      );
+    }
 
-  return NextResponse.json({ ok: true, txSignature: sig });
+    // 2. Marcar como completado definitivamente
+    await supabase
+      .from("withdrawals")
+      .update({
+        status: "completed",
+        tx_signature: sig,
+        processed_at: new Date().toISOString(),
+      })
+      .eq("id", withdrawalId);
+    
+    const { data: u } = await supabase.from("profiles").select("email").eq("id", w.user_id).single();
+    await alertWithdrawalCompleted(u?.email ?? String(w.user_id), Number(w.points), sig)
+      .catch(e => console.error("Error alert Telegram:", e));
+
+    return NextResponse.json({ ok: true, txSignature: sig });
+
+  } catch (err: any) {
+    // Revertir a pending ante error de red o similar
+    await supabase.from("withdrawals").update({ status: "pending" }).eq("id", withdrawalId);
+    return NextResponse.json({ error: `Excepción en Solana: ${err.message}` }, { status: 500 });
+  }
 }

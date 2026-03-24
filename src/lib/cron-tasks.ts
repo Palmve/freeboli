@@ -32,7 +32,10 @@ import { POINTS_PER_BOLIS } from "@/lib/config";
 const RPC = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 const SIGS_PER_ADDRESS = 20;
 
-export type ProcessDepositsOptions = { trackPromoCreditForUserId?: string | null };
+export type ProcessDepositsOptions = { 
+  trackPromoCreditForUserId?: string | null;
+  targetUserId?: string | null;
+};
 
 export type ProcessDepositsResult = {
   ok: boolean;
@@ -51,10 +54,16 @@ export async function processDeposits(options?: ProcessDepositsOptions): Promise
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const { data: usersData, error: usersError } = await supabase
+  let query = supabase
     .from("profiles")
     .select("id, deposit_address, email")
     .not("deposit_address", "is", null);
+  
+  if (options?.targetUserId) {
+    query = query.eq("id", options.targetUserId);
+  }
+
+  const { data: usersData, error: usersError } = await query;
 
   if (usersError) return { ok: false, error: usersError.message };
 

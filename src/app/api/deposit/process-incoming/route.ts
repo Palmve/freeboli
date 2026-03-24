@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     }, { status: 429 });
   }
 
-  const res = await processDeposits();
+  const res = await processDeposits({ targetUserId: user.id });
   
   // Si se procesaron depósitos, obtener el nuevo saldo
   if (res.ok && (res.processed ?? 0) > 0) {
