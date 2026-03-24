@@ -282,7 +282,7 @@ export default function ConfiguracionPage() {
 
   const fetchPromotions = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/promociones");
+      const res = await fetch(`/api/admin/promociones?t=${Date.now()}`);
       const data = await res.json();
       setPromotions(data.promotions || []);
     } catch (err) {
@@ -292,7 +292,7 @@ export default function ConfiguracionPage() {
 
   const fetchPromoClaims = useCallback(async (promoId: string) => {
     try {
-      const res = await fetch(`/api/admin/promociones/claims?promoId=${promoId}`);
+      const res = await fetch(`/api/admin/promociones/claims?promoId=${promoId}&t=${Date.now()}`);
       const data = await res.json();
       setClaims(data.claims || []);
     } catch (err) {
