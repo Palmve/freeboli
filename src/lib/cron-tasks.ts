@@ -139,8 +139,9 @@ export async function processDeposits(options?: ProcessDepositsOptions): Promise
 
             const tid = options?.trackPromoCreditForUserId;
             if (tid && user.id === tid) {
-              if (promoCreditForTracker?.promoId === pendingPromo.promo_id) {
-                promoCreditForTracker.pointsAdded += pointsToAdd;
+              const prev = promoCreditForTracker;
+              if (prev !== null && prev.promoId === pendingPromo.promo_id) {
+                prev.pointsAdded += pointsToAdd;
               } else {
                 promoCreditForTracker = { promoId: pendingPromo.promo_id, pointsAdded: pointsToAdd };
               }
