@@ -6,11 +6,12 @@ import Link from "next/link";
 import { SupportModal } from "@/components/SupportModal";
 import RollDisplay from "./RollDisplay";
 import { MAX_BET_POINTS, MAX_WIN_POINTS } from "@/lib/config";
+import { hiLoRuleThresholds } from "@/lib/hilo";
 import { useLang } from "@/context/LangContext";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
-/** Proporción 49% jugador / 51% casa: odds * winChance = 98 (winChance en %) */
-const HOUSE_EDGE_FACTOR = 98; // 98% return => 2% house edge
+/** odds × winChance(%) ≈ 98 (RTP teórico); umbrales HI/LO en servidor según la cuota */
+const HOUSE_EDGE_FACTOR = 98;
 const ODDS_MIN = 1.01;
 const ODDS_MAX = 4900;
 const WIN_CHANCE_MIN = 0.02;
@@ -138,6 +139,7 @@ export default function HiLoPage() {
   const maxBet = balance != null ? Math.min(balance, levelMaxBet) : levelMaxBet;
   const oddsNum = Math.max(ODDS_MIN, Math.min(ODDS_MAX, Number(betOdds) || 2));
   const winChanceNum = Math.max(WIN_CHANCE_MIN, Math.min(WIN_CHANCE_MAX, Number(winChance) || 49));
+  const hiLoRules = hiLoRuleThresholds(oddsNum);
 
   function handleBetOddsChange(value: string) {
     const v = value.replace(",", ".");
@@ -650,10 +652,22 @@ export default function HiLoPage() {
             <>
               <p className="text-sm font-semibold text-slate-300 uppercase">{t("hilo.rules_title")}</p>
               <ul className="mt-2 list-inside list-disc text-sm text-slate-400 space-y-1">
-                <li>{t("hilo.rule_1")}</li>
-                <li>{t("hilo.rule_2")}</li>
-                <li>{t("hilo.rule_3")}</li>
-                <li>{t("hilo.rule_4")}</li>
+                <li>{t("hilo.rule_1").replace("{0}", padRoll(hiLoRules.hiMin))}</li>
+                <li>{t("hilo.rule_2").replace("{0}", padRoll(hiLoRules.loMax))}</li>
+                {hiLoRules.hasDeadZone ? (
+                  <li>
+                    {t("hilo.rule_3")
+                      .replace("{0}", padRoll(hiLoRules.deadMin))
+                      .replace("{1}", padRoll(hiLoRules.deadMax))}
+                  </li>
+                ) : (
+                  <li>{t("hilo.rule_3_adjacent")}</li>
+                )}
+                <li>
+                  {t("hilo.rule_4")
+                    .replace("{0}", hiLoRules.odds.toFixed(2))
+                    .replace("{1}", hiLoRules.winChancePctLabel)}
+                </li>
               </ul>
               <p className="mt-4 text-xs text-slate-500 sm:text-sm">{t("hilo.rules_pf_hint")}</p>
             </>
