@@ -4,9 +4,24 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/context/LangContext";
-import { LEVELS } from "@/lib/levels";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
+
+function achievementCopy(
+  t: (path: string) => string,
+  code: string,
+  fallbackName: string,
+  fallbackDesc: string
+) {
+  const nameKey = `rewards.achievement.${code}.name`;
+  const descKey = `rewards.achievement.${code}.desc`;
+  const name = t(nameKey);
+  const desc = t(descKey);
+  return {
+    name: name === nameKey ? fallbackName : name,
+    desc: desc === descKey ? fallbackDesc : desc,
+  };
+}
 
 interface Achievement {
   id: string;
@@ -21,7 +36,7 @@ interface Achievement {
 
 export default function RecompensasPage() {
   const { data: session, status } = useSession();
-  const { lang, t } = useLang();
+  const { t } = useLang();
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState<string | null>(null);
@@ -92,12 +107,13 @@ export default function RecompensasPage() {
             {achievements.map((a) => {
               const pct = a.target > 0 ? Math.min((a.progress / a.target) * 100, 100) : 0;
               const ready = a.progress >= a.target && !a.claimed;
+              const copy = achievementCopy(t, a.code, a.name, a.description);
               return (
                 <div key={a.id} className="rounded-lg border border-slate-700 bg-slate-800/50 p-4 hover:bg-slate-800 transition">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
-                      <h3 className="font-bold text-white uppercase tracking-tight">{a.name}</h3>
-                      <p className="text-sm text-slate-400 mt-1">{a.description}</p>
+                      <h3 className="font-bold text-white uppercase tracking-tight">{copy.name}</h3>
+                      <p className="text-sm text-slate-400 mt-1">{copy.desc}</p>
                       <div className="mt-3">
                         <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5 font-bold">
                           <span>{a.progress} / {a.target}</span>

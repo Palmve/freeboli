@@ -400,7 +400,33 @@
     "login_hint": "Inicia sesión para ver tus recompensas.",
     "btn_login": "Entrar",
     "error_claim": "Error al reclamar.",
-    "success_claim": "+{0} puntos reclamados!"
+    "success_claim": "+{0} puntos reclamados!",
+    "achievement": {
+      "email_verified": {
+        "name": "Verificar correo",
+        "desc": "Verifica tu correo electrónico"
+      },
+      "first_bet": {
+        "name": "Primera apuesta",
+        "desc": "Haz tu primera apuesta en HI-LO"
+      },
+      "bets_100": {
+        "name": "100 apuestas",
+        "desc": "Realiza 100 apuestas en HI-LO"
+      },
+      "bets_1000": {
+        "name": "1000 apuestas",
+        "desc": "Realiza 1.000 apuestas en HI-LO"
+      },
+      "bets_10000": {
+        "name": "10000 apuestas",
+        "desc": "Realiza 10.000 apuestas en HI-LO"
+      },
+      "first_referral": {
+        "name": "Primer referido verificado",
+        "desc": "Invita a tu primer amigo que verifique su email"
+      }
+    }
   },
   "terms": {
     "title": "Términos y Condiciones de Juego",

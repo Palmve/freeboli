@@ -400,7 +400,33 @@
     "login_hint": "Log in to see your rewards.",
     "btn_login": "Login",
     "error_claim": "Error claiming.",
-    "success_claim": "+{0} points claimed!"
+    "success_claim": "+{0} points claimed!",
+    "achievement": {
+      "email_verified": {
+        "name": "Verify email",
+        "desc": "Verify your email address"
+      },
+      "first_bet": {
+        "name": "First bet",
+        "desc": "Place your first bet in HI-LO"
+      },
+      "bets_100": {
+        "name": "100 bets",
+        "desc": "Place 100 bets in HI-LO"
+      },
+      "bets_1000": {
+        "name": "1,000 bets",
+        "desc": "Place 1,000 bets in HI-LO"
+      },
+      "bets_10000": {
+        "name": "10,000 bets",
+        "desc": "Place 10,000 bets in HI-LO"
+      },
+      "first_referral": {
+        "name": "First verified referral",
+        "desc": "Invite your first friend who verifies their email"
+      }
+    }
   },
   "terms": {
     "title": "Terms and Conditions",
