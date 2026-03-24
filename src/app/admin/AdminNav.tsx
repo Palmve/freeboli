@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 const tabs = [
@@ -12,14 +12,23 @@ const tabs = [
   { href: "/admin/usuarios", label: "Usuarios", permission: "users" },
   { href: "/admin/visitas", label: "Visitas", permission: "stats" },
   { href: "/admin/ranking", label: "Ranking", permission: "stats" },
+  { href: "/admin/estadisticas", label: "Estadísticas", permission: "stats" },
+  { href: "/admin/proyecciones", label: "Proyecciones", permission: "stats" },
+  { href: "/admin/alertas", label: "Alertas", superOnly: true },
   { href: "/admin/configuracion", label: "Configuración", permission: ["settings", "promotions"] },
-  { href: "/admin/bot", label: "Bot Volumen 🔥", superOnly: true },
+  { href: "/admin/bot", label: "Bot volumen", superOnly: true },
   { href: "/admin/seguridad", label: "Seguridad", permission: "security" },
 ];
 
+/** Ruta activa: coincide exacto o subruta (p. ej. /admin/usuarios/uuid → Usuarios). */
+function isAdminTabActive(pathname: string, tabHref: string): boolean {
+  if (pathname === tabHref) return true;
+  if (tabHref === "/admin") return false;
+  return pathname.startsWith(`${tabHref}/`);
+}
+
 export default function AdminNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const { data: session } = useSession();
 
   const user = session?.user as any;
@@ -40,33 +49,37 @@ export default function AdminNav() {
 
   return (
     <>
-      <div className="block md:hidden mb-4 px-1">
-        <label htmlFor="admin-nav-select" className="sr-only">Navegación Administrador</label>
-        <div className="relative">
-          <select
-            id="admin-nav-select"
-            value={pathname}
-            onChange={(e) => router.push(e.target.value)}
-            className="w-full appearance-none rounded-xl border-2 border-slate-700 bg-slate-800/80 px-4 py-3.5 pr-10 text-[15px] font-bold text-amber-500 shadow-md outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
-          >
-            {filteredTabs.map((tab) => (
-              <option key={tab.href} value={tab.href} className="bg-slate-800 text-amber-500 font-semibold">
-                {tab.label}
-              </option>
-            ))}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-amber-500">
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-      </div>
+      {/* Móvil: lista vertical con scroll (evita bugs de <select> en Android y rutas anidadas). */}
+      <nav
+        aria-label="Navegación administración"
+        className="block md:hidden mb-4 rounded-xl border border-slate-700 bg-slate-900/60 p-2 max-h-[min(72vh,560px)] overflow-y-auto overscroll-y-contain touch-pan-y [-webkit-overflow-scrolling:touch]"
+      >
+        <p className="px-2 pb-2 text-[10px] font-black uppercase tracking-widest text-slate-500">Secciones</p>
+        <ul className="flex flex-col gap-0.5">
+          {filteredTabs.map((tab) => {
+            const active = isAdminTabActive(pathname, tab.href);
+            return (
+              <li key={tab.href}>
+                <Link
+                  href={tab.href}
+                  className={`block rounded-lg px-3 py-3 text-sm font-bold transition-colors ${
+                    active
+                      ? "bg-amber-500/15 text-amber-400 ring-1 ring-amber-500/40"
+                      : "text-slate-300 hover:bg-slate-800 hover:text-white active:bg-slate-800"
+                  }`}
+                >
+                  {tab.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
 
       <nav className="hidden md:block overflow-x-auto pb-4 scrollbar-hide">
         <div className="flex min-w-max gap-2 border-b border-slate-700/50 pb-px">
           {filteredTabs.map((tab) => {
-            const active = pathname === tab.href;
+            const active = isAdminTabActive(pathname, tab.href);
             return (
               <Link
                 key={tab.href}
