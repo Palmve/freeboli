@@ -32,7 +32,19 @@ import { POINTS_PER_BOLIS } from "@/lib/config";
 const RPC = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 const SIGS_PER_ADDRESS = 20;
 
-export async function processDeposits() {
+export type ProcessDepositsOptions = { trackPromoCreditForUserId?: string | null };
+
+export type ProcessDepositsResult = {
+  ok: boolean;
+  skipped?: boolean;
+  processed?: number;
+  errors?: string[];
+  error?: string;
+  /** Si se pidió seguimiento y este usuario recibió crédito al pozo en esta corrida */
+  promoCredit?: { promoId: string; pointsAdded: number } | null;
+};
+
+export async function processDeposits(options?: ProcessDepositsOptions): Promise<ProcessDepositsResult> {
   if (SHOULD_SKIP_CRON) return { ok: true, skipped: true };
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -51,6 +63,7 @@ export async function processDeposits() {
   const mint = new PublicKey(BOLIS_MINT);
   const processed: string[] = [];
   const errors: string[] = [];
+  let promoCreditForTracker: { promoId: string; pointsAdded: number } | null = null;
 
   for (const user of users) {
     const depositAddress = user.deposit_address as string;
@@ -88,22 +101,23 @@ export async function processDeposits() {
             .single();
 
           if (pendingPromo) {
-            // Acreditar a la PROMOCIÓN
-            await supabase
-              .from("promociones")
-              .update({
-                puntos_totales: supabase.rpc('increment', { row_id: pendingPromo.promo_id, x: pointsToAdd }), // Nota: Usando lógica de incremento
-                puntos_restantes: supabase.rpc('increment', { row_id: pendingPromo.promo_id, x: pointsToAdd })
-              })
-              // Pero espera, Supabase no tiene rpc 'increment' por defecto asumo. Usaré lógica tradicional o un RPC nuevo.
-              // Mejor usar un RPC dedicado para seguridad: atomic_add_promo_points
-              .eq("id", pendingPromo.promo_id);
-            
-            // Re-ejecutar con RPC para evitar race conditions
-            await supabase.rpc("atomic_add_promo_points", {
+            const { data: rpcResult, error: rpcError } = await supabase.rpc("atomic_add_promo_points", {
               target_promo_id: pendingPromo.promo_id,
-              amount_to_add: pointsToAdd
+              amount_to_add: pointsToAdd,
             });
+
+            if (rpcError) {
+              errors.push(`${signature}: promo RPC ${rpcError.message}`);
+              continue;
+            }
+            const rpcOk =
+              rpcResult &&
+              typeof rpcResult === "object" &&
+              (rpcResult as { success?: boolean }).success === true;
+            if (!rpcOk) {
+              errors.push(`${signature}: promo RPC rejected ${JSON.stringify(rpcResult)}`);
+              continue;
+            }
 
             await supabase.from("movements").insert({
               user_id: user.id,
@@ -113,7 +127,6 @@ export async function processDeposits() {
               metadata: { bolisAmount: result.amount, promo_id: pendingPromo.promo_id },
             });
 
-            // Borrar intención
             await supabase.from("pending_promo_deposits").delete().eq("user_id", user.id);
 
             await supabase.from("processed_deposits").insert({
@@ -123,6 +136,15 @@ export async function processDeposits() {
               amount_bolis: result.amount,
               points_added: pointsToAdd,
             });
+
+            const tid = options?.trackPromoCreditForUserId;
+            if (tid && user.id === tid) {
+              if (promoCreditForTracker?.promoId === pendingPromo.promo_id) {
+                promoCreditForTracker.pointsAdded += pointsToAdd;
+              } else {
+                promoCreditForTracker = { promoId: pendingPromo.promo_id, pointsAdded: pointsToAdd };
+              }
+            }
           } else {
             // Acreditar al USUARIO (Lógica original)
             await supabase.rpc("atomic_add_points", {
@@ -158,7 +180,12 @@ export async function processDeposits() {
     }
   }
 
-  return { ok: true, processed: processed.length, errors: errors.length ? errors : undefined };
+  return {
+    ok: true,
+    processed: processed.length,
+    errors: errors.length ? errors : undefined,
+    promoCredit: promoCreditForTracker,
+  };
 }
 
 // --- RANKING PRIZES ---

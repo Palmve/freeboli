@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminUser } from "@/lib/current-user";
-import { createClient } from "@/lib/supabase/server";
-import { sendEmailViaResend } from "@/lib/resend";
+import { createClient } from "@supabase/supabase-js";
+import { sendEmailViaResendDetailed } from "@/lib/resend";
 import crypto from "crypto";
 
 export async function POST() {
@@ -10,25 +10,29 @@ export async function POST() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  // Generate 6-digit numeric PIN
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) {
+    return NextResponse.json({ error: "Servidor sin configuración de base de datos." }, { status: 503 });
+  }
+
   const pin = Array.from({ length: 6 }, () => crypto.randomInt(0, 10)).join("");
   const expires = new Date(Date.now() + 15 * 60 * 1000).toISOString();
   const tokenHash = crypto.createHash("sha256").update(pin).digest("hex");
 
-  const supabase = await createClient();
-  
-  // Clean old tokens
+  const supabase = createClient(url, serviceKey);
+
   await supabase.from("email_verifications").delete().eq("user_id", user.id);
 
-  // Store new token (hashed)
   const { error: dbError } = await supabase.from("email_verifications").insert({
     user_id: user.id,
     token_hash: tokenHash,
-    expires_at: expires
+    expires_at: expires,
   });
 
   if (dbError) {
-    return NextResponse.json({ error: "Error en base de datos" }, { status: 500 });
+    console.error("[device-auth/request] DB:", dbError.message);
+    return NextResponse.json({ error: "Error al guardar el código. Revisa la tabla email_verifications." }, { status: 500 });
   }
 
   const htmlTemplate = `
@@ -45,31 +49,35 @@ export async function POST() {
       </div>
 
       <p style="color: #666; font-size: 13px;">Este código expirará en 15 minutos.</p>
-      <p style="color: #ef4444; font-size: 13px; font-weight: bold;">⚠️ Si tú no solicitaste este acceso, ALGUIEN TIENE TU CONTRASEÑA MUESTRA. Cámbiala inmediatamente o revoca tu sesión.</p>
+      <p style="color: #ef4444; font-size: 13px; font-weight: bold;">⚠️ Si tú no solicitaste este acceso, alguien podría tener acceso a tu cuenta. Cambia la contraseña y revisa la actividad.</p>
       
-      <p style="color: #333; margin-top: 30px;">Atentamente,<br><strong>FreeBoli Security Subsystem</strong></p>
+      <p style="color: #333; margin-top: 30px;">Atentamente,<br><strong>FreeBoli Security</strong></p>
     </div>
   `;
 
-  // 🛡️ OPTIMIZACIÓN v1.083: Solo en desarrollo, mostramos el PIN en consola para debug
   if (process.env.NODE_ENV === "development") {
     console.log("------------------------------------------");
-    console.log("🔐 [DEV DEBUG] - FreeBoli OTP PIN:", pin);
+    console.log("🔐 [DEV] PIN dispositivo admin:", pin, "→", user.email);
     console.log("------------------------------------------");
   }
 
-  const emailSent = await sendEmailViaResend({
+  const emailResult = await sendEmailViaResendDetailed({
     to: user.email,
     subject: "Autorización de Dispositivo Administrativo - FreeBoli",
-    html: htmlTemplate
+    html: htmlTemplate,
   });
 
-  if (!emailSent && process.env.NODE_ENV !== "development") {
-    return NextResponse.json({ 
-      error: "Error de envío (Resend API). Verifica tu configuración SMTP o API Key." 
-    }, { status: 500 });
+  if (!emailResult.ok) {
+    console.error("[device-auth/request] Resend:", emailResult.error, emailResult.status ?? "");
+    return NextResponse.json(
+      {
+        error: emailResult.error,
+        hint:
+          "Comprueba en Vercel (o .env) RESEND_API_KEY y RESEND_FROM. El remitente debe ser un dominio verificado en resend.com. Revisa también spam y promociones.",
+      },
+      { status: 502 }
+    );
   }
 
-  // En local, aunque el email falle, permitimos el paso si el PIN se mostró en consola
   return NextResponse.json({ success: true, message: "PIN generado correctamente." });
 }

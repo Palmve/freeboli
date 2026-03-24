@@ -30,7 +30,10 @@ export default function DeviceAuthRequired({ email }: { email: string }) {
     try {
       const res = await fetch("/api/admin/device-auth/request", { method: "POST" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Fallo en la solicitud SMTP");
+      if (!res.ok) {
+        const hint = typeof data.hint === "string" ? `\n\n${data.hint}` : "";
+        throw new Error((data.error || "Fallo al enviar el correo") + hint);
+      }
       setStatus("sent");
     } catch (e: any) {
       setErrorMsg(e.message);
@@ -132,7 +135,7 @@ export default function DeviceAuthRequired({ email }: { email: string }) {
       </p>
 
       {errorMsg && (
-        <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm px-4 py-3 rounded-lg w-full mb-6 font-medium animate-pulse">
+        <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm px-4 py-3 rounded-lg w-full mb-6 font-medium animate-pulse whitespace-pre-wrap text-left">
           {errorMsg}
         </div>
       )}

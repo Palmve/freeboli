@@ -34,3 +34,11 @@ export function getPermissions(session: Session | null): StaffPermissions {
   }
   return (session?.user as any)?.permissions || {};
 }
+
+/** Admin global o staff con permiso promotions. */
+export function canManagePromotionsAdmin(session: Session | null): boolean {
+  if (!session?.user?.isAdmin) return false;
+  const u = session.user as { isStaff?: boolean };
+  if (u.isStaff && !getPermissions(session).promotions) return false;
+  return true;
+}
