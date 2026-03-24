@@ -9,10 +9,10 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const supabase = await createClient();
 
-  const { data: movs } = await supabase
-    .from("movements")
-    .select("type, points")
-    .eq("user_id", user.id);
+  const [{ data: movs }, { data: profileRow }] = await Promise.all([
+    supabase.from("movements").select("type, points").eq("user_id", user.id),
+    supabase.from("profiles").select("hilo_bet_count").eq("id", user.id).single(),
+  ]);
 
   const sums: SumMap = {};
   for (const m of movs ?? []) {
@@ -20,27 +20,8 @@ export async function GET() {
     sums[t] = (sums[t] ?? 0) + Number(m.points ?? 0);
   }
 
-  const { count: hiLoBets } = await supabase
-    .from("movements")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .eq("type", "apuesta_hi_lo");
-
-  const { data: hiLoHist } = await supabase
-    .from("movements")
-    .select("metadata")
-    .eq("user_id", user.id)
-    .eq("type", "apuesta_hi_lo")
-    .like("reference", "agrupacion_%");
-
-  let historicalBetCount = 0;
-  for (const m of hiLoHist ?? []) {
-     if (typeof m.metadata === "object" && m.metadata !== null && "rollup_count" in m.metadata) {
-         historicalBetCount += Number((m.metadata as any).rollup_count || 0);
-     }
-  }
-
-  const hiLoBetsTotal = (hiLoBets ?? 0) + historicalBetCount;
+  /** Mismo contador que logros/nivel: cada apuesta (manual o auto) vía place_hilo_bet; el rollup de movements no lo reduce. */
+  const hiLoBetsTotal = Number(profileRow?.hilo_bet_count ?? 0);
 
   const { data: w } = await supabase
     .from("withdrawals")

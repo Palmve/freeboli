@@ -212,12 +212,11 @@ export default function ConfiguracionPage() {
     { id: "Tickets", label: "🎫 Tickets Soporte", icon: "🎫", hidden: !isSuper && !permissions.soporte },
     { id: "Seguridad", label: "🛡️ Seguridad", icon: "🛡️", hidden: !isSuper && !permissions.seguridad },
     { id: "Niveles", label: "📊 Niveles y Emails", icon: "📊", hidden: !isSuper && !permissions.levels },
-    { id: "Promociones", label: "🎁 Promociones", icon: "🎁", hidden: !isSuper && !permissions.promotions },
-    { id: "Staff", label: "👥 Acceso Staff", icon: "👥", hidden: !isSuper },
+    { id: "Promociones", label: "🎁 Promociones", icon: "🎁", hidden: !isSuper && !permissions.promotions && !permissions.settings },
+    { id: "Staff", label: "👥 Agentes", icon: "👥", hidden: !isSuper },
   ].filter(t => !t.hidden);
 
   const [activeTab, setActiveTab] = useState(TABS[0]?.id || "Faucet");
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Niveles
   const [autoLevelNotify, setAutoLevelNotify] = useState(true);
@@ -378,9 +377,9 @@ export default function ConfiguracionPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 lg:flex">
-      {/* Sidebar / Mobile Menu */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-slate-900 border-r border-slate-800 transition-transform lg:relative lg:translate-x-0 ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="p-6">
+      {/* Sidebar solo escritorio; en móvil se usa el selector debajo del título */}
+      <aside className="hidden w-64 flex-shrink-0 border-r border-slate-800 bg-slate-900 lg:block">
+        <div className="sticky top-0 max-h-screen overflow-y-auto p-6">
           <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -392,15 +391,16 @@ export default function ConfiguracionPage() {
             {TABS.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => { setActiveTab(tab.id); setIsMenuOpen(false); }}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
                 className={`w-full text-left px-4 py-3 rounded-xl transition flex items-center gap-3 ${
                   activeTab === tab.id 
                     ? "bg-amber-500 text-slate-900 font-bold shadow-lg shadow-amber-500/20" 
                     : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                 }`}
               >
-                <span className="text-lg">{tab.icon.split(' ')[0]}</span>
-                {tab.label.replace(tab.icon.split(' ')[0], '').trim()}
+                <span className="text-lg">{tab.icon.split(" ")[0]}</span>
+                {tab.label.replace(tab.icon.split(" ")[0], "").trim()}
               </button>
             ))}
           </nav>
@@ -409,16 +409,33 @@ export default function ConfiguracionPage() {
 
       {/* Main Content */}
       <main className="flex-1 p-6 lg:p-10 max-w-4xl">
-        <header className="mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-black text-white">{activeTab}</h1>
-              <p className="text-slate-400 mt-1">Configuración detallada de la sección.</p>
+        <header className="mb-8 space-y-4">
+          <div>
+            <h1 className="text-3xl font-black text-white">{activeTab}</h1>
+            <p className="text-slate-400 mt-1">Configuración detallada de la sección.</p>
+          </div>
+          <div className="relative lg:hidden">
+            <label htmlFor="ajustes-seccion" className="sr-only">
+              Sección de ajustes
+            </label>
+            <select
+              id="ajustes-seccion"
+              value={TABS.some((t) => t.id === activeTab) ? activeTab : TABS[0]?.id ?? "Faucet"}
+              onChange={(e) => setActiveTab(e.target.value)}
+              className="w-full appearance-none rounded-xl border-2 border-slate-700 bg-slate-900 px-4 py-3.5 pr-10 text-[15px] font-bold text-amber-500 shadow-md focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+            >
+              {TABS.map((tab) => (
+                <option key={tab.id} value={tab.id} className="bg-slate-900 font-semibold">
+                  {tab.label}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-amber-500" aria-hidden>
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="lg:hidden p-2 rounded-lg bg-slate-800 text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-                </svg>
-            </button>
+          </div>
         </header>
 
         {message && (
@@ -1180,9 +1197,6 @@ export default function ConfiguracionPage() {
           )}
         </div>
       </main>
-
-      {/* Overlay mobile */}
-      {isMenuOpen && <div onClick={() => setIsMenuOpen(false)} className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"></div>}
     </div>
   );
 }

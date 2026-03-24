@@ -9,6 +9,15 @@ interface AchievementCheck {
   check: (userId: string, supabase: Awaited<ReturnType<typeof createClient>>) => Promise<boolean>;
 }
 
+/** Apuestas HI-LO reales (manual + auto): se incrementa en cada `place_hilo_bet`; no se reduce con el rollup de movements. */
+async function getHiLoBetCount(
+  userId: string,
+  sb: Awaited<ReturnType<typeof createClient>>
+): Promise<number> {
+  const { data } = await sb.from("profiles").select("hilo_bet_count").eq("id", userId).single();
+  return Number(data?.hilo_bet_count ?? 0);
+}
+
 const achievements: AchievementCheck[] = [
   {
     code: "email_verified",
@@ -23,47 +32,19 @@ const achievements: AchievementCheck[] = [
   },
   {
     code: "first_bet",
-    check: async (userId, sb) => {
-      const { count } = await sb
-        .from("movements")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("type", "apuesta_hi_lo");
-      return (count ?? 0) >= 1;
-    },
+    check: async (userId, sb) => (await getHiLoBetCount(userId, sb)) >= 1,
   },
   {
     code: "bets_100",
-    check: async (userId, sb) => {
-      const { count } = await sb
-        .from("movements")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("type", "apuesta_hi_lo");
-      return (count ?? 0) >= 100;
-    },
+    check: async (userId, sb) => (await getHiLoBetCount(userId, sb)) >= 100,
   },
   {
     code: "bets_1000",
-    check: async (userId, sb) => {
-      const { count } = await sb
-        .from("movements")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("type", "apuesta_hi_lo");
-      return (count ?? 0) >= 1000;
-    },
+    check: async (userId, sb) => (await getHiLoBetCount(userId, sb)) >= 1000,
   },
   {
     code: "bets_10000",
-    check: async (userId, sb) => {
-      const { count } = await sb
-        .from("movements")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("type", "apuesta_hi_lo");
-      return (count ?? 0) >= 10000;
-    },
+    check: async (userId, sb) => (await getHiLoBetCount(userId, sb)) >= 10000,
   },
   {
     code: "first_referral",
@@ -104,17 +85,13 @@ export async function GET() {
 
   const claimedIds = new Set((claimed ?? []).map((c) => c.reward_template_id));
 
-  const { count: betCount } = await supabase
-    .from("movements")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("type", "apuesta_hi_lo");
-
   const { data: profile } = await supabase
     .from("profiles")
-    .select("email_verified_at")
+    .select("email_verified_at, hilo_bet_count")
     .eq("id", userId)
     .single();
+
+  const betCount = Number(profile?.hilo_bet_count ?? 0);
 
   const { data: referrals } = await supabase
     .from("referrals")
