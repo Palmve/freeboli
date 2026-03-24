@@ -52,11 +52,11 @@ export function normalizeHiLoOdds(oddsRaw?: number): number {
 /**
  * Cantidad de valores de tirada ganadores para HI (o para LO), con RTP ~98%:
  * (k/10000) × cuota ≈ 0.98 → k ≈ 9800/cuota.
- * Tope k ≤ 5000 para que las bandas baja/alta no se solapen (cuota ≥ ~1,96).
+ * Tope k ≤ 9900 para mantener un RTP consistente incluso en cuotas bajas.
  */
 export function hiLoWinningOutcomes(oddsEffective: number): number {
   const raw = Math.round((HILO_HOUSE_EDGE_FACTOR * 100) / oddsEffective);
-  return Math.min(5000, Math.max(1, raw));
+  return Math.min(9900, Math.max(1, raw));
 }
 
 export interface HiLoRuleThresholds {

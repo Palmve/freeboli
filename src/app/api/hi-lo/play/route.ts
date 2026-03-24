@@ -29,12 +29,14 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const bet = Math.floor(Number(body.bet));
   const choice = body.choice === "hi" || body.choice === "lo" ? body.choice : null;
-  const client_seed = typeof body.client_seed === "string" ? body.client_seed : undefined;
+  const client_seed = typeof body.client_seed === "string" ? body.client_seed.trim().slice(0, 64) : undefined;
+  
   let odds = Number(body.odds);
   if (!Number.isFinite(odds) || odds < 1.01 || odds > 4900) odds = 2;
-  if (!choice || bet < 1) {
+
+  if (!choice || bet < 1 || isNaN(bet)) {
     return NextResponse.json(
-      { error: "Apuesta invalida (minimo 1 punto) y eleccion hi o lo." },
+      { error: "Apuesta inválida (mínimo 1 punto) y elección hi o lo." },
       { status: 400 }
     );
   }
@@ -162,7 +164,8 @@ export async function POST(req: Request) {
     });
 
     if (addError || !addData?.[0]?.success) {
-        console.warn(`[Security] Premio Hi-Lo declinado para ${userId}: ${addData?.[0]?.message || addError?.message}`);
+        console.warn(`[Security] Premio Hi-Lo declinado para ${userId}: ${addData?.[0]?.message || addError?.message || "Límite excedido"}`);
+        // Log event logicamente si es un intento de bypass
         finalPoints = balanceAfterBet;
     } else {
         finalPoints = Number(addData[0].result_balance);
