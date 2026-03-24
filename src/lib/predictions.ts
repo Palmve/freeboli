@@ -6,6 +6,14 @@ export type PredictionAsset = "BTC" | "SOL" | "BOLIS";
 export type PredictionRoundType = "hourly" | "mini" | "micro";
 
 /**
+ * Obtiene el último dígito del precio según el tipo de activo (unificación oráculo).
+ */
+export function getPredictionMicroDigit(price: number, asset: PredictionAsset): string {
+    const decimals = asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2;
+    return price.toFixed(decimals).slice(-1);
+}
+
+/**
  * Asegura que exista una ronda activa para el asset dado en la hora actual o bloque de 10 min.
  */
 export async function ensureActiveRound(asset: PredictionAsset, type: PredictionRoundType = "hourly"): Promise<{ data?: any; error?: string }> {
@@ -140,8 +148,7 @@ export async function resolvePendingRounds() {
       let result = "draw";
       let microResult = "";
       if (round.type === "micro") {
-        const decimals = round.asset === "BOLIS" ? 6 : round.asset === "SOL" ? 3 : 2;
-        microResult = closePriceRaw.toFixed(decimals).slice(-1);
+        microResult = getPredictionMicroDigit(closePriceRaw, round.asset as PredictionAsset);
       } else {
         const closePrice = round.asset === "BOLIS" ? Number(closePriceRaw.toFixed(6)) : closePriceRaw;
         result = closePrice > round.opening_price ? "up" : closePrice < round.opening_price ? "down" : "draw";
@@ -168,34 +175,18 @@ export async function resolvePendingRounds() {
                 payout = bet.amount; // Devolución en empate
                 status = "draw";
             } else if (bet.prediction === result) {
-                // Victoria: monto * multiplicador original
                 payout = bet.potential_payout || Math.floor(bet.amount * (bet.odds_at_bet || 1.95));
                 status = "won";
             }
           }
 
-          // Registrar movimiento y actualizar balance solo si ganó o empató
-          if (payout > 0) {
-            await supabase.rpc("atomic_add_points", {
-                target_user_id: bet.user_id,
-                amount_to_add: payout
-            });
-
-            await supabase.from("movements").insert({
-                user_id: bet.user_id,
-                type: "premio_prediccion",
-                points: payout,
-                reference: `round:${round.id}:bet:${bet.id}`,
-                metadata: { round_id: round.id, bet_id: bet.id, result, side: bet.prediction }
-            });
-          }
-
-          // Actualizar estado de la apuesta
-          await supabase.from("prediction_bets").update({ 
-              status,
-              payout,
-              processed_at: new Date().toISOString()
-          }).eq("id", bet.id);
+          // RESOLUCIÓN ATÓMICA vía RPC (Migración 018)
+          await supabase.rpc("resolve_prediction_bet", {
+              p_bet_id: bet.id,
+              p_round_id: round.id,
+              p_status: status,
+              p_payout: payout
+          });
         }
       }
 

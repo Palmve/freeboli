@@ -68,7 +68,8 @@ export async function POST(req: Request) {
   // --- ANTI-FRAUDE MICRO ---
   // No se puede apostar al último dígito exacto actual
   if (type === "micro") {
-      const currentLastDigit = String(roundData.current_price).slice(-1);
+      const { getPredictionMicroDigit } = await import("@/lib/predictions");
+      const currentLastDigit = getPredictionMicroDigit(roundData.current_price, asset);
       if (prediction === currentLastDigit) {
           return NextResponse.json({ error: "El Oráculo declinó la operación: El número " + prediction + " está bloqueado en este milisegundo." }, { status: 400 });
       }
