@@ -16,6 +16,8 @@ const ODDS_MIN = 1.01;
 const ODDS_MAX = 4900;
 const WIN_CHANCE_MIN = 0.02;
 const WIN_CHANCE_MAX = 99;
+const DEFAULT_HILO_ODDS = "2";
+const DEFAULT_HILO_CHANCE = "49.00";
 
 type Tab = "manual" | "auto";
 type StrategyTab = "win" | "lose";
@@ -63,8 +65,10 @@ export default function HiLoPage() {
   const [error, setError] = useState("");
   const [lastResult, setLastResult] = useState<Result | null>(null);
   const [displayRoll, setDisplayRoll] = useState<string>("0000");
-  const [betOdds, setBetOdds] = useState("2");
-  const [winChance, setWinChance] = useState("49.00");
+  const [manualBetOdds, setManualBetOdds] = useState(DEFAULT_HILO_ODDS);
+  const [manualWinChance, setManualWinChance] = useState(DEFAULT_HILO_CHANCE);
+  const [autoBetOdds, setAutoBetOdds] = useState(DEFAULT_HILO_ODDS);
+  const [autoWinChance, setAutoWinChance] = useState(DEFAULT_HILO_CHANCE);
   const lastEditedRef = useRef<"odds" | "chance">("odds");
 
   // Auto
@@ -137,30 +141,66 @@ export default function HiLoPage() {
   const betNum = Math.floor(Number(bet)) || 0;
   const minBet = 1;
   const maxBet = balance != null ? Math.min(balance, levelMaxBet) : levelMaxBet;
-  const oddsNum = Math.max(ODDS_MIN, Math.min(ODDS_MAX, Number(betOdds) || 2));
-  const winChanceNum = Math.max(WIN_CHANCE_MIN, Math.min(WIN_CHANCE_MAX, Number(winChance) || 49));
-  const hiLoRules = hiLoRuleThresholds(oddsNum);
+  const oddsNumManual = Math.max(ODDS_MIN, Math.min(ODDS_MAX, Number(manualBetOdds) || 2));
+  const oddsNumAuto = Math.max(ODDS_MIN, Math.min(ODDS_MAX, Number(autoBetOdds) || 2));
+  const hiLoRules = hiLoRuleThresholds(oddsNumManual);
 
-  function handleBetOddsChange(value: string) {
+  function handleManualBetOddsChange(value: string) {
     const v = value.replace(",", ".");
-    setBetOdds(v);
+    setManualBetOdds(v);
     const o = parseFloat(v);
     if (Number.isFinite(o) && o >= ODDS_MIN && o <= ODDS_MAX) {
       const c = HOUSE_EDGE_FACTOR / o;
-      setWinChance(Math.max(WIN_CHANCE_MIN, Math.min(WIN_CHANCE_MAX, c)).toFixed(2));
+      setManualWinChance(Math.max(WIN_CHANCE_MIN, Math.min(WIN_CHANCE_MAX, c)).toFixed(2));
     }
     lastEditedRef.current = "odds";
   }
 
-  function handleWinChanceChange(value: string) {
+  function handleManualWinChanceChange(value: string) {
     const v = value.replace(",", ".");
-    setWinChance(v);
+    setManualWinChance(v);
     const c = parseFloat(v);
     if (Number.isFinite(c) && c >= WIN_CHANCE_MIN && c <= WIN_CHANCE_MAX) {
       const o = HOUSE_EDGE_FACTOR / c;
-      setBetOdds(Math.max(ODDS_MIN, Math.min(ODDS_MAX, o)).toFixed(2));
+      setManualBetOdds(Math.max(ODDS_MIN, Math.min(ODDS_MAX, o)).toFixed(2));
     }
     lastEditedRef.current = "chance";
+  }
+
+  function handleAutoBetOddsChange(value: string) {
+    const v = value.replace(",", ".");
+    setAutoBetOdds(v);
+    const o = parseFloat(v);
+    if (Number.isFinite(o) && o >= ODDS_MIN && o <= ODDS_MAX) {
+      const c = HOUSE_EDGE_FACTOR / o;
+      setAutoWinChance(Math.max(WIN_CHANCE_MIN, Math.min(WIN_CHANCE_MAX, c)).toFixed(2));
+    }
+  }
+
+  function handleAutoWinChanceChange(value: string) {
+    const v = value.replace(",", ".");
+    setAutoWinChance(v);
+    const c = parseFloat(v);
+    if (Number.isFinite(c) && c >= WIN_CHANCE_MIN && c <= WIN_CHANCE_MAX) {
+      const o = HOUSE_EDGE_FACTOR / c;
+      setAutoBetOdds(Math.max(ODDS_MIN, Math.min(ODDS_MAX, o)).toFixed(2));
+    }
+  }
+
+  function selectTab(next: Tab) {
+    if (next === tab) return;
+    if (next === "manual") {
+      setManualBetOdds(DEFAULT_HILO_ODDS);
+      setManualWinChance(DEFAULT_HILO_CHANCE);
+      if (autoRunning) {
+        autoAbortRef.current = true;
+        setAutoRunning(false);
+      }
+    } else {
+      setAutoBetOdds(DEFAULT_HILO_ODDS);
+      setAutoWinChance(DEFAULT_HILO_CHANCE);
+    }
+    setTab(next);
   }
 
   function addToHistory(entry: Omit<HistoryEntry, "id">) {
@@ -168,7 +208,7 @@ export default function HiLoPage() {
     setHistory((prev) => [{ ...entry, id }, ...prev].slice(0, 50));
   }
 
-  const playOne = useCallback(async (betAmount: number, choiceHiLo: "hi" | "lo", odds: number = oddsNum): Promise<Result | null> => {
+  const playOne = useCallback(async (betAmount: number, choiceHiLo: "hi" | "lo", odds: number): Promise<Result | null> => {
     const res = await fetch("/api/hi-lo/play", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -184,7 +224,7 @@ export default function HiLoPage() {
       return null;
     }
     return data as Result;
-  }, [oddsNum, t]);
+  }, [t]);
 
   async function playManual(overrideChoice?: "hi" | "lo") {
     const amount = Math.floor(Number(bet));
@@ -196,7 +236,7 @@ export default function HiLoPage() {
     setError("");
     setLoading(true);
     setLastResult(null);
-    const data = await playOne(amount, c);
+    const data = await playOne(amount, c, oddsNumManual);
     setLoading(false);
     if (!data) {
       setChoice(null); // Clear selection even on error
@@ -216,7 +256,7 @@ export default function HiLoPage() {
       choice: c === "hi" ? "HI" : "LO",
       roll: data.roll,
       stake: data.bet,
-      mult: data.win ? oddsNum : 0,
+      mult: data.win ? oddsNumManual : 0,
       profit,
       verification: data.verification,
     });
@@ -246,7 +286,7 @@ export default function HiLoPage() {
         if (autoBetOn === "alternate" && overrideNextChoice == null) alternateNext = alternateNext === "hi" ? "lo" : "hi";
         overrideNextChoice = null;
 
-        const data = await playOne(currentBet, choiceToUse);
+        const data = await playOne(currentBet, choiceToUse, oddsNumAuto);
         if (!data) break;
         setBalance(data.newBalance);
         if (typeof window !== "undefined") {
@@ -265,7 +305,7 @@ export default function HiLoPage() {
           choice: choiceToUse === "hi" ? "HI" : "LO",
           roll: data.roll,
           stake: data.bet,
-          mult: data.win ? oddsNum : 0,
+          mult: data.win ? oddsNumAuto : 0,
           profit,
           verification: data.verification,
         });
@@ -316,7 +356,7 @@ export default function HiLoPage() {
     autoStopLoss, 
     autoBetOn, 
     lang, 
-    oddsNum, 
+    oddsNumAuto, 
     playOne, 
     autoMaxBet, 
     autoOnWinReturnBase, 
@@ -379,13 +419,7 @@ export default function HiLoPage() {
       <div className="flex gap-1 rounded-lg bg-slate-800 p-1">
         <button
           type="button"
-          onClick={() => {
-            setTab("manual");
-            if (autoRunning) {
-              autoAbortRef.current = true;
-              setAutoRunning(false);
-            }
-          }}
+          onClick={() => selectTab("manual")}
           className={`flex-1 rounded-md px-3 py-2 text-xs font-semibold transition sm:px-4 sm:text-sm ${
             tab === "manual" ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"
           }`}
@@ -394,10 +428,7 @@ export default function HiLoPage() {
         </button>
         <button
           type="button"
-          onClick={() => {
-            setTab("auto");
-            // No detenemos aquí porque entrar a auto es lo que el usuario quiere
-          }}
+          onClick={() => selectTab("auto")}
           className={`flex-1 rounded-md px-3 py-2 text-xs font-semibold transition sm:px-4 sm:text-sm ${
             tab === "auto" ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"
           }`}
@@ -421,7 +452,7 @@ export default function HiLoPage() {
             <>
               <p className="mb-1 text-sm font-semibold text-slate-300 uppercase">{t("hilo.manual_max_win")}</p>
               <p className="mb-2 rounded border border-slate-600 bg-slate-900/80 px-2 py-1.5 font-mono text-amber-400">
-                {Math.floor(betNum * (oddsNum - 1)).toLocaleString()} pts
+                {Math.floor(betNum * (oddsNumManual - 1)).toLocaleString()} pts
               </p>
               <p className="mb-2 text-sm font-semibold text-slate-300 uppercase">{t("hilo.manual_bet_amount")}</p>
               <div className="flex flex-wrap items-center gap-2">
@@ -462,9 +493,9 @@ export default function HiLoPage() {
                 onChange={(e) => setBet(e.target.value)}
                 className="mt-2 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 font-mono text-white"
               />
-              <p className={`mt-2 text-sm ${Math.floor(betNum * (oddsNum - 1)) > MAX_WIN_POINTS ? "text-red-400" : "text-slate-400"}`}>
-                {t("hilo.potential_profit")}: {Math.floor(betNum * oddsNum).toLocaleString()} pts
-                {Math.floor(betNum * (oddsNum - 1)) > MAX_WIN_POINTS && ` ${t("hilo.exceeds_limit")}`}
+              <p className={`mt-2 text-sm ${Math.floor(betNum * (oddsNumManual - 1)) > MAX_WIN_POINTS ? "text-red-400" : "text-slate-400"}`}>
+                {t("hilo.potential_profit")}: {Math.floor(betNum * oddsNumManual).toLocaleString()} pts
+                {Math.floor(betNum * (oddsNumManual - 1)) > MAX_WIN_POINTS && ` ${t("hilo.exceeds_limit")}`}
               </p>
               <p className="mt-2 text-sm font-semibold text-slate-300 uppercase">{t("hilo.odds_title")}</p>
               <input
@@ -472,8 +503,8 @@ export default function HiLoPage() {
                 min={ODDS_MIN}
                 max={ODDS_MAX}
                 step={0.01}
-                value={betOdds}
-                onChange={(e) => handleBetOddsChange(e.target.value)}
+                value={manualBetOdds}
+                onChange={(e) => handleManualBetOddsChange(e.target.value)}
                 className="mt-1 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 font-mono text-amber-400"
               />
               <p className="mt-2 text-sm font-semibold text-slate-300 uppercase">{t("hilo.chance_title")}</p>
@@ -482,8 +513,8 @@ export default function HiLoPage() {
                 min={WIN_CHANCE_MIN}
                 max={WIN_CHANCE_MAX}
                 step={0.01}
-                value={winChance}
-                onChange={(e) => handleWinChanceChange(e.target.value)}
+                value={manualWinChance}
+                onChange={(e) => handleManualWinChanceChange(e.target.value)}
                 className="mt-1 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 font-mono text-amber-400"
               />
               <p className="mt-1 text-xs text-slate-500">{t("hilo.odds_hint")}</p>
@@ -508,11 +539,25 @@ export default function HiLoPage() {
               />
               <p className="mt-3 text-sm font-semibold text-slate-300 uppercase">{t("hilo.auto_odds_title")}</p>
               <input
-                type="text"
-                readOnly
-                value={oddsNum.toFixed(2)}
-                className="mt-1 w-full rounded border border-slate-600 bg-slate-900/50 px-3 py-2 font-mono text-slate-400"
+                type="number"
+                min={ODDS_MIN}
+                max={ODDS_MAX}
+                step={0.01}
+                value={autoBetOdds}
+                onChange={(e) => handleAutoBetOddsChange(e.target.value)}
+                className="mt-1 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 font-mono text-amber-400"
               />
+              <p className="mt-2 text-sm font-semibold text-slate-300 uppercase">{t("hilo.auto_chance_title")}</p>
+              <input
+                type="number"
+                min={WIN_CHANCE_MIN}
+                max={WIN_CHANCE_MAX}
+                step={0.01}
+                value={autoWinChance}
+                onChange={(e) => handleAutoWinChanceChange(e.target.value)}
+                className="mt-1 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 font-mono text-amber-400"
+              />
+              <p className="mt-1 text-xs text-slate-500">{t("hilo.odds_hint")}</p>
               <p className="mt-3 text-sm font-semibold text-slate-300 uppercase">{t("hilo.auto_rolls_title")}</p>
               <input
                 type="number"
