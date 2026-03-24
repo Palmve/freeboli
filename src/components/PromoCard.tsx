@@ -27,7 +27,7 @@ export default function PromoCard({ initialPromo }: PromoCardProps) {
 
   const fetchActivePromo = async () => {
     try {
-      const res = await fetch("/api/promociones/activa");
+      const res = await fetch(`/api/promociones/activa?t=${Date.now()}`);
       const data = await res.json();
       if (data.promo) {
         setPromo(data.promo);
