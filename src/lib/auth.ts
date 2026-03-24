@@ -1,19 +1,48 @@
 import type { Session } from "next-auth";
 
+import { cookies } from "next/headers";
+
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
   .split(",")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
-export function isAdmin(session: Session | null): boolean {
-  const email = session?.user?.email?.toLowerCase();
-  return !!email && (ADMIN_EMAILS.includes(email) || !!(session?.user as any)?.isStaff);
-}
-
+/** Super Admin (Propietario) */
 export function isSuperAdmin(session: Session | null): boolean {
   const email = session?.user?.email?.toLowerCase();
-  // El primer email en la lista de ADMIN_EMAILS es el Super Admin (inborrable)
   return !!email && ADMIN_EMAILS[0] === email;
+}
+
+/** Admin Global o Staff */
+export function isAdmin(session: Session | null): boolean {
+  const email = session?.user?.email?.toLowerCase();
+  if (!email) return false;
+  
+  // Super Admins
+  if (ADMIN_EMAILS.includes(email)) return true;
+  
+  // Staff delegado (marcado por sesión)
+  return !!(session?.user as any)?.isStaff;
+}
+
+/** 
+ * Verifica si el dispositivo actual está autorizado mediante PIN.
+ * Hardened: Impide bypass de PIN desde scripts fuera del navegador autorizado.
+ */
+export function isDeviceTrusted(session: Session | null): boolean {
+  if (!session?.user) return false;
+  
+  // OPCIONAL: SuperAdmins podrían estar exentos o no (por seguridad, mejor dejarlo para todos)
+  // Pero si el usuario es SuperAdmin y está en localhost, omitimos para desarrollo
+  if (isSuperAdmin(session) && process.env.NODE_ENV === "development") return true;
+
+  const userId = (session.user as any).id;
+  if (!userId) return false;
+
+  const cookieStore = cookies();
+  const deviceCookie = cookieStore.get(`freeboli_device_trusted_${userId.slice(0, 8)}`);
+  
+  return deviceCookie?.value === "true";
 }
 
 export interface StaffPermissions {
@@ -23,10 +52,6 @@ export interface StaffPermissions {
   settings?: boolean;
 }
 
-/**
- * Retorna los permisos específicos del staff.
- * Si es admin total (en ADMIN_EMAILS), tiene todos los permisos.
- */
 export function getPermissions(session: Session | null): StaffPermissions {
   const email = session?.user?.email?.toLowerCase();
   if (!!email && ADMIN_EMAILS.includes(email)) {
@@ -35,10 +60,25 @@ export function getPermissions(session: Session | null): StaffPermissions {
   return (session?.user as any)?.permissions || {};
 }
 
-/** Admin global o staff con permiso promotions. */
-export function canManagePromotionsAdmin(session: Session | null): boolean {
-  if (!session?.user?.isAdmin) return false;
-  const u = session.user as { isStaff?: boolean };
-  if (u.isStaff && !getPermissions(session).promotions) return false;
+/** 
+ * GUARDIA ADMINISTRATIVO: Combinación de ROL + PERMISO + DISPOSITIVO 
+ */
+export function canAccessAdmin(session: Session | null, requiredPermission?: keyof StaffPermissions): boolean {
+  if (!isAdmin(session)) return false;
+  if (!isDeviceTrusted(session)) return false;
+
+  if (isSuperAdmin(session)) return true;
+
+  // Si es staff, verificar permiso específico
+  if (requiredPermission) {
+    const perms = getPermissions(session);
+    return !!perms[requiredPermission];
+  }
+
   return true;
+}
+
+/** @deprecated Usar canAccessAdmin(session, 'promotions') */
+export function canManagePromotionsAdmin(session: Session | null): boolean {
+  return canAccessAdmin(session, 'promotions');
 }

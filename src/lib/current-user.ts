@@ -80,80 +80,34 @@ async function tryIdentityFromJwtCookies(): Promise<{
 }
 
 /**
- * Admin: sesión/JWT + ADMIN_EMAILS o is_admin en BD.
- * Solo Supabase service role para leer perfil (evita RLS/cookies del cliente SSR en Server Actions).
+ * Obtiene el usuario admin/staff si tiene sesión válida y el dispositivo es de confianza.
+ * @param requiredPermission Permiso opcional (ej. 'promotions', 'finances').
  */
-export async function getAdminUser(): Promise<CurrentUser | null> {
+export async function getAdminUser(requiredPermission?: string): Promise<CurrentUser | null> {
   try {
     const session = await getServerSession(authOptions);
+    const { canAccessAdmin } = await import("./auth");
 
-    let id: string | undefined;
-    let email = "";
-    let name: string | undefined;
-    let sessionForEmailCheck: Session | null = null;
-
-    if (session?.user) {
-      id = (session.user as { id?: string }).id;
-      email = session.user.email?.trim() || "";
-      name = session.user.name ?? undefined;
-      if (id && !email) email = (await profileEmailByUserId(id)) ?? "";
-      if (id && email) {
-        sessionForEmailCheck = { ...session, user: { ...session.user, email } } as Session;
+    // canAccessAdmin ya verifica: isAdmin, isDeviceTrusted y specific permissions.
+    if (!canAccessAdmin(session, requiredPermission as any)) {
+      if (session?.user && (session.user as any).isAdmin) {
+         console.warn(`[Security] Bloqueo de acceso administrativo (Falta PIN o Permiso): ${session.user.email}`);
       }
+      return null;
     }
 
-    if (!id || !email || !sessionForEmailCheck) {
-      const fromJwt = await tryIdentityFromJwtCookies();
-      if (!fromJwt) return null;
-      id = fromJwt.id;
-      email = fromJwt.email;
-      name = fromJwt.name;
-      sessionForEmailCheck = fromJwt.sessionForEmailCheck;
-    }
-
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) return null;
-
-    const sb = createServiceClient(url, key);
-    const { data: profile } = await sb
-      .from("profiles")
-      .select("status, is_admin, withdraw_limit_override_until")
-      .eq("id", id)
-      .maybeSingle();
-
-    const byEnv = isAdmin(sessionForEmailCheck);
-    const byDb = !!profile?.is_admin;
-    
-    let isStaff = false;
-    let staffPerms = {};
-    if (!byEnv && !byDb) {
-      // Check if is delegated staff
-      const { data: staff } = await sb
-        .from("staff_access_nodes")
-        .select("permissions")
-        .eq("user_id", id)
-        .maybeSingle();
-      
-      if (staff) {
-        isStaff = true;
-        staffPerms = staff.permissions || {};
-      } else {
-        return null;
-      }
-    }
-
+    const u = session!.user as any;
     return {
-      id,
-      email,
-      name,
+      id: u.id,
+      email: u.email,
+      name: u.name,
       isAdmin: true,
-      isStaff,
-      permissions: staffPerms,
-      status: (profile?.status as UserStatus) || "normal",
-      withdrawLimitOverrideUntil: profile?.withdraw_limit_override_until
+      isStaff: !!u.isStaff,
+      permissions: u.permissions || {},
+      status: "normal", // Podríamos fetch status real si fuera necesario, pero para admin basta con la sesión
     };
-  } catch {
+  } catch (err) {
+    console.error("[getAdminUser] Error:", err);
     return null;
   }
 }

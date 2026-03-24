@@ -6,8 +6,8 @@ import { POINTS_PER_BOLIS } from "@/lib/config";
 import { alertWithdrawalCompleted } from "@/lib/telegram";
 
 export async function POST(req: Request) {
-  const user = await getAdminUser();
-  if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 403 });
+  const user = await getAdminUser("finances");
+  if (!user) return NextResponse.json({ error: "No autorizado (falta permiso o dispositivo no verificado)." }, { status: 403 });
 
   const body = await req.json().catch(() => ({}));
   const withdrawalId = typeof body.withdrawalId === "string" ? body.withdrawalId : "";

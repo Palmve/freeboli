@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdminUser } from "@/lib/current-user";
 
 export async function GET() {
-  const user = await getAdminUser();
+  const user = await getAdminUser("finances");
   if (!user) return NextResponse.json([], { status: 200 });
   const supabase = await createClient();
   const { data } = await supabase

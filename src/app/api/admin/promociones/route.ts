@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
 import { createClient } from "@supabase/supabase-js";
+import { getAdminUser } from "@/lib/current-user";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -13,9 +12,9 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.isAdmin) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = await getAdminUser("promotions");
+    if (!user) {
+      return NextResponse.json({ error: "No autorizado o dispositivo no verificado." }, { status: 403 });
     }
 
     const { data, error } = await supabase
@@ -32,9 +31,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.isAdmin) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = await getAdminUser("promotions");
+    if (!user) {
+      return NextResponse.json({ error: "No autorizado o dispositivo no verificado." }, { status: 403 });
     }
 
     const body = await req.json();

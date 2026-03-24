@@ -6,9 +6,9 @@ import { alertUserBlocked } from "@/lib/telegram";
 const VALID_STATUSES = ["normal", "evaluar", "suspendido", "bloqueado"];
 
 export async function PUT(request: Request) {
-  const user = await getAdminUser();
+  const user = await getAdminUser("users");
   if (!user) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 403 });
+    return NextResponse.json({ error: "No autorizado o dispositivo no verificado." }, { status: 403 });
   }
 
   const body = await request.json().catch(() => ({}));

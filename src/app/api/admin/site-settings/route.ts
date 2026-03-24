@@ -4,16 +4,16 @@ import { getAdminUser } from "@/lib/current-user";
 import { clearSettingsCache, getAllSettings } from "@/lib/site-settings";
 
 export async function GET() {
-  const user = await getAdminUser();
-  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  const user = await getAdminUser("settings");
+  if (!user) return NextResponse.json({ error: "No autorizado o dispositivo no verificado." }, { status: 403 });
 
   const settings = await getAllSettings();
   return NextResponse.json({ settings });
 }
 
 export async function PUT(request: Request) {
-  const user = await getAdminUser();
-  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  const user = await getAdminUser("settings");
+  if (!user) return NextResponse.json({ error: "No autorizado o dispositivo no verificado." }, { status: 403 });
 
   const body = await request.json().catch(() => ({}));
   const { settings } = body as { settings?: Record<string, unknown> };
