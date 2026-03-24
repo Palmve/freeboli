@@ -72,13 +72,11 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (loggedIn) {
-      fetch("/api/promociones/activa")
-        .then(res => res.json())
-        .then(data => setPromo(data.promo))
-        .catch(err => console.error(err));
-    }
-  }, [loggedIn]);
+    fetch("/api/promociones/activa")
+      .then(res => res.json())
+      .then(data => setPromo(data.promo))
+      .catch(err => console.error(err));
+  }, []);
 
   return (
     <div className="space-y-12 py-6 px-2">
@@ -125,17 +123,19 @@ export default function HomePage() {
         ))}
       </section>
 
-      {loggedIn && !loading && (
-        <section className={`grid gap-6 ${promo ? "lg:grid-cols-2" : "grid-cols-1"}`}>
-          <div className={promo ? "" : "max-w-4xl mx-auto w-full"}>
-            <div className="mb-3 flex items-center gap-2">
-              <span className="text-lg">🎮</span>
-              <h2 className="text-base font-black text-slate-300 uppercase tracking-widest">{t("levels.title")}</h2>
+      {(!loading) && (
+        <section className={`grid gap-6 ${(loggedIn && promo) ? "lg:grid-cols-2" : "grid-cols-1"}`}>
+          {loggedIn && (
+            <div className={promo ? "" : "max-w-4xl mx-auto w-full"}>
+              <div className="mb-3 flex items-center gap-2">
+                <span className="text-lg">🎮</span>
+                <h2 className="text-base font-black text-slate-300 uppercase tracking-widest">{t("levels.title")}</h2>
+              </div>
+              <LevelProgressCard />
             </div>
-            <LevelProgressCard />
-          </div>
+          )}
           {promo && (
-            <div>
+            <div className={!loggedIn ? "max-w-2xl mx-auto w-full" : ""}>
               <div className="mb-3 flex items-center gap-2">
                 <span className="text-lg">🎁</span>
                 <h2 className="text-base font-black text-slate-300 uppercase tracking-widest">
