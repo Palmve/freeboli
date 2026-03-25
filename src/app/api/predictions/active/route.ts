@@ -23,5 +23,10 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: data.error }, { status: 404 });
   }
 
+  // === Inyectar estado de pausa ===
+  const { getSetting } = await import("@/lib/site-settings");
+  const pauseKey = `PAUSE_GAME_${asset}_${type.toUpperCase()}`;
+  data.is_paused = (await getSetting<number>(pauseKey, 0)) === 1;
+
   return NextResponse.json(data);
 }

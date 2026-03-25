@@ -46,6 +46,13 @@ export async function POST(req: Request) {
   const asset = rawAsset as PredictionAsset;
   const type = body.type === "mini" ? "mini" : body.type === "micro" ? "micro" : "hourly";
   
+  // === VALIDACIÓN DE PAUSA (SEGURIDAD) ===
+  const pauseKey = `PAUSE_GAME_${asset}_${type.toUpperCase()}`;
+  const isPaused = await getSetting<number>(pauseKey, 0);
+  if (isPaused === 1) {
+    return NextResponse.json({ error: "Este mercado está pausado temporalmente por administración." }, { status: 403 });
+  }
+
   let prediction = null;
   if (type === "micro") {
     if (typeof body.prediction === "string" && /^[0-9]$/.test(body.prediction)) {

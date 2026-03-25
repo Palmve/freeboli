@@ -42,6 +42,13 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}));
+
+  // === VALIDACIÓN DE PAUSA (SEGURIDAD) ===
+  const isPaused = await getSetting<number>("PAUSE_GAME_HI_LO", 0);
+  if (isPaused === 1) {
+    return NextResponse.json({ error: "El juego HI-LO está pausado temporalmente por administración." }, { status: 403 });
+  }
+
   const bet = Math.floor(Number(body.bet));
   const choice = body.choice === "hi" || body.choice === "lo" ? body.choice : null;
   const client_seed = typeof body.client_seed === "string" ? body.client_seed.trim().slice(0, 64) : undefined;

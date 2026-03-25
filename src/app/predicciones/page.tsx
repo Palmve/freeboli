@@ -18,6 +18,7 @@ type PredictionData = {
   start_time: string;
   end_time: string;
   type?: "hourly" | "mini" | "micro";
+  is_paused?: boolean;
 };
 
 type BetHistory = {
@@ -521,7 +522,7 @@ function PredictionsContent() {
                   {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => {
                      const decimals = asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2;
                      const isCurrentDigit = data ? data.current_price.toFixed(decimals).slice(-1) === String(num) : false;
-                     const disabled = betting || !data || timeLeft <= cutoffLimit || isCurrentDigit;
+                     const disabled = betting || !data || timeLeft <= cutoffLimit || isCurrentDigit || !!data.is_paused;
                      return (
                        <button
                          key={num}
@@ -543,7 +544,7 @@ function PredictionsContent() {
                 <div className="grid grid-cols-2 gap-4 mt-6">
                   <button
                     onClick={() => handleBet("up")}
-                    disabled={betting || !data || timeLeft <= cutoffLimit || (asset === "BOLIS" && type === "mini")}
+                    disabled={betting || !data || timeLeft <= cutoffLimit || !!data.is_paused}
                     className="group relative flex flex-col items-center justify-center overflow-hidden rounded-xl bg-emerald-600 py-6 text-white transition hover:bg-emerald-500 disabled:opacity-50"
                   >
                     <span className="text-xs font-black uppercase tracking-widest mb-1 opacity-70">{t("predictions.btn_up")}</span>
@@ -553,7 +554,7 @@ function PredictionsContent() {
 
                   <button
                     onClick={() => handleBet("down")}
-                    disabled={betting || !data || timeLeft <= cutoffLimit || (asset === "BOLIS" && type === "mini")}
+                    disabled={betting || !data || timeLeft <= cutoffLimit || !!data.is_paused}
                     className="group relative flex flex-col items-center justify-center overflow-hidden rounded-xl bg-red-600 py-6 text-white transition hover:bg-red-500 disabled:opacity-50"
                   >
                     <span className="text-xs font-black uppercase tracking-widest mb-1 opacity-70">{t("predictions.btn_down")}</span>
@@ -563,7 +564,7 @@ function PredictionsContent() {
                 </div>
             )}
             
-            {asset === "BOLIS" && type === "mini" && (
+            {data?.is_paused && (
                 <div className="mt-4 rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
                     <p className="text-center text-[11px] text-amber-500 font-bold uppercase leading-tight">
                         {t("predictions.market_locked_admin")}
@@ -571,7 +572,7 @@ function PredictionsContent() {
                 </div>
             )}
             
-            {data && timeLeft <= cutoffLimit && !(asset === "BOLIS" && type === "mini") && (
+            {data && timeLeft <= cutoffLimit && !data.is_paused && (
               <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/30 p-3">
                   <p className="text-center text-[10px] sm:text-[11px] text-red-500 font-bold uppercase leading-tight">
                     {type === "micro"

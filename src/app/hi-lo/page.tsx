@@ -125,6 +125,7 @@ export default function HiLoPage() {
   const [lastAutoBand, setLastAutoBand] = useState<{ choice: "HI" | "LO"; win: boolean; profit: number } | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const historyIdRef = useRef(0);
 
   function fetchBalance() {
@@ -149,6 +150,13 @@ export default function HiLoPage() {
   useEffect(() => {
     if (REQUIRE_AUTH && !session?.user) return;
     if (!REQUIRE_AUTH && !session?.user) return;
+    
+    // Fetch pause status
+    fetch("/api/hi-lo/status")
+      .then(r => r.json())
+      .then(d => setIsPaused(!!d.is_paused))
+      .catch(() => {});
+
     fetch("/api/hi-lo/history", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => {
@@ -704,7 +712,7 @@ export default function HiLoPage() {
               <button
                 type="button"
                 onClick={() => playManual("hi")}
-                disabled={loading || balance == null || balance < betNum || betNum < 1}
+                disabled={loading || balance == null || balance < betNum || betNum < 1 || isPaused}
                 className="flex-1 rounded-lg py-4 font-bold transition bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50"
               >
                 {t("hilo.btn_bet_hi")}
@@ -712,7 +720,7 @@ export default function HiLoPage() {
               <button
                 type="button"
                 onClick={() => playManual("lo")}
-                disabled={loading || balance == null || balance < betNum || betNum < 1}
+                disabled={loading || balance == null || balance < betNum || betNum < 1 || isPaused}
                 className="flex-1 rounded-lg py-4 font-bold transition bg-amber-600 text-white hover:bg-amber-500 disabled:opacity-50"
               >
                 {t("hilo.btn_bet_lo")}
@@ -725,7 +733,7 @@ export default function HiLoPage() {
                   <button
                     type="button"
                     onClick={startAuto}
-                    disabled={balance == null || balance < (Math.floor(Number(autoBaseBet)) || 1)}
+                    disabled={balance == null || balance < (Math.floor(Number(autoBaseBet)) || 1) || isPaused}
                     className="w-full rounded-lg bg-amber-500 py-3 font-bold text-slate-900 hover:bg-amber-400 disabled:opacity-50 sm:py-4"
                   >
                     {t("hilo.btn_start_auto")}
@@ -758,6 +766,13 @@ export default function HiLoPage() {
                 ? t("hilo.manual_win_msg").replace("{0}", lastResult.payout.toString()).replace("{1}", lastResult.newBalance.toLocaleString())
                 : t("hilo.manual_loss_msg").replace("{0}", lastResult.bet.toString()).replace("{1}", lastResult.newBalance.toLocaleString())}
             </p>
+          )}
+          {isPaused && (
+            <div className="mt-4 w-full rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-center">
+              <p className="text-[11px] text-red-400 font-bold uppercase">
+                {t("predictions.market_locked_admin")}
+              </p>
+            </div>
           )}
           {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
         </div>

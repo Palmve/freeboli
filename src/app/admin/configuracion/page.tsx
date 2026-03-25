@@ -59,6 +59,17 @@ const FIELDS: SettingField[] = [
   { key: "TELEGRAM_BOT_TOKEN", label: "Telegram Bot Token", type: "text" as any, description: "Token del bot para notificaciones de soporte", group: "Soporte" },
   { key: "TELEGRAM_CHAT_ID", label: "ID de Chat Telegram", type: "text", description: "Chat ID para alertas (numérico)", group: "Soporte" },
   { key: "LEVEL_LIMITS", label: "Sobreescritura de Límites (JSON)", type: "json", description: 'Por nivel: maxBet (pts), maxWithdraw (BOLIS), rewardPoints (premio al alcanzar el nivel). Ej.: { "4": { "maxBet": 5000, "maxWithdraw": 25, "rewardPoints": 1000 } }', group: "Niveles" },
+  // Pausar Juegos
+  { key: "PAUSE_GAME_BTC_HOURLY", label: "Pausar BTC Hourly", type: "number", description: "1 = Pausado, 0 = Activo", group: "Pausar Juegos", defaultValue: "0" },
+  { key: "PAUSE_GAME_BTC_MINI", label: "Pausar BTC Mini", type: "number", description: "1 = Pausado, 0 = Activo", group: "Pausar Juegos", defaultValue: "0" },
+  { key: "PAUSE_GAME_BTC_MICRO", label: "Pausar BTC Micro", type: "number", description: "1 = Pausado, 0 = Activo", group: "Pausar Juegos", defaultValue: "0" },
+  { key: "PAUSE_GAME_SOL_HOURLY", label: "Pausar SOL Hourly", type: "number", description: "1 = Pausado, 0 = Activo", group: "Pausar Juegos", defaultValue: "0" },
+  { key: "PAUSE_GAME_SOL_MINI", label: "Pausar SOL Mini", type: "number", description: "1 = Pausado, 0 = Activo", group: "Pausar Juegos", defaultValue: "0" },
+  { key: "PAUSE_GAME_SOL_MICRO", label: "Pausar SOL Micro", type: "number", description: "1 = Pausado, 0 = Activo", group: "Pausar Juegos", defaultValue: "0" },
+  { key: "PAUSE_GAME_BOLIS_HOURLY", label: "Pausar BOLIS Hourly", type: "number", description: "1 = Pausado, 0 = Activo", group: "Pausar Juegos", defaultValue: "0" },
+  { key: "PAUSE_GAME_BOLIS_MINI", label: "Pausar BOLIS Mini", type: "number", description: "1 = Pausado, 0 = Activo", group: "Pausar Juegos", defaultValue: "0" },
+  { key: "PAUSE_GAME_BOLIS_MICRO", label: "Pausar BOLIS Micro", type: "number", description: "1 = Pausado, 0 = Activo", group: "Pausar Juegos", defaultValue: "0" },
+  { key: "PAUSE_GAME_HI_LO", label: "Pausar HI-LO", type: "number", description: "1 = Pausado, 0 = Activo", group: "Pausar Juegos", defaultValue: "0" },
 ];
 
 interface Promotion {
@@ -216,6 +227,7 @@ export default function ConfiguracionPage() {
     { id: "Niveles", label: "📊 Niveles y Emails", icon: "📊", hidden: !isSuper && !permissions.levels },
     { id: "Promociones", label: "🎁 Promociones", icon: "🎁", hidden: !isSuper && !permissions.promotions && !permissions.settings },
     { id: "Influencers", label: "🤝 Influencers", icon: "🤝", hidden: !isSuper && !permissions.promotions && !permissions.settings },
+    { id: "Pausar Juegos", label: "⏸️ Pausar Juegos", icon: "⏸️", hidden: !isSuper && !permissions.settings },
     { id: "Staff", label: "👥 Agentes", icon: "👥", hidden: !isSuper },
   ].filter(t => !t.hidden);
 
@@ -1091,6 +1103,98 @@ export default function ConfiguracionPage() {
              <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <InfluencerManager />
              </section>
+          ) : activeTab === "Pausar Juegos" ? (
+            <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="text-lg font-bold text-white">Gestión de Mercados</h3>
+                  <p className="text-sm text-slate-400 font-medium">Pulsa el botón para pausar o arrancar cada juego individualmente.</p>
+                </div>
+                <div className="hidden sm:block">
+                  <span className="px-3 py-1 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-[10px] font-black uppercase tracking-widest">
+                    Control Total
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { id: "BTC_HOURLY", label: "BTC Hourly", icon: "📈", cat: "BTC" },
+                  { id: "BTC_MINI", label: "BTC Mini", icon: "🔥", cat: "BTC" },
+                  { id: "BTC_MICRO", label: "BTC Micro", icon: "⚡", cat: "BTC" },
+                  { id: "SOL_HOURLY", label: "SOL Hourly", icon: "📈", cat: "SOL" },
+                  { id: "SOL_MINI", label: "SOL Mini", icon: "🔥", cat: "SOL" },
+                  { id: "SOL_MICRO", label: "SOL Micro", icon: "⚡", cat: "SOL" },
+                  { id: "BOLIS_HOURLY", label: "BOLIS Hourly", icon: "📈", cat: "BOLIS" },
+                  { id: "BOLIS_MINI", label: "BOLIS Mini", icon: "🔥", cat: "BOLIS" },
+                  { id: "BOLIS_MICRO", label: "BOLIS Micro", icon: "⚡", cat: "BOLIS" },
+                  { id: "HI_LO", label: "HI-LO Dice", icon: "🎲", cat: "Juego Original" },
+                ].map((game) => {
+                  const key = `PAUSE_GAME_${game.id}`;
+                  const isPaused = values[key] === "1";
+                  return (
+                    <div key={game.id} className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 p-5 ${isPaused ? 'bg-red-500/5 border-red-500/20' : 'bg-slate-900 border-slate-800 hover:border-slate-700 shadow-xl'}`}>
+                       <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                             <div className={`p-2.5 rounded-xl transition-colors ${isPaused ? 'bg-red-500/20 text-red-500' : 'bg-slate-800 text-amber-500 group-hover:bg-amber-500 group-hover:text-slate-900'}`}>
+                                <span className="text-xl">{game.icon}</span>
+                             </div>
+                             <div>
+                                <h4 className="font-black text-white text-sm tracking-tight">{game.label}</h4>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{game.cat}</p>
+                             </div>
+                          </div>
+                          <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${isPaused ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                             <div className={`h-1.5 w-1.5 rounded-full ${isPaused ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}></div>
+                             {isPaused ? 'Pausado' : 'Activo'}
+                          </div>
+                       </div>
+                       
+                       <button
+                         onClick={() => {
+                           const newVal = isPaused ? "0" : "1";
+                           setValues(v => ({ ...v, [key]: newVal }));
+                         }}
+                         className={`w-full py-2.5 rounded-xl text-xs font-black uppercase transition-all shadow-lg ${
+                           isPaused 
+                           ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20' 
+                           : 'bg-red-600 hover:bg-red-500 text-white shadow-red-600/20'
+                         }`}
+                       >
+                         {isPaused ? '▶️ Reanudar Juego' : '⏸️ Pausar Juego'}
+                       </button>
+
+                       {isPaused && (
+                         <p className="mt-3 text-[10px] text-red-400/80 font-medium italic text-center">
+                            "Mercado bloqueado temporalmente por administración"
+                         </p>
+                       )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-8 p-6 rounded-3xl bg-slate-100 text-slate-900 shadow-2xl">
+                 <div className="flex items-center gap-4 mb-4">
+                    <div className="p-3 bg-amber-500 rounded-2xl shadow-lg">
+                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                       </svg>
+                    </div>
+                    <div>
+                       <h4 className="font-black uppercase tracking-tight">Confirmar Cambios</h4>
+                       <p className="text-xs font-bold text-slate-500 leading-tight">Debes guardar para aplicar los bloqueos al servidor.</p>
+                    </div>
+                 </div>
+                 <button 
+                  onClick={handleSave} 
+                  disabled={saving} 
+                  className="w-full py-4 bg-slate-900 hover:bg-black text-white font-black rounded-2xl transition disabled:opacity-50"
+                 >
+                    {saving ? "🔄 Aplicando cambios..." : "🚀 Sincronizar con el Servidor"}
+                 </button>
+              </div>
+            </section>
           ) : activeTab === "Staff" ? (
             <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
