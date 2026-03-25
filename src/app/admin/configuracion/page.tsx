@@ -663,7 +663,18 @@ export default function ConfiguracionPage() {
                               <div className="text-slate-300 font-mono text-[11px] font-bold">{e.event_type}</div>
                               {e.details?.recentCount && <div className="text-[10px] text-slate-500">Frecuencia: {e.details.recentCount} en 24h</div>}
                             </td>
-                            <td className="px-4 py-3 text-slate-500 font-mono text-[10px] truncate max-w-[120px]">{e.user_id ?? '—'}</td>
+                            <td className="px-4 py-3 font-mono text-[11px] font-black uppercase">
+                              {e.user_id ? (
+                                <a 
+                                  href={`/admin/usuarios/${e.user_id}`} 
+                                  className="text-amber-500 hover:text-amber-400 hover:underline transition-all"
+                                >
+                                  {e.user_id.slice(0, 6)}
+                                </a>
+                              ) : (
+                                <span className="text-slate-500">—</span>
+                              )}
+                            </td>
                             <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
                               {new Date(e.created_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
                             </td>
