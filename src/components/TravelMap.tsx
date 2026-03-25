@@ -22,73 +22,88 @@ export default function TravelMap({ activities }: TravelMapProps) {
   const mapInstance = useRef<any>(null);
 
   useEffect(() => {
-    // Cargar Leaflet desde CDN dinámicamente
+    // Verificar si ya existe para evitar duplicados
+    if (document.getElementById('leaflet-css')) return;
+
     const link = document.createElement('link');
+    link.id = 'leaflet-css';
     link.rel = 'stylesheet';
     link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
     document.head.appendChild(link);
 
     const script = document.createElement('script');
     script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.async = true;
     script.onload = () => {
       if (!mapRef.current || mapInstance.current) return;
 
-      const L = (window as any).L;
-      
-      // Inicializar mapa centrado en Alemania
-      mapInstance.current = L.map(mapRef.current, {
-        zoomControl: false,
-        attributionControl: false
-      }).setView([52.5, 11], 6);
+      // Pequeño delay para asegurar que el CSS se aplique y el contenedor tenga dimensiones
+      setTimeout(() => {
+        const L = (window as any).L;
+        if (!L || !mapRef.current) return;
+        
+        mapInstance.current = L.map(mapRef.current, {
+          zoomControl: false,
+          attributionControl: false,
+          scrollWheelZoom: false // Evitar scroll accidental
+        }).setView([52.5, 11], 6);
 
-      // Capa de mapa oscura (Premium Look)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-      }).addTo(mapInstance.current);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          maxZoom: 19,
+        }).addTo(mapInstance.current);
 
-      const pathPoints: [number, number][] = [];
+        if (activities.length > 0) {
+          const pathPoints: [number, number][] = [];
+          const bounds = L.latLngBounds([]);
 
-      activities.forEach((act) => {
-        if (act.lat && act.lng) {
-          const markerIcon = L.divIcon({
-            html: `<div class="w-4 h-4 bg-amber-500 rounded-full border-2 border-white shadow-[0_0_10px_rgba(245,158,11,0.8)]"></div>`,
-            className: 'custom-div-icon',
-            iconSize: [16, 16],
-            iconAnchor: [8, 8]
+          activities.forEach((act) => {
+            if (act.lat && act.lng) {
+              const markerIcon = L.divIcon({
+                html: `<div class="w-4 h-4 bg-amber-500 rounded-full border-2 border-white shadow-[0_0_15px_rgba(245,158,11,1)]"></div>`,
+                className: 'custom-div-icon',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+              });
+
+              L.marker([act.lat, act.lng], { icon: markerIcon })
+                .addTo(mapInstance.current)
+                .bindPopup(`<b style="color: #000">${act.title}</b><br/><span style="color: #666; font-size: 10px;">${act.location}</span>`);
+              
+              const pos: [number, number] = [act.lat, act.lng];
+              pathPoints.push(pos);
+              bounds.extend(pos);
+            }
           });
 
-          L.marker([act.lat, act.lng], { icon: markerIcon })
-            .addTo(mapInstance.current)
-            .bindPopup(`<b style="color: #000">${act.title}</b><br/><span style="color: #666">${act.location}</span>`);
-          
-          pathPoints.push([act.lat, act.lng]);
-        }
-      });
+          if (pathPoints.length > 1) {
+            L.polyline(pathPoints, {
+              color: '#f59e0b',
+              weight: 3,
+              opacity: 0.8,
+              dashArray: '8, 12',
+              lineJoin: 'round'
+            }).addTo(mapInstance.current);
+          }
 
-      // Dibujar línea de ruta (Hannover -> Leipzig -> Berlín -> Hannover)
-      if (pathPoints.length > 1) {
-        L.polyline(pathPoints, {
-          color: '#f59e0b',
-          weight: 3,
-          opacity: 0.6,
-          dashArray: '10, 10',
-          lineJoin: 'round'
-        }).addTo(mapInstance.current);
-      }
+          if (!bounds.isEmpty()) {
+            mapInstance.current.fitBounds(bounds, { padding: [50, 50] });
+          }
+        }
+        
+        // Forzar recalcular tamaño
+        setTimeout(() => mapInstance.current?.invalidateSize(), 200);
+      }, 300);
     };
     document.head.appendChild(script);
 
     return () => {
-      if (mapInstance.current) {
-        mapInstance.current.remove();
-        mapInstance.current = null;
-      }
+      // No removemos el script/css para evitar recargas constantes si el componente se remonta
     };
   }, [activities]);
 
   return (
-    <div className="relative w-full h-full rounded-3xl overflow-hidden border border-slate-800 shadow-2xl">
-      <div ref={mapRef} className="w-full h-full" />
+    <div className="relative w-full h-full min-h-[400px] rounded-3xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-950">
+      <div ref={mapRef} id="travel-map-container" className="w-full h-full min-h-[400px]" />
       <div className="absolute top-4 left-4 z-[1000] bg-slate-900/80 backdrop-blur-md p-3 rounded-xl border border-white/10 text-[10px] text-slate-400">
         <p className="font-bold text-amber-500 uppercase tracking-widest mb-1">Ruta Alemania 2026</p>
         <p>Hannover • Leipzig • Berlín</p>

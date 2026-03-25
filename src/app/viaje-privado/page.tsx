@@ -11,27 +11,41 @@ export default function PrivateTravelPage() {
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [attempts, setAttempts] = useState(0);
+  const [isBlocked, setIsBlocked] = useState(false);
 
-  // Estilos de animación en línea para evitar dependencias
   useEffect(() => {
-    const style = document.createElement('style');
-    style.innerHTML = `
-      @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-      .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
-      .glass-card { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-      ::-webkit-scrollbar { width: 4px; }
-      ::-webkit-scrollbar-thumb { background: #f59e0b; border-radius: 10px; }
-    `;
-    document.head.appendChild(style);
+    const savedAttempts = localStorage.getItem("travel_login_attempts");
+    const blockedTimestamp = localStorage.getItem("travel_login_blocked");
+    
+    if (blockedTimestamp && Date.now() - Number(blockedTimestamp) < 15 * 60 * 1000) {
+      setIsBlocked(true);
+    } else if (savedAttempts) {
+      setAttempts(Number(savedAttempts));
+    }
   }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    if (isBlocked) return;
+
     if (code === ACCESS_CODE) {
       setIsAuthorized(true);
       fetchActivities();
+      localStorage.removeItem("travel_login_attempts");
+      localStorage.removeItem("travel_login_blocked");
     } else {
-      setError("Código incorrecto. Inténtalo de nuevo.");
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
+      localStorage.setItem("travel_login_attempts", String(newAttempts));
+
+      if (newAttempts >= 10) {
+        setIsBlocked(true);
+        localStorage.setItem("travel_login_blocked", String(Date.now()));
+        setError("Demasiados intentos. Bloqueado por 15 minutos.");
+      } else {
+        setError(`Código incorrecto. (${newAttempts}/10 intentos)`);
+      }
       setTimeout(() => setError(""), 3000);
     }
   }
@@ -53,7 +67,7 @@ export default function PrivateTravelPage() {
   if (!isAuthorized) {
     return (
       <main className="min-h-screen bg-[#020617] flex items-center justify-center p-6 font-sans">
-        <div className="max-w-md w-full glass-card p-10 rounded-[2.5rem] shadow-2xl animate-fade-in">
+        <div className="max-w-md w-full glass-card p-10 rounded-[2.5rem] shadow-2xl animate-fade-in outline outline-1 outline-white/5">
           <div className="text-center mb-8">
             <div className="text-5xl mb-4">✈️</div>
             <h1 className="text-2xl font-black text-white tracking-tight">Acceso Privado</h1>
@@ -63,20 +77,22 @@ export default function PrivateTravelPage() {
             <input
               type="password"
               value={code}
+              disabled={isBlocked}
               onChange={(e) => setCode(e.target.value)}
-              className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl px-6 py-4 text-center text-white text-xl tracking-[0.5em] outline-none focus:border-amber-500 transition-all font-mono"
+              className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl px-6 py-4 text-center text-white text-xl tracking-[0.5em] outline-none focus:border-amber-500 transition-all font-mono disabled:opacity-50"
               placeholder="••••••••"
               autoFocus
             />
             {error && <p className="text-red-400 text-center text-xs font-bold animate-pulse">{error}</p>}
             <button
               type="submit"
-              className="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-4 rounded-2xl shadow-xl shadow-amber-500/20 transition-all active:scale-95 uppercase tracking-widest text-sm"
+              disabled={isBlocked}
+              className="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-4 rounded-2xl shadow-xl shadow-amber-500/20 transition-all active:scale-95 uppercase tracking-widest text-sm disabled:bg-slate-800 disabled:text-slate-500"
             >
-              Entrar
+              {isBlocked ? "BLOQUEADO" : "Entrar"}
             </button>
           </form>
-          <p className="text-[10px] text-slate-600 text-center mt-8 uppercase tracking-tighter">Solo personal autorizado - 2026 Travel Portal</p>
+          <p className="text-[10px] text-slate-600 text-center mt-8 uppercase tracking-tighter">Solo personal autorizado - Intentos: {attempts}/10</p>
         </div>
       </main>
     );
@@ -129,8 +145,8 @@ export default function PrivateTravelPage() {
         </div>
 
         {/* Main: Mapa & Visuals */}
-        <div className="lg:col-span-7 h-[calc(100vh-4rem)] flex flex-col gap-6">
-          <div className="flex-1 min-h-[400px]">
+        <div className="lg:col-span-7 h-[calc(100vh-4rem)] flex flex-col gap-6 min-h-[500px]">
+          <div className="flex-1 relative min-h-[400px]">
             <TravelMap activities={activities} />
           </div>
           <div className="grid grid-cols-3 gap-4 h-40">
