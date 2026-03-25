@@ -177,18 +177,22 @@ export default function AdminVisitasPage() {
 
   const renderMap = useCallback(() => {
     if (!window.L || data.length === 0) return;
-    
-    // Si el mapa ya está inicializado, invalidamos el tamaño para corregir el renderizado
-    if (mapRef.current) {
-      setTimeout(() => {
-        mapRef.current.invalidateSize();
-      }, 200);
-      return;
-    }
 
     setTimeout(() => {
       const container = document.getElementById("map-geo");
       if (!container) return;
+
+      // Si el contenedor actual ya tiene una instancia de Leaflet, solo actualizamos el tamaño
+      if ((container as any)._leaflet_id) {
+        if (mapRef.current) mapRef.current.invalidateSize();
+        return;
+      }
+
+      // Si hay una instancia vieja pero el contenedor es nuevo (React lo recreó), la destruimos
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
 
       const map = window.L.map("map-geo").setView([20, 0], 2);
       window.L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png", {
