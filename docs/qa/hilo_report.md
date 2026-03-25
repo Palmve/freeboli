@@ -1,4 +1,5 @@
 # Informe de Verificación Técnica: Juego HI-LO
+**Versión:** v1.0.1
 
 **Analista:** Antigravity (QA Engine)
 **Fecha:** 24 de Marzo, 2026
@@ -58,3 +59,6 @@ Considerando `HILO_ROLL_MOD = 10000` y `RTP Target = 98%`.
 
 **Archivo revisado para lógica core:** `src/lib/hilo.ts`
 **Archivo revisado para seguridad:** `src/app/api/hi-lo/play/route.ts`
+
+---
+*Nota: Esta versión se incrementa en el último decimal con cada modificación subida a GitHub.*
