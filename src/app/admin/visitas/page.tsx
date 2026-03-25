@@ -251,7 +251,6 @@ export default function AdminVisitasPage() {
   return (
     <div className="space-y-6">
       <Script src="https://cdn.jsdelivr.net/npm/chart.js" strategy="afterInteractive" />
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <Script 
         src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
         strategy="afterInteractive" 

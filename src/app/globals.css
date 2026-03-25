@@ -1,3 +1,4 @@
+@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,6 +11,12 @@
 
 body {
   @apply bg-slate-900 text-slate-100 antialiased;
+}
+
+/* Fix Leaflet tile sizes against Tailwind preflight */
+.leaflet-container img {
+  max-width: none !important;
+  max-height: none !important;
 }
 
 @layer components {
