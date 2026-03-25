@@ -5,6 +5,22 @@ import { useSession } from "next-auth/react";
 import { getDynamicLevels } from "@/lib/levels";
 import InfluencerManager from "../InfluencerManager";
 
+const EVENT_TRANSLATIONS: Record<string, { label: string; icon: string }> = {
+  hilo_suspicious_win_rate: { label: "Win-Rate Anómalo en HI-LO (Bot)", icon: "🔴" },
+  hilo_rate_limit_persistent: { label: "Límite Apuestas HI-LO Excedido", icon: "⚠️" },
+  prediction_rate_limit_persistent: { label: "Límite Predicciones Excedido", icon: "⚠️" },
+  suspicious_withdrawal_frequency: { label: "Frecuencia de Retiros Sospechosa", icon: "💸" },
+  rate_limit_exceeded: { label: "Límite de API Excedido", icon: "🛑" },
+  sybil_same_ip_referral: { label: "Ref. en misma IP (Sospecha Sybil)", icon: "🕵️" },
+  affiliate_commission_cap_reached: { label: "Tope Diario Comisiones Alcanzado", icon: "💰" },
+  admin_grant_points: { label: "Modificación de Puntos (Admin)", icon: "🔧" },
+  admin_export_db_unauthorized: { label: "Intento Exportación DB (No Auth)", icon: "🚨" },
+  admin_export_db: { label: "Exportación de Base de Datos", icon: "📦" },
+  admin_pin_brute_force: { label: "Fuerza Bruta de PIN Admin", icon: "🔐" },
+  admin_pin_failed: { label: "Fallo de PIN Admin", icon: "🔑" },
+  admin_device_authorized: { label: "Dispositivo Admin Autorizado", icon: "📱" }
+};
+
 
 interface SettingField {
   key: string;
@@ -660,8 +676,14 @@ export default function ConfiguracionPage() {
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              <div className="text-slate-300 font-mono text-[11px] font-bold">{e.event_type}</div>
-                              {e.details?.recentCount && <div className="text-[10px] text-slate-500">Frecuencia: {e.details.recentCount} en 24h</div>}
+                              <div className="text-slate-300 font-bold text-[11px]">
+                                {EVENT_TRANSLATIONS[e.event_type] ? `${EVENT_TRANSLATIONS[e.event_type].icon} ${EVENT_TRANSLATIONS[e.event_type].label}` : e.event_type}
+                              </div>
+                              {e.details && Object.keys(e.details).length > 0 && (
+                                <div className="text-[9px] text-slate-500 mt-1 max-w-[200px] break-words">
+                                  {Object.entries(e.details).map(([k, v]) => `${k}: ${v}`).join(' | ')}
+                                </div>
+                              )}
                             </td>
                             <td className="px-4 py-3 font-mono text-[11px] font-black uppercase">
                               {e.user_id ? (

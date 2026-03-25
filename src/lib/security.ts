@@ -71,6 +71,22 @@ export async function logSecurityEvent(params: {
 }) {
   try {
     const supabase = getServiceClient();
+
+    // Deduplicación: Prevenir spam de la misma alerta si no ha sido resuelta
+    if (params.userId) {
+      const { data: existing } = await supabase
+        .from("security_events")
+        .select("id")
+        .eq("event_type", params.eventType)
+        .eq("user_id", params.userId)
+        .or("status.eq.pending,status.is.null")
+        .limit(1);
+        
+      if (existing && existing.length > 0) {
+        return; // Alerta pendiente ya existe, omitir duplicado
+      }
+    }
+
     await supabase.from("security_events").insert({
       event_type: params.eventType,
       user_id: params.userId ?? null,
