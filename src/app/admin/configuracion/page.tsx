@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { getDynamicLevels } from "@/lib/levels";
+import InfluencerManager from "../InfluencerManager";
+
 
 interface SettingField {
   key: string;
@@ -213,6 +215,7 @@ export default function ConfiguracionPage() {
     { id: "Seguridad", label: "🛡️ Seguridad", icon: "🛡️", hidden: !isSuper && !permissions.seguridad },
     { id: "Niveles", label: "📊 Niveles y Emails", icon: "📊", hidden: !isSuper && !permissions.levels },
     { id: "Promociones", label: "🎁 Promociones", icon: "🎁", hidden: !isSuper && !permissions.promotions && !permissions.settings },
+    { id: "Influencers", label: "🤝 Influencers", icon: "🤝", hidden: !isSuper && !permissions.promotions && !permissions.settings },
     { id: "Staff", label: "👥 Agentes", icon: "👥", hidden: !isSuper },
   ].filter(t => !t.hidden);
 
@@ -1084,6 +1087,10 @@ export default function ConfiguracionPage() {
                 </div>
               )}
             </section>
+          ) : activeTab === "Influencers" ? (
+             <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <InfluencerManager />
+             </section>
           ) : activeTab === "Staff" ? (
             <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
