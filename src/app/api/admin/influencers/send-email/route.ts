@@ -3,14 +3,32 @@ import { getAdminUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { sendEmailViaResend } from "@/lib/resend";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Escapa caracteres HTML para prevenir XSS en templates de email */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export async function POST(req: Request) {
   const admin = await getAdminUser("promotions");
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
   const body = await req.json().catch(() => ({}));
-  const { influencerId, lang = "es" } = body;
+  const { influencerId, lang: rawLang } = body;
 
-  if (!influencerId) return NextResponse.json({ error: "influencerId requerido" }, { status: 400 });
+  // Validar UUID estricto
+  if (!influencerId || !UUID_RE.test(influencerId)) {
+    return NextResponse.json({ error: "influencerId inválido" }, { status: 400 });
+  }
+
+  // Validar lang como literal "es" | "en"
+  const lang = rawLang === "en" ? "en" : "es";
 
   const supabase = await createClient();
 
@@ -30,10 +48,10 @@ export async function POST(req: Request) {
   const totalPoints = (bountySum?.[0] as any)?.sum || 0;
   const totalBolis = totalPoints / 1000;
 
-  // 3. Preparar Contenido del Email
+  // 3. Preparar Contenido del Email (nombre sanitizado contra XSS)
   const isEn = lang === "en";
   const subject = isEn ? "Your FreeBoli Promotion Report" : "Tu Reporte de Promoción en FreeBoli";
-  const name = config.profiles.name || "Influencer";
+  const name = escapeHtml(config.profiles.name || "Influencer");
   
   const html = isEn ? `
     <div style="font-family: sans-serif; color: #333; max-width: 600px; border: 1px solid #eee; padding: 20px;">

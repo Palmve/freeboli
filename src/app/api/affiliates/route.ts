@@ -212,6 +212,19 @@ export async function POST(request: Request) {
 
   if (existing) return NextResponse.json({ error: "Ya reclamaste este bonus" }, { status: 409 });
 
+  // 3b. Anti-doble-pago: si ya se pagó un influencer_bounty por este referido, no pagar de nuevo
+  const { data: influencerBountyPaid } = await supabase
+    .from("movements")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("type", "influencer_bounty")
+    .like("reference", `conversion:${referredId}`)
+    .maybeSingle();
+
+  if (influencerBountyPaid) {
+    return NextResponse.json({ error: "Este referido ya generó un bono de influencer. No aplica doble pago." }, { status: 409 });
+  }
+
   // 4. OTORGAR BONO ATÓMICAMENTE
   const { data: addData, error: addError } = await supabase.rpc("atomic_add_points", {
     target_user_id: userId,

@@ -77,6 +77,11 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const { userId: reqUserId, email: reqEmail, bounty, maxAmount, maxDaily, autoApprove, isActive } = body;
 
+  // Validación estricta de rangos (anti-manipulación)
+  const safeBounty = Math.max(0, Math.min(Math.round(Number(bounty) || 0), 100000)); // 0-100 Bolis máx
+  const safeMaxAmount = Math.max(0, Math.min(Math.round(Number(maxAmount) || 500000), 5000000)); // 0-5000 Bolis máx
+  const safeMaxDaily = Math.max(1, Math.min(Math.round(Number(maxDaily) || 3), 10)); // 1-10 retiros/día
+
   const supabase = await createClient();
   let targetUserId = reqUserId;
 
@@ -97,11 +102,11 @@ export async function POST(req: Request) {
     .from("influencer_configs")
     .upsert({
       user_id: targetUserId,
-      bounty_per_confirmed_user: bounty ?? 0,
-      max_withdrawal_amount: maxAmount ?? 500000,
-      max_daily_withdrawals: maxDaily ?? 3,
-      auto_approve_withdrawals: autoApprove ?? true,
-      is_active: isActive ?? true,
+      bounty_per_confirmed_user: safeBounty,
+      max_withdrawal_amount: safeMaxAmount,
+      max_daily_withdrawals: safeMaxDaily,
+      auto_approve_withdrawals: autoApprove === true || autoApprove === "true",
+      is_active: isActive !== false && isActive !== "false",
       updated_at: new Date().toISOString()
     })
     .select()
