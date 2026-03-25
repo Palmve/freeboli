@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
-import { resolvePendingRounds } from "@/lib/predictions";
 
 export async function GET(req: Request) {
   const user = await getCurrentUser();
@@ -10,8 +9,8 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type") as any;
 
-  // Sustituye el cron de resolución: liquidar rondas vencidas al consultar historial.
-  await resolvePendingRounds().catch(() => {});
+  // La resolución de rondas la maneja el cron master (/api/cron/master).
+  // Se elimina resolvePendingRounds() para evitar carga innecesaria en cada consulta de historial.
 
   const supabase = await createClient();
 

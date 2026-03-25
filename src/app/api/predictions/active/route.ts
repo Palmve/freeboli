@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server";
-import { getActiveRoundWithOdds, PredictionAsset, resolvePendingRounds } from "@/lib/predictions";
+import { getActiveRoundWithOdds, PredictionAsset } from "@/lib/predictions";
+
+const VALID_ASSETS = ["BTC", "SOL", "BOLIS"] as const;
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const asset = (searchParams.get("asset")?.toUpperCase() as PredictionAsset) || "BTC";
+  const rawAsset = searchParams.get("asset")?.toUpperCase();
   const tParam = searchParams.get("type");
   const type = (tParam === "mini" || tParam === "micro") ? tParam : "hourly";
 
-  if (asset !== "BTC" && asset !== "SOL" && asset !== "BOLIS") {
+  if (!rawAsset || !VALID_ASSETS.includes(rawAsset as any)) {
     return NextResponse.json({ error: "Asset no soportado." }, { status: 400 });
   }
+  const asset = rawAsset as PredictionAsset;
 
-  // Sustituye el cron de resolución: liquidar rondas vencidas “bajo demanda” (en segundo plano)
-  resolvePendingRounds().catch((e) => console.error("Lazy resolve error:", e));
+  // La resolución de rondas la maneja el cron master (/api/cron/master).
+  // Se elimina resolvePendingRounds() de este endpoint público para evitar
+  // que usuarios sin autenticar disparen resoluciones y como protección DoS.
 
   const data: any = await getActiveRoundWithOdds(asset, type);
   if (data?.error) {
