@@ -9,8 +9,9 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type") as any;
 
-  // La resolución de rondas la maneja el cron master (/api/cron/master).
-  // Se elimina resolvePendingRounds() para evitar carga innecesaria en cada consulta de historial.
+  // Resolución JIT (Just-in-Time) protegida por sesión
+  const { resolvePendingRounds } = await import("@/lib/predictions");
+  await resolvePendingRounds().catch(() => {});
 
   const supabase = await createClient();
 
