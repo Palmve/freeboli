@@ -49,7 +49,7 @@ type Result = {
   bet: number;
   payout: number;
   newBalance: number;
-  verification?: { server_seed: string; server_seed_hash: string; client_seed: string; nonce: number };
+  verification?: { server_seed?: string; server_seed_hash: string; client_seed: string; nonce: number };
 };
 
 type HistoryEntry = {
@@ -61,7 +61,7 @@ type HistoryEntry = {
   mult: number;
   profit: number;
   verification?: {
-    server_seed: string;
+    server_seed?: string;
     server_seed_hash: string;
     client_seed: string;
     nonce: number;
@@ -412,7 +412,7 @@ export default function HiLoPage() {
 
   const startAuto = () => {
     const baseBetNum = Math.floor(Number(autoBaseBet)) || 1;
-    const maxBetNum = Math.floor(Number(autoMaxBet)) || 100;
+    const maxBetNum = Math.min(Math.floor(Number(autoMaxBet)) || 100, levelMaxBet); // Clamp al límite del nivel
     const rolls = Math.min(Math.floor(Number(autoNumRolls)) || 10, 10000);
     const spRaw = autoStopProfit ? Math.floor(Number(autoStopProfit)) : null;
     const slRaw = autoStopLoss ? Math.floor(Number(autoStopLoss)) : null;
@@ -993,7 +993,7 @@ export default function HiLoPage() {
                     <td className="py-2 pr-2 px-2">
                       {h.verification ? (
                         <Link
-                          href={`/hi-lo/verificar?server_seed=${encodeURIComponent(h.verification.server_seed)}&server_seed_hash=${encodeURIComponent(h.verification.server_seed_hash)}&client_seed=${encodeURIComponent(h.verification.client_seed)}&nonce=${h.verification.nonce}`}
+                          href={`/hi-lo/verificar?${h.verification.server_seed ? `server_seed=${encodeURIComponent(h.verification.server_seed)}&` : ""}server_seed_hash=${encodeURIComponent(h.verification.server_seed_hash)}&client_seed=${encodeURIComponent(h.verification.client_seed)}&nonce=${h.verification.nonce}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-amber-400 hover:underline"

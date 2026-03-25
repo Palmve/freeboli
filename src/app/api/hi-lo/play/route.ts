@@ -7,7 +7,7 @@ import { fetchUserLevel } from "@/lib/levels";
 import { getSetting } from "@/lib/site-settings";
 import { alertLargeWin, alertSuspiciousActivity } from "@/lib/telegram";
 import { rateLimit } from "@/lib/rate-limit";
-import { logSecurityEvent } from "@/lib/security";
+import { logSecurityEvent, persistentRateLimit } from "@/lib/security";
 
 export async function POST(req: Request) {
   const currentUser = await getCurrentUser();
@@ -22,6 +22,21 @@ export async function POST(req: Request) {
   if (!rateLimitAllowed) {
     return NextResponse.json(
       { error: "Demasiadas jugadas en muy poco tiempo. Espera un momento." },
+      { status: 429 }
+    );
+  }
+
+  // Rate-limit persistente (anti-bot cross-worker): máx 120 jugadas por minuto
+  const { allowed: persistAllowed } = await persistentRateLimit(`hilo:${userId}`, 120, 60_000);
+  if (!persistAllowed) {
+    await logSecurityEvent({
+      eventType: "hilo_rate_limit_persistent",
+      userId,
+      details: { note: "Excedió 120 jugadas/min — posible bot" },
+      severity: "high",
+    }).catch(console.error);
+    return NextResponse.json(
+      { error: "Has alcanzado el límite de jugadas por minuto. Espera un momento." },
       { status: 429 }
     );
   }
@@ -281,7 +296,7 @@ export async function POST(req: Request) {
     payout: result.payout,
     newBalance: finalPoints,
     verification: {
-      server_seed: verification.server_seed,
+      // Solo devolvemos el hash — el seed completo queda en BD para verificación vía /hi-lo/verificar
       server_seed_hash: verification.server_seed_hash,
       client_seed: verification.client_seed,
       nonce: verification.nonce,
