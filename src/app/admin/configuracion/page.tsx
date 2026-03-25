@@ -1166,7 +1166,7 @@ export default function ConfiguracionPage() {
 
                        {isPaused && (
                          <p className="mt-3 text-[10px] text-red-400/80 font-medium italic text-center">
-                            "Mercado bloqueado temporalmente por administración"
+                            &quot;Mercado bloqueado temporalmente por administración&quot;
                          </p>
                        )}
                     </div>
