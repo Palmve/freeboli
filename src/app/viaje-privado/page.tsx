@@ -13,6 +13,27 @@ export default function PrivateTravelPage() {
   const [error, setError] = useState("");
   const [attempts, setAttempts] = useState(0);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<any | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  async function handleSaveActivity() {
+    if (!editingActivity) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/travel/activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: ACCESS_CODE, activity: editingActivity })
+      });
+      if (!res.ok) throw new Error("Fallo al guardar");
+      setEditingActivity(null);
+      fetchActivities();
+    } catch (err: any) {
+      alert("Error: " + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   useEffect(() => {
     const savedAttempts = localStorage.getItem("travel_login_attempts");
@@ -57,6 +78,13 @@ export default function PrivateTravelPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setActivities(data);
+      // Dynamically inject CSS for map styling
+      const style = document.createElement('style');
+      style.innerHTML = `
+        .leaflet-container { background: #020617 !important; }
+        .leaflet-tile-container { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
+      `;
+      document.head.appendChild(style);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -123,6 +151,7 @@ export default function PrivateTravelPage() {
             {activities.map((act, i) => (
               <div 
                 key={act.id} 
+                onClick={() => setEditingActivity({...act})}
                 className="group p-6 glass-card rounded-3xl hover:border-amber-500/50 transition-all cursor-pointer animate-fade-in"
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
@@ -159,7 +188,10 @@ export default function PrivateTravelPage() {
                 <p className="text-[10px] font-black text-slate-500 uppercase mb-1">Ciudades</p>
                 <p className="text-xl font-black text-white">Hannover<br/>Leipzig<br/>Berlín</p>
              </div>
-             <div className="glass-card rounded-[2rem] p-6 flex flex-col justify-center items-center text-center hover:bg-amber-500 transition-all group">
+             <div 
+                onClick={() => activities.length > 0 && setEditingActivity({...activities[0]})}
+                className={`glass-card rounded-[2rem] p-6 flex flex-col justify-center items-center text-center hover:bg-amber-500 transition-all group cursor-pointer ${activities.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+             >
                 <div className="text-3xl mb-1 group-hover:scale-110 transition-transform">⚙️</div>
                 <p className="text-[10px] font-black text-slate-500 group-hover:text-black uppercase">Editar<br/>Plan</p>
              </div>
@@ -168,12 +200,86 @@ export default function PrivateTravelPage() {
 
       </div>
 
-      {/* Footer minimalista */}
-      <footer className="fixed bottom-4 right-8 z-[2000] flex items-center gap-4">
-         <div className="text-[9px] font-bold text-slate-700 uppercase tracking-[0.3em]">
-            Private Itinerary Portal • Built for Adita & Alberto
-         </div>
-      </footer>
+      {/* Modal de Edición */}
+      {editingActivity && (
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+          <div className="max-w-xl w-full glass-card p-8 rounded-[2.5rem] shadow-2xl space-y-6">
+            <div className="flex justify-between items-center">
+               <h2 className="text-xl font-black text-white uppercase tracking-tight">Editar Día {editingActivity.day_number}</h2>
+               <button onClick={() => setEditingActivity(null)} className="text-slate-500 hover:text-white transition">✕</button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+               <div className="space-y-1">
+                 <label className="text-[10px] font-bold text-slate-500 uppercase">Título</label>
+                 <input 
+                   value={editingActivity.title} 
+                   onChange={e => setEditingActivity({...editingActivity, title: e.target.value})}
+                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-amber-500"
+                 />
+               </div>
+               <div className="space-y-1">
+                 <label className="text-[10px] font-bold text-slate-500 uppercase">Fecha</label>
+                 <input 
+                   value={editingActivity.date_str} 
+                   onChange={e => setEditingActivity({...editingActivity, date_str: e.target.value})}
+                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-amber-500"
+                 />
+               </div>
+               <div className="col-span-2 space-y-1">
+                 <label className="text-[10px] font-bold text-slate-500 uppercase">Ubicación</label>
+                 <input 
+                   value={editingActivity.location} 
+                   onChange={e => setEditingActivity({...editingActivity, location: e.target.value})}
+                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-amber-500"
+                 />
+               </div>
+               <div className="col-span-2 space-y-1">
+                 <label className="text-[10px] font-bold text-slate-500 uppercase">Descripción</label>
+                 <textarea 
+                   value={editingActivity.description} 
+                   onChange={e => setEditingActivity({...editingActivity, description: e.target.value})}
+                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-amber-500 h-24 resize-none"
+                 />
+               </div>
+               <div className="space-y-1">
+                 <label className="text-[10px] font-bold text-slate-500 uppercase">Latitud</label>
+                 <input 
+                   type="number" step="any"
+                   value={editingActivity.lat} 
+                   onChange={e => setEditingActivity({...editingActivity, lat: Number(e.target.value)})}
+                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-amber-500"
+                 />
+               </div>
+               <div className="space-y-1">
+                 <label className="text-[10px] font-bold text-slate-500 uppercase">Longitud</label>
+                 <input 
+                   type="number" step="any"
+                   value={editingActivity.lng} 
+                   onChange={e => setEditingActivity({...editingActivity, lng: Number(e.target.value)})}
+                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-amber-500"
+                 />
+               </div>
+            </div>
+
+            <div className="flex gap-4 pt-4">
+               <button 
+                 onClick={() => setEditingActivity(null)}
+                 className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-2xl transition"
+               >
+                 Cancelar
+               </button>
+               <button 
+                 onClick={handleSaveActivity}
+                 disabled={isSaving}
+                 className="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-2xl shadow-xl shadow-amber-500/20 transition-all disabled:opacity-50"
+               >
+                 {isSaving ? "Guardando..." : "Guardar Cambios"}
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

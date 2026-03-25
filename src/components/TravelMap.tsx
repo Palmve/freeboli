@@ -48,7 +48,8 @@ export default function TravelMap({ activities }: TravelMapProps) {
           scrollWheelZoom: false // Evitar scroll accidental
         }).setView([52.5, 11], 6);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        // Proveedor más robusto (OSM Standard con filtro de brillo vía CSS si es necesario)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
         }).addTo(mapInstance.current);
 
