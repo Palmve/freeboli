@@ -20,6 +20,7 @@ export default function AdminVisitasPage() {
   const [processedUsers, setProcessedUsers] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [userSort, setUserSort] = useState("lastActive");
+  const [isLeafletLoaded, setIsLeafletLoaded] = useState(false);
 
   const mapRef = useRef<any>(null);
   const chartRef = useRef<any>(null);
@@ -95,6 +96,12 @@ export default function AdminVisitasPage() {
     return () => { supabase.removeChannel(channel); };
   }, [supabase]);
 
+  // Checar si Leaflet ya está cacheado
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.L) {
+      setIsLeafletLoaded(true);
+    }
+  }, []);
 
   const calculateUserTime = (events: any[]) => {
     if (events.length < 2) return 0;
@@ -176,7 +183,7 @@ export default function AdminVisitasPage() {
   }, [data]);
 
   const renderMap = useCallback(() => {
-    if (!window.L || data.length === 0) return;
+    if (!isLeafletLoaded || !window.L || data.length === 0) return;
 
     setTimeout(() => {
       const container = document.getElementById("map-geo");
@@ -195,9 +202,15 @@ export default function AdminVisitasPage() {
       }
 
       const map = window.L.map("map-geo").setView([20, 0], 2);
-      window.L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png", {
+      window.L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
       }).addTo(map);
+
+      // Auto-resize magic
+      const resizeObserver = new ResizeObserver(() => {
+        if (mapRef.current) mapRef.current.invalidateSize();
+      });
+      resizeObserver.observe(container);
 
       processedUsers.forEach(u => {
         if (u.location?.lat && u.location?.lon) {
@@ -212,7 +225,7 @@ export default function AdminVisitasPage() {
       });
       mapRef.current = map;
     }, 100);
-  }, [data, processedUsers]);
+  }, [data, processedUsers, isLeafletLoaded]);
 
   // Render Maps and Charts (triggered when tab changes or data updates)
   useEffect(() => {
@@ -239,7 +252,12 @@ export default function AdminVisitasPage() {
     <div className="space-y-6">
       <Script src="https://cdn.jsdelivr.net/npm/chart.js" strategy="afterInteractive" />
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-      <Script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" strategy="afterInteractive" />
+      <Script 
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+        strategy="afterInteractive" 
+        onLoad={() => setIsLeafletLoaded(true)}
+        onReady={() => setIsLeafletLoaded(true)}
+      />
       <Script src="https://unpkg.com/@phosphor-icons/web" strategy="afterInteractive" />
 
       {/* Header Estilo Premium */}
