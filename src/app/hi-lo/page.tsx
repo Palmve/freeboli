@@ -94,7 +94,7 @@ export default function HiLoPage() {
   // Auto
   const [autoBaseBet, setAutoBaseBet] = useState("1");
   const [levelMaxBet, setLevelMaxBet] = useState<number>(MAX_BET_POINTS);
-  const [autoMaxBet, setAutoMaxBet] = useState("100");
+  const [autoMaxBet, setAutoMaxBet] = useState("");
   const [autoNumRolls, setAutoNumRolls] = useState("100");
   const [autoBetOn, setAutoBetOn] = useState<"hi" | "lo" | "alternate">("lo");
   const [autoStopProfit, setAutoStopProfit] = useState("");
@@ -420,7 +420,8 @@ export default function HiLoPage() {
 
   const startAuto = () => {
     const baseBetNum = Math.floor(Number(autoBaseBet)) || 1;
-    const maxBetNum = Math.min(Math.floor(Number(autoMaxBet)) || 100, levelMaxBet); // Clamp al límite del nivel
+    const parsedAutoMax = Number(autoMaxBet);
+    const maxBetNum = Math.min(parsedAutoMax > 0 ? Math.floor(parsedAutoMax) : levelMaxBet, levelMaxBet);
     const rolls = Math.min(Math.floor(Number(autoNumRolls)) || 10, 10000);
     const spRaw = autoStopProfit ? Math.floor(Number(autoStopProfit)) : null;
     const slRaw = autoStopLoss ? Math.floor(Number(autoStopLoss)) : null;
@@ -612,6 +613,7 @@ export default function HiLoPage() {
               <input
                 type="number"
                 min={1}
+                placeholder={levelMaxBet.toString()}
                 value={autoMaxBet}
                 onChange={(e) => setAutoMaxBet(e.target.value)}
                 className="mt-1 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 font-mono text-white"
