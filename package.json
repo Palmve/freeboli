@@ -1,6 +1,6 @@
 {
   "name": "freeboli",
-  "version": "1.123.0",
+  "version": "1.125.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
