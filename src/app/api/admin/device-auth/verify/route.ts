@@ -3,11 +3,27 @@ import { getAdminUser } from "@/lib/current-user";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import crypto from "crypto";
+import { persistentRateLimit, logSecurityEvent } from "@/lib/security";
 
 export async function POST(req: Request) {
   const user = await getAdminUser();
   if (!user || !user.email) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  // Rate limit anti brute-force: máx 5 intentos cada 15 minutos
+  const { allowed } = await persistentRateLimit(`pin-verify:${user.id}`, 5, 15 * 60 * 1000);
+  if (!allowed) {
+    await logSecurityEvent({
+      eventType: "admin_pin_brute_force",
+      userId: user.id,
+      details: { note: "Excedió 5 intentos de PIN en 15 minutos" },
+      severity: "critical",
+    }).catch(console.error);
+    return NextResponse.json(
+      { error: "Demasiados intentos. Espera 15 minutos antes de intentar de nuevo." },
+      { status: 429 }
+    );
   }
 
   const { pin } = await req.json().catch(() => ({ pin: "" }));
@@ -31,6 +47,13 @@ export async function POST(req: Request) {
     .eq("token_hash", hashedPin);
 
   if (!tokens || tokens.length === 0) {
+    // Registrar intento fallido
+    await logSecurityEvent({
+      eventType: "admin_pin_failed",
+      userId: user.id,
+      details: { note: "PIN incorrecto" },
+      severity: "medium",
+    }).catch(console.error);
     // Retraso para mitigar fuerza bruta (entre 1 y 2 segundos)
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
     return NextResponse.json({ error: "PIN incorrecto" }, { status: 401 });
@@ -45,7 +68,7 @@ export async function POST(req: Request) {
   // 1. Destruimos el PIN para evitar re-usos (Replay Attacks).
   await supabase.from("email_verifications").delete().eq("user_id", user.id);
 
-  // 2. Insertamos la galleta de reconocimiento de dispositivo (30 Días) - Específica por usuario
+  // 2. Insertamos la galleta de reconocimiento de dispositivo (30 Días)
   const isProd = process.env.NODE_ENV === "production";
   cookies().set(`freeboli_device_trusted_${user.id.slice(0, 8)}`, "true", {
     path: "/",
@@ -54,6 +77,14 @@ export async function POST(req: Request) {
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 30,
   });
+
+  // 3. Registrar acceso exitoso
+  await logSecurityEvent({
+    eventType: "admin_device_authorized",
+    userId: user.id,
+    details: { note: "Dispositivo autorizado exitosamente" },
+    severity: "low",
+  }).catch(console.error);
 
   return NextResponse.json({ success: true, message: "Dispositivo autorizado de forma permanente." });
 }

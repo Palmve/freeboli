@@ -1,15 +1,37 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getAdminUser } from "@/lib/current-user";
+import { logSecurityEvent } from "@/lib/security";
+
+const SUPER_ADMIN_EMAIL = (process.env.ADMIN_EMAILS || "").split(",")[0]?.trim().toLowerCase();
 
 /**
  * GET /api/admin/export-db
- * Exporta las tablas principales de la base de datos como JSON para respaldo local
- * y análisis forense. Solo accesible por administradores.
+ * Exporta las tablas principales de la base de datos como JSON para respaldo local.
+ * RESTRICCIÓN: Solo el Super Admin (propietario) puede exportar.
  */
 export async function GET() {
   const admin = await getAdminUser();
   if (!admin) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+
+  // Solo SuperAdmin puede exportar la BD completa
+  if (admin.email.toLowerCase() !== SUPER_ADMIN_EMAIL) {
+    await logSecurityEvent({
+      eventType: "admin_export_db_unauthorized",
+      userId: admin.id,
+      details: { note: "Staff intentó exportar la BD sin ser SuperAdmin" },
+      severity: "critical",
+    }).catch(console.error);
+    return new NextResponse("Not found", { status: 404 });
+  }
+
+  // Registrar la exportación
+  await logSecurityEvent({
+    eventType: "admin_export_db",
+    userId: admin.id,
+    details: { note: "Exportación de BD ejecutada" },
+    severity: "medium",
+  }).catch(console.error);
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -114,17 +114,23 @@ export function middleware(request: NextRequest) {
   response.headers.set("Server", "FreeBoli");
 
   // ══════════════════════════════════════════════════════
-  // 5. PROTEGER RUTAS ADMIN — Requieren encabezado especial
-  //    en producción adicional a la auth de sesión
+  // 5. PROTEGER RUTAS ADMIN — Ocultar existencia para no-admins
+  //    Un hacker que pruebe /admin verá un 404 genérico,
+  //    como si la ruta no existiera.
   // ══════════════════════════════════════════════════════
   if (pathname.startsWith("/api/admin/") || pathname.startsWith("/admin")) {
-    // Si el request viene de fuera del dominio oficial, registrar alerta
+    // Quick check: si no hay cookie de sesión NextAuth, 404 inmediato
+    const sessionCookie = request.cookies.get("next-auth.session-token")
+      || request.cookies.get("__Secure-next-auth.session-token");
+    if (!sessionCookie) {
+      return new NextResponse("Not found", { status: 404 });
+    }
+
+    // Bloquear requests de origen externo (CSRF cross-origin)
     const referer = request.headers.get("referer") ?? "";
     const host = request.headers.get("host") ?? "";
-    // Solo permitimos requests directos o desde el mismo dominio
     if (referer && !referer.includes(host) && !referer.includes("freeboli.win")) {
-      // No bloqueamos pero marcamos para revisión futura
-      response.headers.set("X-Security-Flag", "cross-origin-admin-access");
+      return new NextResponse("Not found", { status: 404 });
     }
   }
 

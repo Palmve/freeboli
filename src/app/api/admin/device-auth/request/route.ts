@@ -3,11 +3,21 @@ import { getAdminUser } from "@/lib/current-user";
 import { createClient } from "@supabase/supabase-js";
 import { sendEmailViaResendDetailed } from "@/lib/resend";
 import crypto from "crypto";
+import { persistentRateLimit } from "@/lib/security";
 
 export async function POST() {
   const user = await getAdminUser();
   if (!user || !user.email) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  // Rate limit: máx 3 solicitudes de PIN cada 15 minutos (anti email-bombing)
+  const { allowed } = await persistentRateLimit(`pin-request:${user.id}`, 3, 15 * 60 * 1000);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Demasiadas solicitudes de PIN. Espera 15 minutos." },
+      { status: 429 }
+    );
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
