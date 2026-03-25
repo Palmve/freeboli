@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminUser } from "@/lib/current-user";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmailViaResend } from "@/lib/resend";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   // Validar lang como literal "es" | "en"
   const lang = rawLang === "en" ? "en" : "es";
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // 1. Obtener datos del influencer y su config
   const { data: config } = await supabase
