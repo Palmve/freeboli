@@ -177,9 +177,19 @@ export default function AdminVisitasPage() {
 
   const renderMap = useCallback(() => {
     if (!window.L || data.length === 0) return;
-    if (mapRef.current) return; // Ya inicializado
+    
+    // Si el mapa ya está inicializado, invalidamos el tamaño para corregir el renderizado
+    if (mapRef.current) {
+      setTimeout(() => {
+        mapRef.current.invalidateSize();
+      }, 200);
+      return;
+    }
 
     setTimeout(() => {
+      const container = document.getElementById("map-geo");
+      if (!container) return;
+
       const map = window.L.map("map-geo").setView([20, 0], 2);
       window.L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
