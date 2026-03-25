@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminUser } from "@/lib/current-user";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,7 @@ export async function GET() {
   const user = await getAdminUser("promotions");
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // 1. Obtener configuraciones de influencers
   const { data: configs, error: configError } = await supabase
@@ -26,7 +26,6 @@ export async function GET() {
   if (configError) return NextResponse.json({ error: configError.message }, { status: 500 });
 
   // 2. Obtener estadísticas agregadas para cada influencer
-  // En una app más grande esto sería una vista o una query más compleja.
   const influencersWithStats = await Promise.all((configs || []).map(async (cfg) => {
     const userId = cfg.user_id;
 
@@ -43,7 +42,7 @@ export async function GET() {
       .eq("user_id", userId)
       .eq("type", "influencer_bounty");
 
-    // Suma de comisiones de afiliado normales (para reporte completo)
+    // Suma de comisiones de afiliado normales
     const { data: commSum } = await supabase
       .from("movements")
       .select("points.sum()")
@@ -78,11 +77,11 @@ export async function POST(req: Request) {
   const { userId: reqUserId, email: reqEmail, bounty, maxAmount, maxDaily, autoApprove, isActive } = body;
 
   // Validación estricta de rangos (anti-manipulación)
-  const safeBounty = Math.max(0, Math.min(Math.round(Number(bounty) || 0), 100000)); // 0-100 Bolis máx
-  const safeMaxAmount = Math.max(0, Math.min(Math.round(Number(maxAmount) || 500000), 5000000)); // 0-5000 Bolis máx
-  const safeMaxDaily = Math.max(1, Math.min(Math.round(Number(maxDaily) || 3), 10)); // 1-10 retiros/día
+  const safeBounty = Math.max(0, Math.min(Math.round(Number(bounty) || 0), 100000));
+  const safeMaxAmount = Math.max(0, Math.min(Math.round(Number(maxAmount) || 500000), 5000000));
+  const safeMaxDaily = Math.max(1, Math.min(Math.round(Number(maxDaily) || 3), 10));
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   let targetUserId = reqUserId;
 
   // Si envían email, buscar el UUID
