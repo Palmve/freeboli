@@ -118,3 +118,4 @@ Abre [http://localhost:3000](http://localhost:3000). Ver `LOCAL.md` para configu
 ## Despliegue
 
 Despliega en Vercel. Cada push a `main` dispara deploy automático. Ver `DEPLOY.md` para detalles.
+
