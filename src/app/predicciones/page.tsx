@@ -181,6 +181,11 @@ function PredictionsContent() {
 
   const handleBet = async (prediction: string) => {
     setNotification({ message: "", type: null });
+    const parsedAmount = parseInt(amount);
+    if (!parsedAmount || parsedAmount < minBet) {
+      showNotification(`La apuesta mínima es ${minBet} pts. Por favor ajusta el monto.`, "error");
+      return;
+    }
     setBetting(true);
     try {
       const res = await fetch("/api/predictions/bet", {
