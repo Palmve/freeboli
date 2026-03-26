@@ -517,7 +517,7 @@ function PredictionsContent() {
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">PTS</span>
               </div>
               <div className="mt-2 flex gap-2">
-                 {[10, 100, 500, 1000].filter(v => v >= minBet).map(v => (
+                 {[1, 10, 100, 1000].filter(v => v >= minBet).map(v => (
                      <button key={v} onClick={() => setAmount(String(v))} className="flex-1 text-xs py-1.5 rounded bg-slate-800 text-slate-400 hover:bg-slate-700 transition">
                          {v >= 1000 ? `${v/1000}K` : v}
                      </button>
