@@ -59,7 +59,8 @@ function PredictionsContent() {
   const [stats, setStats] = useState<Stats>({ day: 0, week: 0, month: 0, total: 0 });
   const [type, setType] = useState<"hourly" | "mini" | "micro">("hourly");
   
-  const [amount, setAmount] = useState("1");
+  const [amount, setAmount] = useState("10");
+  const [minBet, setMinBet] = useState(10);
   const [levelMaxBet, setLevelMaxBet] = useState(10000);
   const [loading, setLoading] = useState(false);
   const [betting, setBetting] = useState(false);
@@ -133,6 +134,24 @@ function PredictionsContent() {
           .then(r => r.json())
           .then(d => {
               if (d.currentLevel) setLevelMaxBet(d.currentLevel.benefits?.maxBetPoints || 500);
+          })
+          .catch(() => {});
+      // Leer mínimo de apuesta desde la configuración del sistema
+      fetch("/api/predictions/active?asset=BTC&type=hourly")
+          .then(r => r.json())
+          .then(() => {
+            fetch("/api/admin/settings?key=PREDICTION_MIN_BET")
+              .catch(() => {});
+          })
+          .catch(() => {});
+      // Fallback: leer el minBet desde la respuesta de error del servidor directamente
+      fetch("/api/site-settings?key=PREDICTION_MIN_BET")
+          .then(r => r.ok ? r.json() : null)
+          .then(d => {
+            if (d?.value != null) {
+              const v = Number(d.value);
+              if (v > 0) { setMinBet(v); setAmount(String(v)); }
+            }
           })
           .catch(() => {});
     }
@@ -489,7 +508,7 @@ function PredictionsContent() {
               <div className="relative">
                   <input
                     type="number"
-                    min={1}
+                    min={minBet}
                     max={levelMaxBet}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
@@ -498,7 +517,7 @@ function PredictionsContent() {
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">PTS</span>
               </div>
               <div className="mt-2 flex gap-2">
-                 {[1, 10, 100, 1000].map(v => (
+                 {[10, 100, 500, 1000].filter(v => v >= minBet).map(v => (
                      <button key={v} onClick={() => setAmount(String(v))} className="flex-1 text-xs py-1.5 rounded bg-slate-800 text-slate-400 hover:bg-slate-700 transition">
                          {v >= 1000 ? `${v/1000}K` : v}
                      </button>

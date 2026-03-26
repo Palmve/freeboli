@@ -49,7 +49,23 @@ Este archivo lista tareas completadas y pendientes. Revisar cuando pregunten "qu
 
 ---
 
-## Pendiente / Opcional
+## 🔐 Vulnerabilidades de Seguridad (Auditoría Motor de Predicciones)
+
+> Detectadas el 2026-03-25. Pendientes de remediar.
+
+- **[CRÍTICO] Oráculo de precios sin respaldo (BTC/SOL/BOLIS)** — BTC y SOL dependen exclusivamente de la API pública de Coinbase (sin API Key). BOLIS depende de DexScreener. Si cualquiera de estas APIs falla o devuelve un precio corrupto, todas las rondas activas se liquidan con precio incorrecto. **Solución:** Implementar validación de precio multi-fuente (cruzar Coinbase con CoinGecko/Binance; rechazar si la diferencia supera el 2-5%).
+
+- **[ALTO] Sniper de timing en modo Micro** — Un usuario técnico puede monitorear el precio real de Coinbase en tiempo real (API pública gratuita) y, en los últimos segundos de ventana abierta del modo Micro, apostar con mayor certeza estadística que un usuario normal. **Solución:** Aleatorizar el momento exacto de captura del precio de cierre dentro de una ventana de ±30 segundos.
+
+- **[ALTO] Race condition al crear rondas** — Si dos usuarios apuestan exactamente al inicio de un bloque nuevo de tiempo simultáneamente, dos solicitudes en paralelo pueden intentar `INSERT` la misma ronda. La segunda falla silenciosamente (sin `UPSERT`). **Solución:** Cambiar el `insert` a `upsert` con `onConflict: 'ignore'` en `ensureActiveRound()` en `src/lib/predictions.ts`.
+
+- **[MEDIO] Verificar validación de cuotas en función SQL** — El servidor recalcula `odds_at_bet` antes de almacenarlos, pero el procedimiento SQL `place_prediction_bet` recibe `p_odds` como parámetro sin que conste una validación interna de rango. Un atacante que inyecte la solicitud HTTP directamente podría almacenar cuotas artificiales. **Solución:** Añadir validación de rango en el procedimiento almacenado de Supabase.
+
+- **[BAJO] Registrar `time_left_sec` en cada apuesta** — Actualmente no se guarda el tiempo restante en la tabla `prediction_bets`. Añadirlo permitiría detectar en el panel de Seguridad patrones de "sniper" (usuarios que siempre apuestan en los últimos 5 segundos del cierre).
+
+---
+
+
 
 - **Monetización: banner de publicidad de criptomonedas en el footer** — Añadir espacio en el footer para un banner de publicidad (afiliados cripto, exchanges, etc.).
 - **(Opcional) Aceptar SOL y convertir a BOLIS** — Depósitos en SOL via DEX (Jupiter).
