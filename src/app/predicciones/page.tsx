@@ -60,7 +60,7 @@ function PredictionsContent() {
   const [type, setType] = useState<"hourly" | "mini" | "micro">("hourly");
   
   const [amount, setAmount] = useState("1");
-  const [minBet, setMinBet] = useState(10);
+  const [minBet, setMinBet] = useState(1);
   const [levelMaxBet, setLevelMaxBet] = useState(10000);
   const [loading, setLoading] = useState(false);
   const [betting, setBetting] = useState(false);
@@ -134,24 +134,6 @@ function PredictionsContent() {
           .then(r => r.json())
           .then(d => {
               if (d.currentLevel) setLevelMaxBet(d.currentLevel.benefits?.maxBetPoints || 500);
-          })
-          .catch(() => {});
-      // Leer mínimo de apuesta desde la configuración del sistema
-      fetch("/api/predictions/active?asset=BTC&type=hourly")
-          .then(r => r.json())
-          .then(() => {
-            fetch("/api/admin/settings?key=PREDICTION_MIN_BET")
-              .catch(() => {});
-          })
-          .catch(() => {});
-      // Fallback: leer el minBet desde la respuesta de error del servidor directamente
-      fetch("/api/site-settings?key=PREDICTION_MIN_BET")
-          .then(r => r.ok ? r.json() : null)
-          .then(d => {
-            if (d?.value != null) {
-              const v = Number(d.value);
-              if (v > 0) { setMinBet(v); setAmount(String(v)); }
-            }
           })
           .catch(() => {});
     }
