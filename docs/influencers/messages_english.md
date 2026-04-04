@@ -22,6 +22,9 @@ We have an Influencer Program at FreeBoli.win where you earn REAL crypto for eve
 
 100% free for you and your audience. Zero risk. Win-Win 🤝
 
+🎁 Here's your Influencer Kit — ready-to-post messages & images:
+👉 https://freeboli.win/kit
+
 To get started:
 1️⃣ Sign up at https://freeboli.win
 2️⃣ Send me the email you registered with and I'll activate your Influencer Dashboard today.
