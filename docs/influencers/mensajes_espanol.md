@@ -107,6 +107,29 @@ Varios creadores ya están sumándose y ganando BOLIS (Solana) por traer usuario
 
 ---
 
+## 🐦 TWEET PÚBLICO — Reclutamiento de Influencers
+> *Publícalo directamente en tu Twitter para atraer promotores. No es un DM.*
+
+```
+🤝 ¿Eres creador de contenido cripto? ¡Esta es tu oportunidad!
+
+Únete al Programa de Influencers de FreeBoli.win 🔥
+
+✅ Gana puntos por cada seguidor que se registre con tu enlace
+✅ Convierte tus puntos en $BOLIS de Solana
+✅ Retira directamente a tu wallet — sin intermediarios
+✅ Sin inversión. 100% por resultados.
+
+📲 Accede al Kit del Influencer con mensajes e imágenes listas para publicar:
+👉 https://freeboli.win/kit
+
+¿Te interesa? Escríbeme por DM 📩
+
+#Influencer #Crypto #Solana #BOLIS #FreeBoli #MarketingCrypto
+```
+
+---
+
 ## ESCALA DE RECOMPENSAS (Para tu referencia)
 
 | Fase | Referidos Verificados | Bounty | Valor |

@@ -107,6 +107,29 @@ No risk on your end at all 💪 Interested?
 
 ---
 
+## 🐦 PUBLIC TWEET — Influencer Recruitment
+> *Post this directly on your Twitter to attract promoters. This is NOT a DM.*
+
+```
+🤝 Are you a crypto content creator? This is your moment!
+
+Join the FreeBoli.win Influencer Program 🔥
+
+✅ Earn points for every follower who signs up with your link
+✅ Convert your points into $BOLIS on Solana
+✅ Withdraw directly to your wallet — no middlemen
+✅ Zero investment. 100% performance-based.
+
+📲 Access the Influencer Kit — ready-to-post messages & images:
+👉 https://freeboli.win/kit
+
+Interested? Slide into my DMs 📩
+
+#Influencer #Crypto #Solana #BOLIS #FreeBoli #CryptoMarketing
+```
+
+---
+
 ## REWARD SCALE (Your Quick Reference)
 
 | Phase | Verified Referrals | Bounty | Value |
