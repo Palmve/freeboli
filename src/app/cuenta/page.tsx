@@ -18,6 +18,7 @@ export default function CuentaPage() {
     user?: { id: string; publicId?: number | null; referralCode?: string | null };
     stats?: { emailVerified?: boolean };
   } | null>(null);
+  const [meFetched, setMeFetched] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
   const [movements, setMovements] = useState<{ id: string; type: string; points: number; reference: string | null; created_at: string }[]>([]);
   const [supportOpen, setSupportOpen] = useState(false);
@@ -49,10 +50,12 @@ export default function CuentaPage() {
   useEffect(() => {
     if (REQUIRE_AUTH && !session?.user) return;
     if (!REQUIRE_AUTH && !session?.user && !localUser) return;
+    setMeFetched(false);
     fetch("/api/me")
       .then((r) => r.json())
       .then((d) => setMe(d))
-      .catch(() => setMe(null));
+      .catch(() => setMe(null))
+      .finally(() => setMeFetched(true));
     fetch("/api/cuenta/personal-stats")
       .then((r) => r.json())
       .then((d) => setPersonal(d.stats ?? null))
@@ -95,8 +98,9 @@ export default function CuentaPage() {
   }
   
   const userId = (session?.user as { id?: string } | undefined)?.id ?? localUser?.id;
-  const displayUserId =
-    me?.user?.publicId != null ? String(me.user.publicId) : userId ?? "";
+  /** ID estable para el recuadro: no mostrar UUID hasta que /api/me responda (evita parpadeo hacia publicId). */
+  const displayUserIdResolved =
+    meFetched && (me?.user?.publicId != null ? String(me.user.publicId) : (userId ?? ""));
   const referralCode = me?.user?.referralCode || me?.user?.publicId?.toString() || userId || "";
   const emailVerified = me?.stats?.emailVerified ?? true;
 
@@ -117,10 +121,11 @@ export default function CuentaPage() {
     <div className="mx-auto max-w-lg space-y-8 py-8 px-4">
       <h1 className="text-2xl font-bold text-white">{t("account.title")}</h1>
 
-      {displayUserId ? (
+      {userId ? (
         <div
           className="flex min-h-[48px] w-full overflow-hidden rounded-lg border border-slate-600 shadow-md"
           aria-label={t("account.user_id_label")}
+          aria-busy={!meFetched}
         >
           <div className="flex w-[42%] min-w-[6.5rem] shrink-0 items-center justify-center bg-gradient-to-b from-amber-500 to-amber-700 px-2 py-2.5 sm:w-[45%]">
             <span className="text-center text-[11px] font-bold uppercase leading-tight tracking-wide text-slate-900 [text-shadow:0_1px_0_rgba(255,255,255,0.35)] sm:text-xs">
@@ -128,9 +133,16 @@ export default function CuentaPage() {
             </span>
           </div>
           <div className="flex min-w-0 flex-1 items-center justify-center border-l border-slate-600 bg-slate-800 px-3 py-2.5">
-            <span className="truncate text-center font-mono text-base font-bold tabular-nums text-slate-100 sm:text-lg">
-              {displayUserId}
-            </span>
+            {!meFetched ? (
+              <span
+                className="inline-block h-7 w-[7.5rem] max-w-[min(100%,12rem)] animate-pulse rounded bg-slate-600/80"
+                aria-hidden
+              />
+            ) : (
+              <span className="truncate text-center font-mono text-base font-bold tabular-nums text-slate-100 sm:text-lg">
+                {displayUserIdResolved}
+              </span>
+            )}
           </div>
         </div>
       ) : null}
