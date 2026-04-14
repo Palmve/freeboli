@@ -95,6 +95,8 @@ export default function CuentaPage() {
   }
   
   const userId = (session?.user as { id?: string } | undefined)?.id ?? localUser?.id;
+  const displayUserId =
+    me?.user?.publicId != null ? String(me.user.publicId) : userId ?? "";
   const referralCode = me?.user?.referralCode || me?.user?.publicId?.toString() || userId || "";
   const emailVerified = me?.stats?.emailVerified ?? true;
 
@@ -114,6 +116,24 @@ export default function CuentaPage() {
   return (
     <div className="mx-auto max-w-lg space-y-8 py-8 px-4">
       <h1 className="text-2xl font-bold text-white">{t("account.title")}</h1>
+
+      {displayUserId ? (
+        <div
+          className="flex min-h-[48px] w-full overflow-hidden rounded-lg border border-slate-600 shadow-md"
+          aria-label={t("account.user_id_label")}
+        >
+          <div className="flex w-[42%] min-w-[6.5rem] shrink-0 items-center justify-center bg-gradient-to-b from-amber-500 to-amber-700 px-2 py-2.5 sm:w-[45%]">
+            <span className="text-center text-[11px] font-bold uppercase leading-tight tracking-wide text-slate-900 [text-shadow:0_1px_0_rgba(255,255,255,0.35)] sm:text-xs">
+              {t("account.user_id_label")}
+            </span>
+          </div>
+          <div className="flex min-w-0 flex-1 items-center justify-center border-l border-slate-600 bg-slate-800 px-3 py-2.5">
+            <span className="truncate text-center font-mono text-base font-bold tabular-nums text-slate-100 sm:text-lg">
+              {displayUserId}
+            </span>
+          </div>
+        </div>
+      ) : null}
 
       {/* Language Selector */}
       <div className="card space-y-3">

@@ -98,6 +98,7 @@
   },
   "account": {
     "title": "Mi cuenta",
+    "user_id_label": "ID de usuario",
     "loading": "Cargando...",
     "login_hint": "Entra para ver tu cuenta.",
     "btn_login": "Entrar",
