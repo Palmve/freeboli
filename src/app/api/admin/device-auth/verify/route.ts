@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { getAdminUser } from "@/lib/current-user";
+import { getCurrentUser } from "@/lib/current-user";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import crypto from "crypto";
 import { persistentRateLimit, logSecurityEvent } from "@/lib/security";
 
 export async function POST(req: Request) {
-  const user = await getAdminUser();
-  if (!user || !user.email) {
+  const user = await getCurrentUser();
+  if (!user || !user.isAdmin || !user.email) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
