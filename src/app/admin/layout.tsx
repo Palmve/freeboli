@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getAdminUser } from "@/lib/current-user";
+import { getCurrentUser } from "@/lib/current-user";
 import AdminNav from "./AdminNav";
 import { cookies } from "next/headers";
 import DeviceAuthRequired from "@/components/DeviceAuthRequired";
@@ -11,8 +11,8 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getAdminUser();
-  if (!user) redirect("/auth/login");
+  const user = await getCurrentUser();
+  if (!user || !user.isAdmin) redirect("/auth/login");
 
   // Device Fingerprinting Check - User Specific
   const cookieStore = cookies();
