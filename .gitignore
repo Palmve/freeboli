@@ -18,3 +18,5 @@ tsconfig.tsbuildinfo
 npm-debug.log*
 .DS_Store
 tmp/
+db_backup_*.json
+backup_db.mjs
