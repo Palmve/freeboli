@@ -108,26 +108,68 @@ export async function alertSystemError(endpoint: string, error: string) {
   );
 }
 
-export async function sendDailySummary(stats: {
+export interface DailySummaryStats {
+  connections: number;       // page_views/eventos en analytics_events (24h)
+  connectedUsers: number;    // usuarios únicos que se conectaron (24h)
+  activeUsers: number;       // usuarios únicos con movimientos (jugaron/reclamaron)
   newUsers: number;
-  activeUsers: number;
-  totalBets: number;
-  totalFaucetClaims: number;
+  hiLoBets: number;          hiLoBetPoints: number;   hiLoPayoutPoints: number;
+  predBets: number;          predBetPoints: number;   predPayoutPoints: number;
+  faucetClaims: number;      faucetPoints: number;
   withdrawalRequests: number;
   depositCount: number;
-  platformBalance: number;
-}) {
-  const text = `📊 <b>Resumen diario</b>
+}
 
-👤 Usuarios nuevos: ${stats.newUsers}
-🟢 Usuarios activos: ${stats.activeUsers}
-🎰 Apuestas HI-LO: ${stats.totalBets}
-🚰 Reclamos faucet: ${stats.totalFaucetClaims}
-💸 Retiros solicitados: ${stats.withdrawalRequests}
-💰 Depósitos: ${stats.depositCount}
-📈 Balance plataforma: ${stats.platformBalance.toLocaleString()} pts`;
+function fmtNet(n: number): string {
+  return `${n >= 0 ? "+" : ""}${Math.round(n).toLocaleString()}`;
+}
+
+export async function sendDailySummary(s: DailySummaryStats) {
+  const hiLoHouse = s.hiLoBetPoints - s.hiLoPayoutPoints;
+  const predHouse = s.predBetPoints - s.predPayoutPoints;
+  const houseNet = hiLoHouse + predHouse;       // + = la casa ganó
+  const playersNet = -houseNet;                  // cara opuesta
+
+  const text = `📊 <b>Resumen diario (24h)</b>
+
+👥 Conexiones: <b>${s.connections}</b> (${s.connectedUsers} usuarios)
+🟢 Activos (jugaron/reclamaron): <b>${s.activeUsers}</b>
+👤 Nuevos registros: <b>${s.newUsers}</b>
+
+🎰 <b>HI-LO</b>: ${s.hiLoBets} apuestas · apostado ${s.hiLoBetPoints.toLocaleString()} · pagado ${s.hiLoPayoutPoints.toLocaleString()} → casa ${fmtNet(hiLoHouse)}
+🔮 <b>Predicciones</b>: ${s.predBets} apuestas · apostado ${s.predBetPoints.toLocaleString()} · pagado ${s.predPayoutPoints.toLocaleString()} → casa ${fmtNet(predHouse)}
+🚰 Faucet: ${s.faucetClaims} reclamos (${s.faucetPoints.toLocaleString()} pts)
+
+🏦 <b>Casa hoy: ${fmtNet(houseNet)} pts</b>  ${houseNet >= 0 ? "🟢" : "🔴"}
+🧑‍🤝‍🧑 Jugadores hoy: ${fmtNet(playersNet)} pts
+
+💸 Retiros solicitados: ${s.withdrawalRequests}
+💰 Depósitos: ${s.depositCount}`;
 
   return await sendTelegramMessage(text, "info");
+}
+
+/** Pulso ligero cada X horas: señal de que la app respira. */
+export async function sendActivityPulse(stats: {
+  windowHours: number;
+  connections: number;
+  connectedUsers: number;
+  bets: number;
+  faucetClaims: number;
+}) {
+  const dead = stats.connections === 0 && stats.bets === 0 && stats.faucetClaims === 0;
+  const text = `🫀 <b>Pulso (últimas ${stats.windowHours}h)</b>
+👥 ${stats.connections} conexiones (${stats.connectedUsers} usuarios)
+🎲 ${stats.bets} apuestas · 🚰 ${stats.faucetClaims} faucet${dead ? "\n\n⚠️ <i>Sin actividad en esta ventana.</i>" : ""}`;
+  return await sendTelegramMessage(text, dead ? "warning" : "info");
+}
+
+/** Dead-man's-switch: 24h sin NINGUNA actividad → posible caída de la app. */
+export async function sendNoActivityAlert() {
+  return await sendTelegramMessage(
+    `🚨 <b>24h SIN ACTIVIDAD</b>\nNi conexiones, ni apuestas, ni faucet en las últimas 24h.\nRevisa que la app esté arriba y funcionando.`,
+    "critical"
+  );
 }
 
 function maskEmail(email: string): string {

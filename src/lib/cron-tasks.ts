@@ -23,7 +23,7 @@ import { getDepositKeypair } from "@/lib/deposit-wallet";
 import { BOLIS_MINT } from "@/lib/config";
 import { alertDepositDetected, alertWithdrawalRequest, alertWithdrawalCompleted } from "@/lib/telegram";
 import { getSetting } from "@/lib/site-settings";
-import { sendDailySummary, sendTelegramMessage } from "@/lib/telegram";
+import { sendDailySummary, sendTelegramMessage, sendActivityPulse, sendNoActivityAlert } from "@/lib/telegram";
 import { sendBolisToWallet } from "@/lib/solana";
 import { POINTS_PER_BOLIS } from "@/lib/config";
 
@@ -295,7 +295,6 @@ export async function awardPrizes() {
 
 export async function runDailySummary() {
   if (SHOULD_SKIP_CRON) return { ok: true, message: "Skipped in build" };
-  console.log("CRON: Iniciando runDailySummary...");
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   const now = new Date();
   const yesterday = new Date(now);
@@ -303,49 +302,96 @@ export async function runDailySummary() {
   yesterday.setHours(0, 0, 0, 0);
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
+  const from = yesterday.toISOString();
+  const to = todayStart.toISOString();
+  const dayKey = yesterday.toISOString().slice(0, 10);
+
+  // Idempotencia: no reenviar el resumen del mismo día (el tick horario puede
+  // golpear más de una vez la hora objetivo).
+  const { data: lastRow } = await supabase.from("site_settings").select("value").eq("key", "LAST_DAILY_SUMMARY_DATE").maybeSingle();
+  const lastVal = lastRow?.value != null ? String(lastRow.value).replace(/"/g, "") : null;
+  if (lastVal === dayKey) return { ok: true, message: "Resumen del día ya enviado" };
 
   try {
-    console.log("CRON: Consultando estadísticas del periodo:", yesterday.toISOString(), "al", todayStart.toISOString());
-    const [newUsersRes, activeUsersRes, betsRes, faucetRes, withdrawalsRes, depositsRes, revenueRes, costRes] = await Promise.all([
-      supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", yesterday.toISOString()).lt("created_at", todayStart.toISOString()),
-      supabase.from("movements").select("user_id").gte("created_at", yesterday.toISOString()).lt("created_at", todayStart.toISOString()),
-      supabase.from("movements").select("id", { count: "exact", head: true }).in("type", ["apuesta_hi_lo", "apuesta_prediccion"]).gte("created_at", yesterday.toISOString()).lt("created_at", todayStart.toISOString()),
-      supabase.from("movements").select("id", { count: "exact", head: true }).eq("type", "faucet").gte("created_at", yesterday.toISOString()).lt("created_at", todayStart.toISOString()),
-      supabase.from("movements").select("id", { count: "exact", head: true }).eq("type", "retiro_bolis").gte("created_at", yesterday.toISOString()).lt("created_at", todayStart.toISOString()),
-      supabase.from("movements").select("id", { count: "exact", head: true }).eq("type", "deposito_bolis").gte("created_at", yesterday.toISOString()).lt("created_at", todayStart.toISOString()),
-      supabase.from("movements").select("points").in("type", ["apuesta_hi_lo", "apuesta_prediccion"]).gte("created_at", yesterday.toISOString()).lt("created_at", todayStart.toISOString()),
-      supabase.from("movements").select("points, type").in("type", ["faucet", "premio_hi_lo", "premio_prediccion", "comision_afiliado", "logro", "recompensa", "bonus_referido_verificado", "premio_ranking"]).gte("created_at", yesterday.toISOString()).lt("created_at", todayStart.toISOString()),
+    const mov = (type: string) => supabase.from("movements").select("points").eq("type", type).gte("created_at", from).lt("created_at", to);
+    const [
+      newUsersRes, activeUsersRes,
+      hiloBetRes, hiloWinRes, predBetRes, predWinRes, faucetRes,
+      withdrawalsRes, depositsRes,
+    ] = await Promise.all([
+      supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", from).lt("created_at", to),
+      supabase.from("movements").select("user_id").gte("created_at", from).lt("created_at", to),
+      mov("apuesta_hi_lo"), mov("premio_hi_lo"),
+      mov("apuesta_prediccion"), mov("premio_prediccion"),
+      mov("faucet"),
+      supabase.from("movements").select("id", { count: "exact", head: true }).eq("type", "retiro_bolis").gte("created_at", from).lt("created_at", to),
+      supabase.from("movements").select("id", { count: "exact", head: true }).eq("type", "deposito_bolis").gte("created_at", from).lt("created_at", to),
     ]);
 
-    const errors = [newUsersRes, activeUsersRes, betsRes, faucetRes, withdrawalsRes, depositsRes, revenueRes, costRes].filter(r => r.error);
-    if (errors.length > 0) {
-      console.error("CRON ERROR: Fallo en consultas Supabase", errors[0].error);
-      return { ok: false, error: "Error en consultas de base de datos" };
-    }
+    // Conexiones (analytics_events) — defensivo: la tabla podría no existir.
+    let connections = 0, connectedUsers = 0;
+    try {
+      const { data: ev } = await supabase.from("analytics_events").select("user_id").gte("created_at", from).lt("created_at", to);
+      connections = (ev ?? []).length;
+      connectedUsers = new Set((ev ?? []).map((e: any) => e.user_id).filter(Boolean)).size;
+    } catch { /* tabla ausente */ }
 
-    const uniqueActiveUsers = new Set((activeUsersRes.data ?? []).map((m: any) => m.user_id)).size;
-    const revenue = (revenueRes.data ?? []).reduce((s, m) => s + Math.abs(Number(m.points) || 0), 0);
-    const costs = (costRes.data ?? []).reduce((s, m) => s + (Number(m.points) || 0), 0);
-    const platformBalance = revenue - costs;
+    const sumAbs = (r: any) => (r?.data ?? []).reduce((s: number, m: any) => s + Math.abs(Number(m.points) || 0), 0);
+    const cnt = (r: any) => (r?.data ?? []).length;
 
-    console.log("CRON: Enviando resumen a Telegram...");
-    const sent = await sendDailySummary({ 
-        newUsers: newUsersRes.count ?? 0, 
-        activeUsers: uniqueActiveUsers, 
-        totalBets: betsRes.count ?? 0, 
-        totalFaucetClaims: faucetRes.count ?? 0, 
-        withdrawalRequests: withdrawalsRes.count ?? 0, 
-        depositCount: depositsRes.count ?? 0, 
-        platformBalance 
-    });
+    const stats = {
+      connections, connectedUsers,
+      activeUsers: new Set((activeUsersRes.data ?? []).map((m: any) => m.user_id)).size,
+      newUsers: newUsersRes.count ?? 0,
+      hiLoBets: cnt(hiloBetRes), hiLoBetPoints: sumAbs(hiloBetRes), hiLoPayoutPoints: sumAbs(hiloWinRes),
+      predBets: cnt(predBetRes), predBetPoints: sumAbs(predBetRes), predPayoutPoints: sumAbs(predWinRes),
+      faucetClaims: cnt(faucetRes), faucetPoints: sumAbs(faucetRes),
+      withdrawalRequests: withdrawalsRes.count ?? 0,
+      depositCount: depositsRes.count ?? 0,
+    };
 
-    return { ok: sent, message: sent ? "Resumen enviado" : "Fallo al enviar a Telegram" };
+    // Dead-man's-switch: 24h sin NINGUNA actividad → posible caída de la app.
+    const noActivity = connections === 0 && stats.activeUsers === 0 && stats.hiLoBets === 0 && stats.predBets === 0 && stats.faucetClaims === 0;
+    const sent = noActivity ? await sendNoActivityAlert() : await sendDailySummary(stats);
+
+    // Marcar el día como enviado (idempotencia).
+    await supabase.from("site_settings").upsert({ key: "LAST_DAILY_SUMMARY_DATE", value: JSON.stringify(dayKey) }, { onConflict: "key" });
+
+    return { ok: sent, noActivity, stats };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     console.error("CRON EXCEPTION:", err);
     await sendTelegramMessage(`❌ Error en resumen diario: ${msg}`, "critical");
     return { ok: false, error: msg };
   }
+}
+
+/** Pulso ligero cada X horas (lo dispara el tick horario de GitHub Actions). */
+export async function runActivityPulse(windowHours = 6) {
+  if (SHOULD_SKIP_CRON) return { ok: true, skipped: true };
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const from = new Date(Date.now() - windowHours * 3600 * 1000).toISOString();
+
+  let connections = 0, connectedUsers = 0;
+  try {
+    const { data: ev } = await supabase.from("analytics_events").select("user_id").gte("created_at", from);
+    connections = (ev ?? []).length;
+    connectedUsers = new Set((ev ?? []).map((e: any) => e.user_id).filter(Boolean)).size;
+  } catch { /* tabla ausente */ }
+
+  const [{ data: bets }, { data: fauc }] = await Promise.all([
+    supabase.from("movements").select("id").in("type", ["apuesta_hi_lo", "apuesta_prediccion"]).gte("created_at", from),
+    supabase.from("movements").select("id").eq("type", "faucet").gte("created_at", from),
+  ]);
+
+  const sent = await sendActivityPulse({
+    windowHours,
+    connections,
+    connectedUsers,
+    bets: (bets ?? []).length,
+    faucetClaims: (fauc ?? []).length,
+  });
+  return { ok: sent };
 }
 
 // --- WITHDRAWALS ---
