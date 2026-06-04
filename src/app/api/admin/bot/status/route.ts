@@ -31,5 +31,11 @@ export async function GET() {
       };
   }
 
-  return NextResponse.json({ settings, wallets, stats: finalStats, recent_trades });
+  // No exponer las claves privadas (cifradas o no) en la respuesta del panel.
+  const safeWallets = (wallets ?? []).map((w: Record<string, unknown>) => {
+    const { private_key, ...rest } = w;
+    return rest;
+  });
+
+  return NextResponse.json({ settings, wallets: safeWallets, stats: finalStats, recent_trades });
 }

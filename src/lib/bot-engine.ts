@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import bs58 from "bs58";
 import { getSetting } from "./site-settings";
+import { encryptPrivateKey } from "./deposit-wallet";
 
 const RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 
@@ -12,7 +13,10 @@ export async function generateBotWallet(description: string = "Bot Auto-Generate
   const supabase = createAdminClient();
   const kp = Keypair.generate();
   const publicKey = kp.publicKey.toBase58();
-  const privateKey = bs58.encode(kp.secretKey);
+  // SEGURIDAD: cifrar la clave privada en reposo (AES-256-GCM), igual que las
+  // wallets de depósito. Nada en el bot la descifra para firmar (el swap usa la
+  // clave del entorno), así que cifrarla no afecta la operación.
+  const privateKey = encryptPrivateKey(bs58.encode(kp.secretKey));
 
     const { data, error } = await supabase
     .from("bot_wallets")
