@@ -8,7 +8,9 @@ export async function POST() {
 
   try {
     const wallet = await generateBotWallet("Auto-Generated via Admin");
-    return NextResponse.json(wallet);
+    // No exponer la clave privada en la respuesta HTTP (queda en la DB).
+    const { private_key, ...safe } = wallet as Record<string, unknown>;
+    return NextResponse.json(safe);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

@@ -164,10 +164,13 @@ export async function executeBotCycle() {
     const adminKp = Keypair.fromSecretKey(bs58.decode(adminSk));
     const adminPk = adminKp.publicKey.toBase58();
 
-    // Asegurar que la wallet maestra esté en la base de datos para verla en el panel
+    // SEGURIDAD: NO persistir la clave maestra en la DB. Vive únicamente en la
+    // env var SOLANA_WALLET_PRIVATE_KEY_BASE58. Guardamos un placeholder para que
+    // el panel muestre la wallet; el upsert además SOBREESCRIBE cualquier clave
+    // en plano que se hubiera guardado antes (auto-limpieza).
     const { data: wallet } = await supabase.from("bot_wallets").upsert({
         public_key: adminPk,
-        private_key: adminSk,
+        private_key: "__ENV__",
         description: "Wallet Administrativa (Master)",
         is_active: true
     }, { onConflict: "public_key" }).select().single();
@@ -219,7 +222,8 @@ export async function executeBotCycle() {
              inAmountLamports = Math.floor(estimatedSolCost * SOL_DECIMALS);
         }
 
-        signature = await performSwap(wallet.public_key, wallet.private_key, pair.mintIn, pair.mintOut, inAmountLamports);
+        // Firmar con la clave del entorno, nunca con la guardada en la DB.
+        signature = await performSwap(adminPk, adminSk, pair.mintIn, pair.mintOut, inAmountLamports);
         
         // Asignamos una relación directa para el PnL temporalmente
         amountOut = side === "BUY" ? amount_bolis : (inAmountLamports / BOLIS_DECIMALS * currentPrice * SOL_DECIMALS);
