@@ -3,6 +3,8 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { getCurrentUserId } from "@/lib/current-user";
 import { getUserLevel } from "@/lib/levels";
 import { getSetting } from "@/lib/site-settings";
+import { rateLimit } from "@/lib/rate-limit";
+import { getRequestIp } from "@/lib/ip";
 
 interface LeaderboardEntry {
   rank: number;
@@ -22,50 +24,76 @@ const supabaseAdmin = createSupabaseClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Caché en memoria de la agregación pesada (escaneo de movements) por periodo.
+// Evita re-escanear hasta 50k filas en cada request a un endpoint público.
+type LbAgg = { sorted: [string, number][]; totalPlayers: number };
+const lbCache = new Map<string, { at: number; agg: LbAgg }>();
+const LB_TTL_MS = 30_000;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const period = searchParams.get("period") || "all";
 
   const supabase = supabaseAdmin;
+
+  // Rate-limit por IP: endpoint público y costoso. Generoso para no afectar el
+  // polling legítimo del cliente, pero corta floods.
+  const ip = await getRequestIp();
+  const { allowed } = rateLimit(`leaderboard:${ip}`, 30, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Demasiadas solicitudes. Espera un momento." }, { status: 429 });
+  }
+
   const currentUserId = await getCurrentUserId();
 
-  let dateFilter: string | null = null;
-  const now = new Date();
-  // Use UTC so day/week/month are consistent on Vercel (server in UTC)
-  if (period === "day") {
-    dateFilter = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
-  } else if (period === "week") {
-    const d = new Date(now);
-    const day = d.getUTCDay();
-    const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
-    d.setUTCDate(diff);
-    d.setUTCHours(0, 0, 0, 0);
-    dateFilter = d.toISOString();
-  } else if (period === "month") {
-    dateFilter = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+  // --- Agregación pesada con caché por periodo (TTL 30s) ---
+  const cached = lbCache.get(period);
+  let agg: LbAgg;
+  if (cached && Date.now() - cached.at < LB_TTL_MS) {
+    agg = cached.agg;
+  } else {
+    let dateFilter: string | null = null;
+    const now = new Date();
+    // Use UTC so day/week/month are consistent on Vercel (server in UTC)
+    if (period === "day") {
+      dateFilter = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
+    } else if (period === "week") {
+      const d = new Date(now);
+      const day = d.getUTCDay();
+      const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
+      d.setUTCDate(diff);
+      d.setUTCHours(0, 0, 0, 0);
+      dateFilter = d.toISOString();
+    } else if (period === "month") {
+      dateFilter = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+    }
+
+    const rankingTypes = ["faucet", "apuesta_hi_lo", "apuesta_prediccion", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado", "premio_ranking"];
+
+    let movQuery = supabase
+      .from("movements")
+      .select("user_id, points, type")
+      .in("type", rankingTypes);
+
+    if (dateFilter) {
+      movQuery = movQuery.gte("created_at", dateFilter);
+    }
+
+    const { data: movements } = await movQuery.limit(50000);
+
+    const earnings: Record<string, number> = {};
+    (movements ?? []).forEach((m) => {
+      const pts = Math.abs(Number(m.points) || 0);
+      earnings[m.user_id] = (earnings[m.user_id] ?? 0) + pts;
+    });
+
+    const sortedAgg = Object.entries(earnings).sort((a, b) => b[1] - a[1]);
+    agg = { sorted: sortedAgg, totalPlayers: sortedAgg.length };
+    lbCache.set(period, { at: Date.now(), agg });
   }
 
-  const rankingTypes = ["faucet", "apuesta_hi_lo", "apuesta_prediccion", "logro", "recompensa", "comision_afiliado", "bonus_referido_verificado", "premio_ranking"];
-
-  let movQuery = supabase
-    .from("movements")
-    .select("user_id, points, type")
-    .in("type", rankingTypes);
-
-  if (dateFilter) {
-    movQuery = movQuery.gte("created_at", dateFilter);
-  }
-
-  const { data: movements } = await movQuery.limit(50000);
-
-  const earningsByUser: Record<string, number> = {};
-  (movements ?? []).forEach((m) => {
-    const pts = Math.abs(Number(m.points) || 0);
-    earningsByUser[m.user_id] = (earningsByUser[m.user_id] ?? 0) + pts;
-  });
-
-  const sorted = Object.entries(earningsByUser)
-    .sort((a, b) => b[1] - a[1]);
+  const sorted = agg.sorted;
+  const earningsByUser: Record<string, number> = Object.fromEntries(sorted);
 
   const topIds = sorted.slice(0, 10).map(([id]) => id);
 
@@ -112,8 +140,10 @@ export async function GET(request: Request) {
     const referralCount = refCountMap[userId] ?? 0;
     const level = getUserLevel({ betCount, faucetClaims, predictionCount: 0, daysSinceJoined: 0, emailVerified: p.emailVerified });
     return {
+      // No exponemos el UUID real de perfiles ajenos: el cliente solo lo usa
+      // como key de React. Enviamos una clave estable basada en el rango.
       rank: rank + 1,
-      userId,
+      userId: `lb-${rank + 1}`,
       name: p.name,
       totalEarned: earningsByUser[userId] ?? 0,
       betCount,
