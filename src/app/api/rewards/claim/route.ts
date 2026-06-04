@@ -183,22 +183,37 @@ export async function POST(request: Request) {
   const eligible = await achievement.check(userId, supabase);
   if (!eligible) return NextResponse.json({ error: "Aún no cumples el requisito" }, { status: 403 });
 
-  await supabase.from("user_rewards").insert({
+  // Guardia atómico anti-doble-claim: la constraint UNIQUE(user_id,
+  // reward_template_id) garantiza un único reclamo aunque lleguen requests
+  // concurrentes. Insertamos ANTES de acreditar; si choca (23505) ya estaba
+  // reclamado.
+  const { error: claimErr } = await supabase.from("user_rewards").insert({
     user_id: userId,
     reward_template_id: template.id,
   });
+  if (claimErr) {
+    if (claimErr.code === "23505") {
+      return NextResponse.json({ error: "Ya reclamaste este logro" }, { status: 409 });
+    }
+    console.error("[rewards/claim] user_rewards insert:", claimErr.message);
+    return NextResponse.json({ error: "No se pudo registrar el logro." }, { status: 500 });
+  }
 
-  const { data: bal } = await supabase
-    .from("balances")
-    .select("points")
-    .eq("user_id", userId)
-    .single();
+  // Acreditar de forma ATÓMICA (incremento, no escritura absoluta). Evita la
+  // race con apuestas/retiros concurrentes que permitía borrar débitos.
+  const { data: addData, error: addError } = await supabase.rpc("atomic_add_points", {
+    target_user_id: userId,
+    amount_to_add: Number(template.points_reward),
+  });
+  if (addError || !addData?.[0]?.success) {
+    // Revertir el claim para que el usuario pueda reintentar.
+    await supabase.from("user_rewards").delete()
+      .eq("user_id", userId)
+      .eq("reward_template_id", template.id);
+    return NextResponse.json({ error: "Error al acreditar el logro. Intenta de nuevo." }, { status: 500 });
+  }
+  const newPoints = Number(addData[0].result_balance);
 
-  const newPoints = Number(bal?.points ?? 0) + Number(template.points_reward);
-  await supabase.from("balances").upsert(
-    { user_id: userId, points: newPoints, updated_at: new Date().toISOString() },
-    { onConflict: "user_id" }
-  );
   await supabase.from("movements").insert({
     user_id: userId,
     type: "logro",
@@ -207,7 +222,7 @@ export async function POST(request: Request) {
     metadata: { achievement: template.code },
   });
 
-  // --- Affiliate commission on achievement ---
+  // --- Affiliate commission on achievement (también atómico) ---
   const achPercent = await getSetting<number>("AFFILIATE_ACHIEVEMENT_PERCENT", AFFILIATE_ACHIEVEMENT_PERCENT);
   if (achPercent > 0) {
     const { data: ref } = await supabase
@@ -218,16 +233,10 @@ export async function POST(request: Request) {
     if (ref?.referrer_id) {
       const commission = Math.floor((Number(template.points_reward) * achPercent) / 100);
       if (commission > 0) {
-        const { data: refBal } = await supabase
-          .from("balances")
-          .select("points")
-          .eq("user_id", ref.referrer_id)
-          .single();
-        const refNew = Number(refBal?.points ?? 0) + commission;
-        await supabase.from("balances").upsert(
-          { user_id: ref.referrer_id, points: refNew, updated_at: new Date().toISOString() },
-          { onConflict: "user_id" }
-        );
+        await supabase.rpc("atomic_add_points", {
+          target_user_id: ref.referrer_id,
+          amount_to_add: commission,
+        });
         await supabase.from("movements").insert({
           user_id: ref.referrer_id,
           type: "comision_afiliado",
