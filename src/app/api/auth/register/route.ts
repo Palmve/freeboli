@@ -11,6 +11,7 @@ import { getRequestIpHash } from "@/lib/ip";
 import { generateCaptcha, verifyCaptcha } from "@/lib/captcha";
 import { canonicalizeEmail } from "@/lib/email-normalize";
 import { logSecurityEvent } from "@/lib/security";
+import { isTurnstileEnabled, verifyTurnstile } from "@/lib/turnstile";
 
 function getIpFromHeaders(h: Headers): string {
   const forwarded = h.get("x-forwarded-for");
@@ -47,10 +48,19 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const { email, password, referrerCode, _hp, _ts, captchaAnswer, captchaToken } = body;
+  const { email, password, referrerCode, _hp, _ts, captchaAnswer, captchaToken, turnstileToken } = body;
 
   if (_hp) {
     return NextResponse.json({ ok: true, userId: "ok" });
+  }
+
+  // Anti-bot fuerte (Cloudflare Turnstile). Dormido si no hay clave configurada.
+  const turnstileOn = isTurnstileEnabled();
+  if (turnstileOn) {
+    const ts = await verifyTurnstile(turnstileToken, ip);
+    if (!ts.ok) {
+      return NextResponse.json({ error: ts.reason || "Verificación anti-bot fallida." }, { status: 403 });
+    }
   }
 
   const supabase = await createClient();
@@ -76,8 +86,8 @@ export async function POST(req: Request) {
   const userDomain = email.split("@")[1]?.toLowerCase().trim();
   const isTrustedDomain = trustedDomains.includes(userDomain);
 
-  if (requireCaptcha === 1) {
-    // Solo forzamos CAPTCHA si:
+  if (!turnstileOn && requireCaptcha === 1) {
+    // Solo forzamos CAPTCHA matemático si Turnstile NO está activo. Si:
     // 1. El dominio NO es confiable.
     // 2. O si el usuario YA envió un intento (captchaToken presente).
     // 3. O si la IP ya tiene cuentas asociadas (aunque no estén baneadas, para evitar bots).
