@@ -110,6 +110,7 @@ export const authOptions: NextAuthOptions = {
             .from("profiles")
             .insert({
               email: user.email,
+              email_canonical: (await import("@/lib/email-normalize")).canonicalizeEmail(user.email),
               name: user.name ?? user.email,
               image: (user as any).image ?? null,
               public_id: publicId,

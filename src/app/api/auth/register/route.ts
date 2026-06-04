@@ -9,6 +9,7 @@ import { alertNewUser } from "@/lib/telegram";
 import { getSetting } from "@/lib/site-settings";
 import { getRequestIpHash } from "@/lib/ip";
 import { generateCaptcha, verifyCaptcha } from "@/lib/captcha";
+import { canonicalizeEmail } from "@/lib/email-normalize";
 
 function getIpFromHeaders(h: Headers): string {
   const forwarded = h.get("x-forwarded-for");
@@ -149,14 +150,31 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+  const normalizedEmail = email.toLowerCase().trim();
+  const emailCanonical = canonicalizeEmail(normalizedEmail);
+
   const { data: existing } = await supabase
     .from("profiles")
     .select("id")
-    .eq("email", email.toLowerCase().trim())
+    .eq("email", normalizedEmail)
     .single();
   if (existing) {
     return NextResponse.json(
       { error: "Ya existe una cuenta con ese correo." },
+      { status: 409 }
+    );
+  }
+
+  // Anti-Sybil: bloquear alias de la misma bandeja (gmail +tag / puntos, etc.)
+  const { data: canonicalDup } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("email_canonical", emailCanonical)
+    .limit(1)
+    .maybeSingle();
+  if (canonicalDup) {
+    return NextResponse.json(
+      { error: "Ya existe una cuenta asociada a esa bandeja de correo." },
       { status: 409 }
     );
   }
@@ -198,7 +216,8 @@ export async function POST(req: Request) {
   const { data: inserted, error } = await supabase
     .from("profiles")
     .insert({
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
+      email_canonical: emailCanonical,
       name: email.split("@")[0],
       password_hash,
       referrer_id: referrerId,
