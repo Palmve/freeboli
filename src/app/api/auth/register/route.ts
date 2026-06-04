@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     .from("session_ips")
     .select("user_id, profiles!inner(status)")
     .eq("ip_hash", ipHash)
-    .in("profiles.status", ["suspended", "blocked"]);
+    .in("profiles.status", ["suspendido", "bloqueado"]);
 
   if (bannedIps && bannedIps.length > 0) {
     console.warn(`[Security] Intento de registro bloqueado por IP BAN para ${email} (IP Hash: ${ipHash})`);
@@ -206,6 +206,7 @@ export async function POST(req: Request) {
       referral_code: String(publicId),
       terms_accepted_at: new Date().toISOString(),
       last_ip: ip,
+      registration_ip: ip,
     })
     .select("id")
     .single();
