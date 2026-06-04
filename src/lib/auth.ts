@@ -1,6 +1,7 @@
 import type { Session } from "next-auth";
 
 import { cookies } from "next/headers";
+import { deviceTrustCookieName, verifyDeviceTrustValue } from "./device-trust";
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
   .split(",")
@@ -40,9 +41,9 @@ export function isDeviceTrusted(session: Session | null): boolean {
   if (!userId) return false;
 
   const cookieStore = cookies();
-  const deviceCookie = cookieStore.get(`freeboli_device_trusted_${userId.slice(0, 8)}`);
-  
-  return deviceCookie?.value === "true";
+  const deviceCookie = cookieStore.get(deviceTrustCookieName(userId));
+
+  return verifyDeviceTrustValue(userId, deviceCookie?.value);
 }
 
 export interface StaffPermissions {

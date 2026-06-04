@@ -14,10 +14,11 @@ export default async function AdminLayout({
   const user = await getCurrentUser();
   if (!user || !user.isAdmin) redirect("/auth/login");
 
-  // Device Fingerprinting Check - User Specific
+  // Device Fingerprinting Check - User Specific (cookie firmada con HMAC)
+  const { deviceTrustCookieName, verifyDeviceTrustValue } = await import("@/lib/device-trust");
   const cookieStore = cookies();
-  const trustCookie = cookieStore.get(`freeboli_device_trusted_${user.id.slice(0, 8)}`)?.value;
-  const isTrustedDevice = trustCookie === "true";
+  const trustCookie = cookieStore.get(deviceTrustCookieName(user.id))?.value;
+  const isTrustedDevice = verifyDeviceTrustValue(user.id, trustCookie);
 
   if (!isTrustedDevice) {
     return (
