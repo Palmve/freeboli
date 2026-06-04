@@ -70,7 +70,8 @@ export async function POST(req: Request) {
 
   // 2. Insertamos la galleta de reconocimiento de dispositivo (30 Días)
   const isProd = process.env.NODE_ENV === "production";
-  cookies().set(`freeboli_device_trusted_${user.id.slice(0, 8)}`, "true", {
+  const { deviceTrustCookieName, deviceTrustToken } = await import("@/lib/device-trust");
+  cookies().set(deviceTrustCookieName(user.id), deviceTrustToken(user.id), {
     path: "/",
     httpOnly: true,
     secure: isProd,

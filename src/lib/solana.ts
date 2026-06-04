@@ -125,11 +125,16 @@ export async function verifyIncomingBolisTransfer(
   txSignature: string,
   expectedDestinationWallet: string
 ): Promise<{ amount: number; memo?: string } | null> {
-  const conn = new Connection(RPC);
+  const conn = new Connection(RPC, "finalized");
+  // Exigir commitment "finalized": evita acreditar una tx que aún podría
+  // revertirse en un re-org (confirmed -> finalized).
   const tx = await conn.getParsedTransaction(txSignature, {
     maxSupportedTransactionVersion: 0,
+    commitment: "finalized",
   });
   if (!tx?.meta) return null;
+  // Tx fallida on-chain: no acreditar (defensa explícita además del delta=0).
+  if (tx.meta.err) return null;
   const destPubkey = new PublicKey(expectedDestinationWallet);
   let amount = 0;
   const pre = tx.meta.preTokenBalances ?? [];
