@@ -10,6 +10,7 @@ import { getSetting } from "@/lib/site-settings";
 import { getRequestIpHash } from "@/lib/ip";
 import { generateCaptcha, verifyCaptcha } from "@/lib/captcha";
 import { canonicalizeEmail } from "@/lib/email-normalize";
+import { logSecurityEvent } from "@/lib/security";
 
 function getIpFromHeaders(h: Headers): string {
   const forwarded = h.get("x-forwarded-for");
@@ -179,28 +180,36 @@ export async function POST(req: Request) {
     );
   }
   let referrerId: string | null = null;
+  let referrerRegIp: string | null = null;
   if (referrerCode && typeof referrerCode === "string") {
     const code = referrerCode.trim();
     const isUuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(code);
     if (isUuidLike) {
       const { data: ref } = await supabase
         .from("profiles")
-        .select("id")
+        .select("id, registration_ip")
         .eq("id", code)
         .single();
       referrerId = ref?.id ?? null;
+      referrerRegIp = ref?.registration_ip ?? null;
     } else {
       const num = Number(code);
       if (Number.isInteger(num)) {
         const { data: ref } = await supabase
           .from("profiles")
-          .select("id")
+          .select("id, registration_ip")
           .eq("public_id", num)
           .single();
         referrerId = ref?.id ?? null;
+        referrerRegIp = ref?.registration_ip ?? null;
       }
     }
   }
+
+  // Anti-Sybil: alta que usa el enlace de un referente con la MISMA IP de alta.
+  // No se bloquea (NAT/hogares comparten IP), pero se marca a 'evaluar' y se
+  // registra evento para revisión del admin.
+  const sameIpReferral = !!(referrerId && referrerRegIp && ip !== "unknown" && referrerRegIp === ip);
   const password_hash = hashPassword(password);
   // Generate unique 6-digit public_id (retry on conflicts)
   let publicId: number | null = null;
@@ -226,6 +235,7 @@ export async function POST(req: Request) {
       terms_accepted_at: new Date().toISOString(),
       last_ip: ip,
       registration_ip: ip,
+      status: sameIpReferral ? "evaluar" : "normal",
     })
     .select("id")
     .single();
@@ -248,6 +258,16 @@ export async function POST(req: Request) {
       referrer_id: referrerId,
       referred_id: inserted.id,
     });
+  }
+
+  if (sameIpReferral) {
+    await logSecurityEvent({
+      eventType: "sybil_same_ip_referral_signup",
+      userId: inserted.id,
+      ipHash,
+      details: { referrerId, note: "Alta vía referido con misma IP de registro" },
+      severity: "high",
+    }).catch(() => {});
   }
 
   await alertNewUser(email, !!referrerId);
