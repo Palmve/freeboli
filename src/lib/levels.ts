@@ -232,77 +232,82 @@ export async function fetchUserLevel(
  * Verifica si el usuario ha subido de nivel y envía una notificación por correo 
  */
 export async function checkAndNotifyLevelUp(supabase: any, userId: string, email: string, name?: string) {
-  const { data: p } = await supabase.from("profiles").select("last_notified_level").eq("id", userId).single();
   const activeLevels = await fetchActiveLevels(supabase);
   const currentLevel = await fetchUserLevel(supabase, userId, activeLevels);
-  const lastLevel = p?.last_notified_level ?? 1;
 
-  if (currentLevel.level > lastLevel) {
-    const { sendEmailViaResend } = await import("./resend");
-    const { getLevelUpEmail } = await import("./mail-templates");
+  // GUARD ATÓMICO EXACTLY-ONCE: solo UNA llamada logra elevar last_notified_level.
+  // El UPDATE condicional (last_notified_level < nivel) es atómico en la DB, así
+  // que cierra (a) la race entre acciones concurrentes en el umbral y (b) la
+  // re-acreditación si fallaba el email (antes el guard se ponía DESPUÉS del email).
+  const { data: bumped } = await supabase
+    .from("profiles")
+    .update({ last_notified_level: currentLevel.level })
+    .eq("id", userId)
+    .or(`last_notified_level.is.null,last_notified_level.lt.${currentLevel.level}`)
+    .select("id");
 
-    const benefitsMap: string[] = [
-      `Límite de apuesta aumentado a <strong>${currentLevel.benefits.maxBetPoints.toLocaleString()}</strong> puntos.`,
-      `Límite de retiro aumentado a <strong>${currentLevel.benefits.maxWithdrawBolis} BOLIS</strong>.`
-    ];
+  // Si no se actualizó ninguna fila: no hubo subida real, o ya lo procesó otra
+  // llamada concurrente. En ambos casos no acreditamos ni notificamos.
+  if (!bumped || bumped.length === 0) return;
 
-    if (currentLevel.level >= 4) { // Veterano+
-      benefitsMap.push("Acceso prioritario a nuevas funciones de casino.");
-    }
+  const benefitsMap: string[] = [
+    `Límite de apuesta aumentado a <strong>${currentLevel.benefits.maxBetPoints.toLocaleString()}</strong> puntos.`,
+    `Límite de retiro aumentado a <strong>${currentLevel.benefits.maxWithdrawBolis} BOLIS</strong>.`
+  ];
 
-    // Acreditar recompensa en puntos si existe
-    if (currentLevel.rewardPoints > 0) {
-        try {
-            await supabase.rpc("atomic_add_points", {
-                target_user_id: userId,
-                amount_to_add: currentLevel.rewardPoints
-            });
+  if (currentLevel.level >= 4) { // Veterano+
+    benefitsMap.push("Acceso prioritario a nuevas funciones de casino.");
+  }
 
-            await supabase.from("movements").insert({
-                user_id: userId,
-                type: "recompensa",
-                points: currentLevel.rewardPoints,
-                reference: `level_up_${currentLevel.level}`,
-                metadata: { level: currentLevel.level, levelName: currentLevel.name, source: "level_up_reward" }
-            });
-
-            benefitsMap.push(`Premio por ascenso: <strong>+${currentLevel.rewardPoints.toLocaleString()}</strong> puntos acreditados.`);
-        } catch (rewErr) {
-            console.error("[LevelUp] Error acreditando recompensa:", rewErr);
-        }
-    }
-
+  // Acreditar recompensa en puntos si existe (ahora exactly-once: el guard ya
+  // ganó arriba, así que esto se ejecuta una sola vez por subida de nivel).
+  if (currentLevel.rewardPoints > 0) {
     try {
-      const { getLevelCardEmail } = await import("./mail-templates");
-      const nextLvl = getNextLevel(currentLevel, activeLevels);
-
-      await sendEmailViaResend({
-        to: email,
-        subject: `${currentLevel.icon} ¡Subiste al nivel ${currentLevel.name} en FreeBoli!`,
-        html: getLevelCardEmail({
-          userName: name || email.split('@')[0],
-          levelLevel: currentLevel.level,
-          levelName: currentLevel.name,
-          levelIcon: currentLevel.icon,
-          xpPercent: nextLvl ? 5 : 100, // Al subir de nivel empezamos en el inicio del siguiente
-          maxBetPoints: currentLevel.benefits.maxBetPoints,
-          maxWithdrawBolis: currentLevel.benefits.maxWithdrawBolis,
-          rewardPoints: currentLevel.rewardPoints,
-          nextLevelName: nextLvl?.name,
-          nextLevelIcon: nextLvl?.icon,
-          benefits: benefitsMap,
-        })
+      await supabase.rpc("atomic_add_points", {
+        target_user_id: userId,
+        amount_to_add: currentLevel.rewardPoints
       });
 
-      // Actualizar el último nivel notificado para evitar correos duplicados
-      await supabase
-        .from("profiles")
-        .update({ last_notified_level: currentLevel.level })
-        .eq("id", userId);
-      
-      console.log(`[LevelUp] Email enviado a ${email} por subir al nivel ${currentLevel.level}`);
-    } catch (err) {
-      console.error("[LevelUp] Error enviando email:", err);
+      await supabase.from("movements").insert({
+        user_id: userId,
+        type: "recompensa",
+        points: currentLevel.rewardPoints,
+        reference: `level_up_${currentLevel.level}`,
+        metadata: { level: currentLevel.level, levelName: currentLevel.name, source: "level_up_reward" }
+      });
+
+      benefitsMap.push(`Premio por ascenso: <strong>+${currentLevel.rewardPoints.toLocaleString()}</strong> puntos acreditados.`);
+    } catch (rewErr) {
+      console.error("[LevelUp] Error acreditando recompensa:", rewErr);
     }
+  }
+
+  // Email al final: si falla, ya NO causa re-acreditación (el guard está puesto).
+  try {
+    const { sendEmailViaResend } = await import("./resend");
+    const { getLevelCardEmail } = await import("./mail-templates");
+    const nextLvl = getNextLevel(currentLevel, activeLevels);
+
+    await sendEmailViaResend({
+      to: email,
+      subject: `${currentLevel.icon} ¡Subiste al nivel ${currentLevel.name} en FreeBoli!`,
+      html: getLevelCardEmail({
+        userName: name || email.split('@')[0],
+        levelLevel: currentLevel.level,
+        levelName: currentLevel.name,
+        levelIcon: currentLevel.icon,
+        xpPercent: nextLvl ? 5 : 100,
+        maxBetPoints: currentLevel.benefits.maxBetPoints,
+        maxWithdrawBolis: currentLevel.benefits.maxWithdrawBolis,
+        rewardPoints: currentLevel.rewardPoints,
+        nextLevelName: nextLvl?.name,
+        nextLevelIcon: nextLvl?.icon,
+        benefits: benefitsMap,
+      })
+    });
+
+    console.log(`[LevelUp] Email enviado a ${email} por subir al nivel ${currentLevel.level}`);
+  } catch (err) {
+    console.error("[LevelUp] Error enviando email:", err);
   }
 }
