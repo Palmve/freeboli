@@ -33,8 +33,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
   }
 
-  // Validación de Email (Si no está logueado o proporciona uno)
-  const contactEmail = email || user?.email;
+  // Validación de Email. Si hay sesión, el correo de la sesión MANDA (evita que
+  // un usuario logueado abra tickets con el correo de otra persona). Solo los
+  // anónimos pueden indicar un correo de contacto en el body.
+  const sessionEmail = user?.email?.trim();
+  const contactEmail = sessionEmail || email;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!contactEmail || !emailRegex.test(contactEmail)) {
     return NextResponse.json({ error: "Correo electrónico inválido" }, { status: 400 });
