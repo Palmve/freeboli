@@ -7,10 +7,19 @@ export async function getRequestIpHash(): Promise<string> {
   return createHash("sha256").update(ip).digest("hex");
 }
 
-/** Obtiene la IP real del request. */
+/** Obtiene la IP real del request.
+ * Prioriza cabeceras que el proxy de confianza (Vercel) sobreescribe y que el
+ * cliente NO puede falsificar (x-vercel-forwarded-for, x-real-ip). Solo como
+ * último recurso usa el primer valor de x-forwarded-for, que es spoofable. */
 export async function getRequestIp(): Promise<string> {
   const h = await headers();
-  const forwarded = h.get("x-forwarded-for");
+  const vercel = h.get("x-vercel-forwarded-for");
   const real = h.get("x-real-ip");
-  return (forwarded?.split(",")[0]?.trim() || real || "unknown").trim();
+  const forwarded = h.get("x-forwarded-for");
+  return (
+    vercel?.split(",")[0]?.trim() ||
+    real?.trim() ||
+    forwarded?.split(",")[0]?.trim() ||
+    "unknown"
+  ).trim();
 }

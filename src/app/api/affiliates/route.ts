@@ -212,6 +212,18 @@ export async function POST(request: Request) {
 
   if (existing) return NextResponse.json({ error: "Ya reclamaste este bonus" }, { status: 409 });
 
+  // 3a. Anti-Sybil: si referente y referido se registraron desde la misma IP,
+  // es casi seguro la misma persona farmeando su propio enlace. Se bloquea y
+  // se registra evento de seguridad (logueado dentro de checkSameIPReferral).
+  const { checkSameIPReferral } = await import("@/lib/affiliate-guard");
+  const sameIp = await checkSameIPReferral(supabase, userId, referredId);
+  if (sameIp) {
+    return NextResponse.json(
+      { error: "Este referido no es elegible para bono (señal de autorreferencia detectada)." },
+      { status: 403 }
+    );
+  }
+
   // 3b. Anti-doble-pago: si ya se pagó un influencer_bounty por este referido, no pagar de nuevo
   const { data: influencerBountyPaid } = await supabase
     .from("movements")

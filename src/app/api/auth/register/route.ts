@@ -9,6 +9,9 @@ import { alertNewUser } from "@/lib/telegram";
 import { getSetting } from "@/lib/site-settings";
 import { getRequestIpHash } from "@/lib/ip";
 import { generateCaptcha, verifyCaptcha } from "@/lib/captcha";
+import { canonicalizeEmail } from "@/lib/email-normalize";
+import { logSecurityEvent } from "@/lib/security";
+import { isTurnstileEnabled, verifyTurnstile } from "@/lib/turnstile";
 
 function getIpFromHeaders(h: Headers): string {
   const forwarded = h.get("x-forwarded-for");
@@ -45,10 +48,19 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const { email, password, referrerCode, _hp, _ts, captchaAnswer, captchaToken } = body;
+  const { email, password, referrerCode, _hp, _ts, captchaAnswer, captchaToken, turnstileToken } = body;
 
   if (_hp) {
     return NextResponse.json({ ok: true, userId: "ok" });
+  }
+
+  // Anti-bot fuerte (Cloudflare Turnstile). Dormido si no hay clave configurada.
+  const turnstileOn = isTurnstileEnabled();
+  if (turnstileOn) {
+    const ts = await verifyTurnstile(turnstileToken, ip);
+    if (!ts.ok) {
+      return NextResponse.json({ error: ts.reason || "Verificación anti-bot fallida." }, { status: 403 });
+    }
   }
 
   const supabase = await createClient();
@@ -58,7 +70,7 @@ export async function POST(req: Request) {
     .from("session_ips")
     .select("user_id, profiles!inner(status)")
     .eq("ip_hash", ipHash)
-    .in("profiles.status", ["suspended", "blocked"]);
+    .in("profiles.status", ["suspendido", "bloqueado"]);
 
   if (bannedIps && bannedIps.length > 0) {
     console.warn(`[Security] Intento de registro bloqueado por IP BAN para ${email} (IP Hash: ${ipHash})`);
@@ -74,8 +86,8 @@ export async function POST(req: Request) {
   const userDomain = email.split("@")[1]?.toLowerCase().trim();
   const isTrustedDomain = trustedDomains.includes(userDomain);
 
-  if (requireCaptcha === 1) {
-    // Solo forzamos CAPTCHA si:
+  if (!turnstileOn && requireCaptcha === 1) {
+    // Solo forzamos CAPTCHA matemático si Turnstile NO está activo. Si:
     // 1. El dominio NO es confiable.
     // 2. O si el usuario YA envió un intento (captchaToken presente).
     // 3. O si la IP ya tiene cuentas asociadas (aunque no estén baneadas, para evitar bots).
@@ -149,10 +161,13 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+  const normalizedEmail = email.toLowerCase().trim();
+  const emailCanonical = canonicalizeEmail(normalizedEmail);
+
   const { data: existing } = await supabase
     .from("profiles")
     .select("id")
-    .eq("email", email.toLowerCase().trim())
+    .eq("email", normalizedEmail)
     .single();
   if (existing) {
     return NextResponse.json(
@@ -160,29 +175,51 @@ export async function POST(req: Request) {
       { status: 409 }
     );
   }
+
+  // Anti-Sybil: bloquear alias de la misma bandeja (gmail +tag / puntos, etc.)
+  const { data: canonicalDup } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("email_canonical", emailCanonical)
+    .limit(1)
+    .maybeSingle();
+  if (canonicalDup) {
+    return NextResponse.json(
+      { error: "Ya existe una cuenta asociada a esa bandeja de correo." },
+      { status: 409 }
+    );
+  }
   let referrerId: string | null = null;
+  let referrerRegIp: string | null = null;
   if (referrerCode && typeof referrerCode === "string") {
     const code = referrerCode.trim();
     const isUuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(code);
     if (isUuidLike) {
       const { data: ref } = await supabase
         .from("profiles")
-        .select("id")
+        .select("id, registration_ip")
         .eq("id", code)
         .single();
       referrerId = ref?.id ?? null;
+      referrerRegIp = ref?.registration_ip ?? null;
     } else {
       const num = Number(code);
       if (Number.isInteger(num)) {
         const { data: ref } = await supabase
           .from("profiles")
-          .select("id")
+          .select("id, registration_ip")
           .eq("public_id", num)
           .single();
         referrerId = ref?.id ?? null;
+        referrerRegIp = ref?.registration_ip ?? null;
       }
     }
   }
+
+  // Anti-Sybil: alta que usa el enlace de un referente con la MISMA IP de alta.
+  // No se bloquea (NAT/hogares comparten IP), pero se marca a 'evaluar' y se
+  // registra evento para revisión del admin.
+  const sameIpReferral = !!(referrerId && referrerRegIp && ip !== "unknown" && referrerRegIp === ip);
   const password_hash = hashPassword(password);
   // Generate unique 6-digit public_id (retry on conflicts)
   let publicId: number | null = null;
@@ -198,7 +235,8 @@ export async function POST(req: Request) {
   const { data: inserted, error } = await supabase
     .from("profiles")
     .insert({
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
+      email_canonical: emailCanonical,
       name: email.split("@")[0],
       password_hash,
       referrer_id: referrerId,
@@ -206,6 +244,8 @@ export async function POST(req: Request) {
       referral_code: String(publicId),
       terms_accepted_at: new Date().toISOString(),
       last_ip: ip,
+      registration_ip: ip,
+      status: sameIpReferral ? "evaluar" : "normal",
     })
     .select("id")
     .single();
@@ -228,6 +268,16 @@ export async function POST(req: Request) {
       referrer_id: referrerId,
       referred_id: inserted.id,
     });
+  }
+
+  if (sameIpReferral) {
+    await logSecurityEvent({
+      eventType: "sybil_same_ip_referral_signup",
+      userId: inserted.id,
+      ipHash,
+      details: { referrerId, note: "Alta vía referido con misma IP de registro" },
+      severity: "high",
+    }).catch(() => {});
   }
 
   await alertNewUser(email, !!referrerId);

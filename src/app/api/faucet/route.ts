@@ -4,6 +4,7 @@ import { getCurrentUserId, getCurrentUser, isUserBlocked } from "@/lib/current-u
 import { getRequestIp, getRequestIpHash } from "@/lib/ip";
 import { getSetting } from "@/lib/site-settings";
 import { rateLimit } from "@/lib/rate-limit";
+import { persistentRateLimit, logSecurityEvent } from "@/lib/security";
 import {
   FAUCET_POINTS,
   FAUCET_COOLDOWN_HOURS,
@@ -78,6 +79,13 @@ export async function POST(request: Request) {
   const uniqueUsers = new Set(sessionIps?.map((s) => s.user_id) ?? []);
   if (!uniqueUsers.has(userId)) {
     if (uniqueUsers.size >= cfg.maxSessionsPerIp) {
+      await logSecurityEvent({
+        eventType: "faucet_ip_session_limit",
+        userId,
+        ipHash,
+        details: { uniqueUsersOnIp: uniqueUsers.size, max: cfg.maxSessionsPerIp },
+        severity: "medium",
+      }).catch(() => {});
       return NextResponse.json(
         { error: "Límite de conexiones por IP alcanzado." },
         { status: 429 }
@@ -177,6 +185,19 @@ export async function POST(request: Request) {
   const { payout, hourlyMultiplier, dailyBonus } = calculatePayout(
     cfg.base, hourlyStreak, dailyStreak, cfg.hourlyTiers, cfg.dailyTiers
   );
+
+  // --- Anti-doble-claim cross-worker (cierra la race del cooldown) ---
+  // Solo se ejecuta aquí, una vez superados captcha/engagement, justo antes de
+  // acreditar. Garantiza 1 sola acreditación por ventana de cooldown aunque dos
+  // requests concurrentes caigan en lambdas distintas y ambas pasen el cooldown
+  // leyendo el mismo last_claim_at.
+  const { allowed: claimAllowed } = await persistentRateLimit(`faucet-claim:${userId}`, 1, cooldownMs);
+  if (!claimAllowed) {
+    return NextResponse.json(
+      { error: "Procesando un reclamo reciente, espera unos segundos..." },
+      { status: 429 }
+    );
+  }
 
   // --- Update balance atomically ---
   const { data: addData, error: addError } = await supabase.rpc("atomic_add_points", {

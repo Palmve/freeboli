@@ -1,4 +1,4 @@
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
 const SECRET = process.env.CAPTCHA_SECRET || process.env.NEXTAUTH_SECRET || "fallback-captcha-key";
 const TTL_MS = 5 * 60 * 1000; // 5 min validity
@@ -33,9 +33,12 @@ export function generateCaptcha(claimCount: number): CaptchaChallenge {
   }
 
   const exp = Date.now() + TTL_MS;
-  const payload = `${answer}:${exp}`;
-  const hmac = createHmac("sha256", SECRET).update(payload).digest("hex");
-  const token = Buffer.from(`${payload}:${hmac}`).toString("base64");
+  // SEGURIDAD: el token NO contiene la respuesta. Solo lleva `exp` y un HMAC
+  // calculado sobre `answer:exp`. Sin el SECRET es imposible recuperar la
+  // respuesta desde el token; la verificación recalcula el HMAC con la
+  // respuesta enviada por el usuario y compara en tiempo constante.
+  const hmac = createHmac("sha256", SECRET).update(`${answer}:${exp}`).digest("hex");
+  const token = Buffer.from(`${exp}:${hmac}`).toString("base64");
 
   const position = claimCount % 2 === 0 ? "top" : "bottom";
 
@@ -50,19 +53,22 @@ export function verifyCaptcha(answer: number, token: string): { valid: boolean; 
   try {
     const decoded = Buffer.from(token, "base64").toString("utf-8");
     const parts = decoded.split(":");
-    if (parts.length !== 3) return { valid: false, reason: "Token inválido" };
+    if (parts.length !== 2) return { valid: false, reason: "Token inválido" };
 
-    const [correctStr, expStr, receivedHmac] = parts;
-    const correct = Number(correctStr);
+    const [expStr, receivedHmac] = parts;
     const exp = Number(expStr);
+    if (!Number.isFinite(exp)) return { valid: false, reason: "Token inválido" };
 
     if (Date.now() > exp) return { valid: false, reason: "CAPTCHA expirado, intenta de nuevo" };
 
-    const payload = `${correctStr}:${expStr}`;
-    const expectedHmac = createHmac("sha256", SECRET).update(payload).digest("hex");
-    if (receivedHmac !== expectedHmac) return { valid: false, reason: "Token manipulado" };
-
-    if (answer !== correct) return { valid: false, reason: "Respuesta incorrecta" };
+    // Recalculamos el HMAC con la respuesta enviada. Si coincide con el del
+    // token, la respuesta es la correcta (y el token no fue manipulado).
+    const expectedHmac = createHmac("sha256", SECRET).update(`${answer}:${expStr}`).digest("hex");
+    const received = Buffer.from(receivedHmac, "hex");
+    const expected = Buffer.from(expectedHmac, "hex");
+    if (received.length !== expected.length || !timingSafeEqual(received, expected)) {
+      return { valid: false, reason: "Respuesta incorrecta o token inválido" };
+    }
 
     return { valid: true };
   } catch {

@@ -56,6 +56,19 @@ export async function POST(req: Request) {
 
   const supabase = await createClient();
 
+  // Edad de la cuenta: las cuentas muy nuevas no se auto-pagan on-chain; van a
+  // revisión manual. Defiende el patrón de granja (alta -> farmeo -> auto-retiro).
+  const autoWithdrawMinDays = await getSetting<number>("AUTO_WITHDRAW_MIN_ACCOUNT_DAYS", 3);
+  const { data: acct } = await supabase
+    .from("profiles")
+    .select("created_at")
+    .eq("id", userId)
+    .single();
+  const accountAgeDays = acct?.created_at
+    ? Math.floor((Date.now() - new Date(acct.created_at).getTime()) / 86400000)
+    : 0;
+  const accountTooNew = accountAgeDays < autoWithdrawMinDays;
+
   // 0. Verificación de habilitación GLOBAL de retiros
   const withdrawalsEnabled = await getSetting<number>("WITHDRAWALS_ENABLED", 1);
   if (withdrawalsEnabled === 0) {
@@ -169,6 +182,23 @@ export async function POST(req: Request) {
   const withdrawalId = withdrawData[0].withdrawal_id;
   const newBalance = Number(withdrawData[0].result_balance);
 
+  // Retiro de cuenta nueva: marcar para revisión manual (no se auto-pagará).
+  if (accountTooNew) {
+    await flagWithdrawalAnomaly({
+      withdrawalId,
+      userId,
+      wallet,
+      points,
+      reason: `Cuenta nueva (${accountAgeDays}d < ${autoWithdrawMinDays}d): retiro retenido para revisión manual.`,
+    }).catch(() => {});
+    await logSecurityEvent({
+      eventType: "withdrawal_new_account_hold",
+      userId,
+      details: { accountAgeDays, points, wallet },
+      severity: "high",
+    }).catch(() => {});
+  }
+
   // 2. Registrar el movimiento para el historial
   await supabase.from("movements").insert({
     user_id: userId,
@@ -184,7 +214,7 @@ export async function POST(req: Request) {
 
   // Límite de 100,000 puntos para retiros automáticos según requerimiento
   // Además debe estar habilitado el auto-pago globalmente y para el nivel del usuario
-  const isAutoEligible = autoWithdrawGlobal === 1 && autoWithdrawUserLevel && points <= 100000;
+  const isAutoEligible = autoWithdrawGlobal === 1 && autoWithdrawUserLevel && points <= 100000 && !accountTooNew;
   let txHash = null;
 
   let autoError = null;

@@ -73,16 +73,50 @@ export const authOptions: NextAuthOptions = {
           .single();
 
         if (!existing) {
-          // Crear perfil nuevo de forma asíncrona si es posible, o atrapar error
+          // ── Anti-fraude en alta vía OAuth (paridad con /api/auth/register) ──
+          // El callback de OAuth saltaba TODOS los controles de registro.
+          // Aquí replicamos: bloqueo de desechables y ban por IP asociada.
+          const { isDisposableEmail } = await import("@/lib/disposable-emails");
+          if (isDisposableEmail(user.email)) {
+            console.warn(`[Security] Alta OAuth bloqueada (email desechable): ${user.email}`);
+            return false;
+          }
+
+          let ip = "unknown";
+          let ipHash: string | null = null;
+          try {
+            const { getRequestIp, getRequestIpHash } = await import("@/lib/ip");
+            ip = await getRequestIp();
+            ipHash = await getRequestIpHash();
+          } catch {
+            /* Sin contexto de request disponible: continuar sin datos de IP */
+          }
+
+          if (ipHash) {
+            const { data: bannedIps } = await supabase
+              .from("session_ips")
+              .select("user_id, profiles!inner(status)")
+              .eq("ip_hash", ipHash)
+              .in("profiles.status", ["suspendido", "bloqueado"]);
+            if (bannedIps && bannedIps.length > 0) {
+              console.warn(`[Security] Alta OAuth bloqueada por IP BAN asociada: ${user.email}`);
+              return false;
+            }
+          }
+
+          // Crear perfil nuevo
           const publicId = Math.floor(Math.random() * 900000) + 100000;
           const { data: created, error: createError } = await supabase
             .from("profiles")
             .insert({
               email: user.email,
+              email_canonical: (await import("@/lib/email-normalize")).canonicalizeEmail(user.email),
               name: user.name ?? user.email,
               image: (user as any).image ?? null,
               public_id: publicId,
               referral_code: String(publicId),
+              registration_ip: ip,
+              last_ip: ip,
             })
             .select("id")
             .single();

@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLang } from "@/context/LangContext";
+import TurnstileWidget, { isTurnstileClientEnabled } from "@/components/TurnstileWidget";
 
 export default function RegistroPage() {
   const { t } = useLang();
@@ -24,6 +25,7 @@ export default function RegistroPage() {
   const [loading, setLoading] = useState(false);
   const [captcha, setCaptcha] = useState<{ question: string; token: string } | null>(null);
   const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,6 +47,7 @@ export default function RegistroPage() {
         _ts: formTs,
         captchaAnswer,
         captchaToken: captcha?.token,
+        turnstileToken: turnstileToken || undefined,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -170,7 +173,12 @@ export default function RegistroPage() {
             onChange={(e) => setHp(e.target.value)}
           />
         </div>
-        <button type="submit" className="btn-primary w-full" disabled={loading || !termsAccepted}>
+        <TurnstileWidget onToken={setTurnstileToken} />
+        <button
+          type="submit"
+          className="btn-primary w-full"
+          disabled={loading || !termsAccepted || (isTurnstileClientEnabled() && !turnstileToken)}
+        >
           {loading ? t("auth.btn_register_loading") : t("auth.btn_register")}
         </button>
       </form>
