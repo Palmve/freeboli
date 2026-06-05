@@ -51,7 +51,8 @@ function PredictionsContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const { lang, t } = useLang();
-  const asset = searchParams.get("asset")?.toUpperCase() || "BTC";
+  // Solo BTC/SOL (BOLIS dejó de ser objeto de predicción). Enlaces viejos -> BTC.
+  const asset = searchParams.get("asset")?.toUpperCase() === "SOL" ? "SOL" : "BTC";
 
   const [data, setData] = useState<PredictionData | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
@@ -224,27 +225,18 @@ function PredictionsContent() {
               >
                 {t("predictions.tab_normal")}
               </button>
-              <button 
+              <button
                 onClick={() => setType("mini")}
                 className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-black transition-all ${type === "mini" ? "bg-slate-700 text-amber-500 shadow-lg" : "text-slate-500 hover:text-slate-300"}`}
               >
                 {t("predictions.tab_mini")}
               </button>
-              <button 
-                onClick={() => setType("micro")}
-                className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-black transition-all ${type === "micro" ? "bg-slate-700 text-sky-400 shadow-lg" : "text-slate-500 hover:text-slate-300 flex items-center gap-1"}`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-                </svg>
-                MICRO
-              </button>
           </div>
         </div>
 
-        {/* Selector de Activos (BTC, SOL, BOLIS) */}
-        <div className="grid grid-cols-3 gap-2 mb-6 sm:flex sm:flex-wrap sm:justify-center">
-          {["BTC", "SOL", "BOLIS"].map((a) => (
+        {/* Selector de Activos (solo BTC/SOL: oráculos fiables. BOLIS es la caja del juego). */}
+        <div className="grid grid-cols-2 gap-2 mb-6 sm:flex sm:flex-wrap sm:justify-center">
+          {["BTC", "SOL"].map((a) => (
             <Link 
               key={a}
               href={`/predicciones?asset=${a}`} 
@@ -337,9 +329,7 @@ function PredictionsContent() {
                          {t("predictions.price_current").replace("{0}", asset)}
                          <a
                            href={
-                               asset === "BOLIS" 
-                               ? "https://dexscreener.com/solana/612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha"
-                               : asset === "SOL"
+                               asset === "SOL"
                                ? "https://www.coinbase.com/price/solana"
                                : "https://www.coinbase.com/price/bitcoin"
                            }
@@ -357,7 +347,7 @@ function PredictionsContent() {
                    </div>
                    <div className="mt-1 flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
                      <span className="text-3xl sm:text-5xl font-mono font-bold text-white tracking-tighter">
-                       ${data?.current_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2, maximumFractionDigits: asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2 })}
+                       ${data?.current_price.toLocaleString(undefined, { minimumFractionDigits: asset === "SOL" ? 3 : 2, maximumFractionDigits: asset === "SOL" ? 3 : 2 })}
                      </span>
                      <span className={`text-lg sm:text-xl font-bold flex items-center ${isUp ? "text-emerald-400" : "text-red-400"}`}>
                        {isUp ? "▲" : "▼"} {Math.abs(diff).toFixed(3)}%
@@ -385,7 +375,7 @@ function PredictionsContent() {
                     />
                 </div>
                 <div className="flex justify-between text-[10px] sm:text-sm text-slate-400 font-mono">
-                    <span>${data?.opening_price.toLocaleString(undefined, { minimumFractionDigits: asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2, maximumFractionDigits: asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2 })}</span>
+                    <span>${data?.opening_price.toLocaleString(undefined, { minimumFractionDigits: asset === "SOL" ? 3 : 2, maximumFractionDigits: asset === "SOL" ? 3 : 2 })}</span>
                     <span>{data ? new Date(data.end_time).toLocaleTimeString(lang === "es" ? "es-ES" : "en-US", { hour: '2-digit', minute: '2-digit', hour12: false }) : "--:--"}</span>
                 </div>
             </div>
@@ -427,7 +417,7 @@ function PredictionsContent() {
                                     bet.type === "micro" 
                                     ? (() => {
                                         const asset = bet.round?.asset || "BTC";
-                                        const decimals = asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2;
+                                        const decimals = asset === "SOL" ? 3 : 2;
                                         return bet.round?.closing_price?.toFixed(decimals).slice(-1) === bet.prediction;
                                       })()
                                     : (((bet.round?.closing_price || 0) >= (bet.round?.opening_price || 0)) ? "up" : "down") === bet.prediction
@@ -526,7 +516,7 @@ function PredictionsContent() {
             {type === "micro" ? (
                 <div className="grid grid-cols-5 gap-2 sm:gap-3 py-2">
                   {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => {
-                     const decimals = asset === "BOLIS" ? 6 : asset === "SOL" ? 3 : 2;
+                     const decimals = asset === "SOL" ? 3 : 2;
                      const isCurrentDigit = data ? data.current_price.toFixed(decimals).slice(-1) === String(num) : false;
                      const disabled = betting || !data || timeLeft <= cutoffLimit || isCurrentDigit || !!data.is_paused;
                      return (

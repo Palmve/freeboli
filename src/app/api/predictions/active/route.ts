@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { getActiveRoundWithOdds, PredictionAsset } from "@/lib/predictions";
 
-const VALID_ASSETS = ["BTC", "SOL", "BOLIS"] as const;
+const VALID_ASSETS = ["BTC", "SOL"] as const;
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const rawAsset = searchParams.get("asset")?.toUpperCase();
   const tParam = searchParams.get("type");
-  const type = (tParam === "mini" || tParam === "micro") ? tParam : "hourly";
+  const type = tParam === "mini" ? "mini" : "hourly";
 
   if (!rawAsset || !VALID_ASSETS.includes(rawAsset as any)) {
     return NextResponse.json({ error: "Asset no soportado." }, { status: 400 });

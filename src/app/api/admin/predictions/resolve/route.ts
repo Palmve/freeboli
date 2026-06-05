@@ -9,9 +9,9 @@ export async function POST() {
   try {
     const resolvedCount = await resolvePendingRounds();
     
-    // Asegurar rondas activas por si acaso (todas las modalidades)
-    const types: ("hourly"| "mini" | "micro")[] = ["hourly", "mini", "micro"];
-    for (const asset of (["BTC", "SOL", "BOLIS"] as const)) {
+    // Asegurar rondas activas (MICRO eliminado; BOLIS ya no es objeto de predicción).
+    const types: ("hourly"| "mini")[] = ["hourly", "mini"];
+    for (const asset of (["BTC", "SOL"] as const)) {
         for (const type of types) {
            await ensureActiveRound(asset, type).catch(() => {});
         }
