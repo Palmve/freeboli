@@ -48,12 +48,14 @@ export async function GET(req: Request) {
     }
   }
   
-  if (hour === 1) {
-    try {
-      results.steps.summary = await runDailySummary();
-    } catch (e: any) {
-      results.steps.summary = { ok: false, error: e.message };
-    }
+  // Resumen diario: la invocación de Vercel es diaria (00:00 UTC), así que lo
+  // corremos aquí como vía PRIMARIA y fiable (no dependiente de GitHub). Es
+  // idempotente (LAST_DAILY_SUMMARY_DATE), de modo que el respaldo horario de
+  // GitHub a las 01:00 no lo duplica: el primero que corra envía.
+  try {
+    results.steps.summary = await runDailySummary();
+  } catch (e: any) {
+    results.steps.summary = { ok: false, error: e.message };
   }
 
   return NextResponse.json({
