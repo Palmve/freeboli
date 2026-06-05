@@ -1,45 +1,96 @@
 /**
  * Price Oracle para obtener precios de criptomonedas.
- * Usa Binance para BTC/SOL y Jupiter para BOLIS.
+ * BTC/SOL: mediana de varias fuentes (Coinbase, Binance, Kraken) con timeout y fallback,
+ * para resistir caídas de una fuente y datos anómalos/manipulados.
+ * BOLIS: DexScreener (solo para resolver rondas antiguas; ya no es objeto de predicción).
  */
 
-const COINBASE_PRICE_URL = "https://api.coinbase.com/v2/prices";
 const DEXSCREENER_API_URL = "https://api.dexscreener.com/latest/dex/tokens";
+const BOLIS_MINT = "612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha";
 
 type Asset = "BTC" | "SOL" | "BOLIS";
 
-const ASSET_SYMBOLS: Record<Asset, string> = {
-  BTC: "BTC-USD",
-  SOL: "SOL-USD",
-  BOLIS: "612nt4GcdZn7onjK7fY9QQuqF7FVTarNHPszBHJ8T5ha", // Mint address
-};
+const FETCH_TIMEOUT_MS = 3500;
+
+/** fetch con timeout (AbortController) para que una fuente lenta no cuelgue la ronda. */
+async function fetchJson(url: string, init?: RequestInit): Promise<any | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { ...init, signal: ctrl.signal, next: { revalidate: 0 } });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function isValidPrice(n: unknown): n is number {
+  return typeof n === "number" && Number.isFinite(n) && n > 0;
+}
+
+function median(values: number[]): number | null {
+  const xs = values.filter(isValidPrice).sort((a, b) => a - b);
+  if (xs.length === 0) return null;
+  const mid = Math.floor(xs.length / 2);
+  return xs.length % 2 ? xs[mid] : (xs[mid - 1] + xs[mid]) / 2;
+}
+
+// --- Fuentes para BTC/SOL ---
+async function fromCoinbase(asset: "BTC" | "SOL"): Promise<number | null> {
+  const d = await fetchJson(`https://api.coinbase.com/v2/prices/${asset}-USD/spot`);
+  const p = parseFloat(d?.data?.amount);
+  return isValidPrice(p) ? p : null;
+}
+
+async function fromBinance(asset: "BTC" | "SOL"): Promise<number | null> {
+  const symbol = asset === "BTC" ? "BTCUSDT" : "SOLUSDT";
+  const d = await fetchJson(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+  const p = parseFloat(d?.price);
+  return isValidPrice(p) ? p : null;
+}
+
+async function fromKraken(asset: "BTC" | "SOL"): Promise<number | null> {
+  const pair = asset === "BTC" ? "XBTUSD" : "SOLUSD";
+  const d = await fetchJson(`https://api.kraken.com/0/public/Ticker?pair=${pair}`);
+  const result = d?.result;
+  if (!result || typeof result !== "object") return null;
+  const first: any = Object.values(result)[0];
+  const p = parseFloat(first?.c?.[0]);
+  return isValidPrice(p) ? p : null;
+}
+
+async function getMajorPrice(asset: "BTC" | "SOL"): Promise<number | null> {
+  const settled = await Promise.allSettled([
+    fromCoinbase(asset),
+    fromBinance(asset),
+    fromKraken(asset),
+  ]);
+  const prices = settled
+    .map((s) => (s.status === "fulfilled" ? s.value : null))
+    .filter(isValidPrice) as number[];
+
+  if (prices.length === 0) return null;
+  return median(prices);
+}
+
+async function getBolisPrice(): Promise<number | null> {
+  const d = await fetchJson(`${DEXSCREENER_API_URL}/${BOLIS_MINT}`, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    },
+  });
+  const p = parseFloat(d?.pairs?.[0]?.priceUsd);
+  return isValidPrice(p) ? p : null;
+}
 
 export async function getCryptoPrice(asset: Asset): Promise<number | null> {
-  const symbolOrMint = ASSET_SYMBOLS[asset];
-  if (!symbolOrMint) return null;
-
   try {
-    if (asset === "BOLIS") {
-      // Usar DexScreener para BOLIS
-      const res = await fetch(`${DEXSCREENER_API_URL}/${symbolOrMint}`, {
-        next: { revalidate: 0 },
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        }
-      });
-      if (!res.ok) throw new Error(`DexScreener API error: ${res.status}`);
-      const data = await res.json();
-      const price = data.pairs?.[0]?.priceUsd;
-      return price ? parseFloat(price) : null;
-    } else {
-      // Usar Coinbase para BTC/SOL
-      const res = await fetch(`${COINBASE_PRICE_URL}/${symbolOrMint}/spot`, {
-        next: { revalidate: 0 },
-      });
-      if (!res.ok) throw new Error(`Coinbase API error: ${res.status}`);
-      const data = await res.json();
-      return parseFloat(data.data.amount);
-    }
+    if (asset === "BOLIS") return await getBolisPrice();
+    return await getMajorPrice(asset);
   } catch (error) {
     console.error(`Error fetching price for ${asset}:`, error);
     return null;
@@ -68,14 +119,14 @@ export function calculateDynamicOdds(
   if (startPrice <= 0 || currentPrice <= 0) return 1.90;
 
   const diffPct = (currentPrice - startPrice) / startPrice;
-  
+
   // Tiempo relativo restante (1.0 inicio -> 0 final)
   const tRel = Math.max(0.0001, timeLeftSec / totalTimeSec);
-  
+
   // Parámetros de sensibilidad
   const k = 0.8; // Suavizado para evitar cuotas extremas demasiado rápido
   const sigma = SIGMAS[asset] || 0.006;
-  
+
   /**
    * Modelo: Probabilidad Sigmoide Escalada
    * Agregamos 0.08 al tiempo relativo para mantener incertidumbre "suave" hasta el final.
@@ -83,11 +134,11 @@ export function calculateDynamicOdds(
   const timeFactor = Math.sqrt(tRel + 0.08);
   const exponent = (k * diffPct) / (sigma * timeFactor);
   const probUp = 1 / (1 + Math.exp(-exponent));
-  
+
   // Limitar probabilidad para evitar odds infinitas
   const finalProbUp = Math.max(0.01, Math.min(0.99, probUp));
   const winProb = side === "up" ? finalProbUp : 1 - finalProbUp;
-  
+
   // Aplicar House Edge y calcular cuota
   const odds = (1 / winProb) * (1 - houseEdge);
 

@@ -99,14 +99,15 @@ export async function getActiveRoundWithOdds(asset: PredictionAsset, type: Predi
   let oddsDown = 0;
   let oddsMicro = 0;
 
+  const houseEdge = await getSetting<number>("PREDICTION_HOUSE_EDGE", 0.05);
+
   if (round.type === "micro") {
-    // Total 120s. Betting closed at 60s.
+    // (MICRO eliminado; se mantiene solo para resolver rondas antiguas que sigan vivas.)
     if (timeLeftSec >= 100) oddsMicro = 9;
     else if (timeLeftSec >= 80) oddsMicro = 8;
     else if (timeLeftSec > 60) oddsMicro = 7;
     else oddsMicro = 0;
   } else {
-    const houseEdge = await getSetting<number>("PREDICTION_HOUSE_EDGE", 0.05);
     const totalTimeSec = round.type === "mini" ? 600 : 3600;
     oddsUp = calculateDynamicOdds("up", round.opening_price, currentPrice, timeLeftSec, totalTimeSec, round.asset as any, houseEdge);
     oddsDown = calculateDynamicOdds("down", round.opening_price, currentPrice, timeLeftSec, totalTimeSec, round.asset as any, houseEdge);
@@ -119,6 +120,7 @@ export async function getActiveRoundWithOdds(asset: PredictionAsset, type: Predi
       up: parseFloat(oddsUp.toFixed(2)),
       down: parseFloat(oddsDown.toFixed(2)),
     },
+    house_edge: houseEdge,
     time_left_sec: timeLeftSec,
   };
 }

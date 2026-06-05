@@ -366,6 +366,7 @@
   "predictions": {
     "title": "Predicciones",
     "subtitle": "Pronostica {0} en modo {1}.",
+    "house_edge_note": "Comisión de la casa: ~{0}% sobre la cuota justa.",
     "mode_normal": "Normal (1h)",
     "mode_mini": "Mini (10m)",
     "mode_micro": "Micro (2m)",

@@ -14,6 +14,7 @@ type PredictionData = {
   opening_price: number;
   current_price: number;
   odds: { up?: number; down?: number; micro?: number };
+  house_edge?: number;
   time_left_sec: number;
   start_time: string;
   end_time: string;
@@ -217,6 +218,11 @@ function PredictionsContent() {
             <p className="text-xs sm:text-sm text-slate-400 font-medium">
               {t("predictions.subtitle").replace("{0}", asset).replace("{1}", modeName)}
             </p>
+            {data?.house_edge != null && (
+              <p className="mt-1 text-[11px] text-slate-500">
+                {t("predictions.house_edge_note").replace("{0}", String(Math.round(data.house_edge * 100)))}
+              </p>
+            )}
           </div>
           <div className="flex bg-slate-900 p-1 rounded-xl items-center border border-slate-700/50 shadow-inner">
               <button 

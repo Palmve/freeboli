@@ -366,6 +366,7 @@
   "predictions": {
     "title": "Predictions",
     "subtitle": "Forecast {0} in {1} mode.",
+    "house_edge_note": "House commission: ~{0}% over the fair odds.",
     "mode_normal": "Normal (1h)",
     "mode_mini": "Mini (10m)",
     "mode_micro": "Micro (2m)",

@@ -103,7 +103,21 @@ export async function POST(req: Request) {
     );
   }
 
-  // ... (supabase ya está creado arriba)
+  // Tope de exposición por ronda y lado: limita la pérdida máxima de la casa si ese lado
+  // gana (p. ej. un movimiento brusco). Cap configurable; defecto 1.000.000 fichas/lado.
+  const maxRoundExposure = await getSetting<number>("PREDICTION_MAX_ROUND_PAYOUT_PER_SIDE", 1_000_000);
+  const { data: sideBets } = await supabase
+    .from("prediction_bets")
+    .select("potential_payout")
+    .eq("round_id", roundData.id)
+    .eq("prediction", prediction);
+  const sidePayout = (sideBets ?? []).reduce((s, b) => s + (Number(b.potential_payout) || 0), 0);
+  if (sidePayout + potentialPayout > maxRoundExposure) {
+    return NextResponse.json(
+      { error: "Esta ronda alcanzó el límite de apuestas para este lado. Prueba la siguiente ronda o reduce el monto." },
+      { status: 400 }
+    );
+  }
 
   // 1. Ejecutar apuesta de forma atómica (Verifica saldo y límite de 5 apuestas por ronda)
   const { data: betResult, error: betError } = await supabase.rpc("place_prediction_bet", {
