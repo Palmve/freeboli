@@ -215,6 +215,22 @@
     "roll_label": "Roll result (0–9999):",
     "back_hilo": "← Back to HI-LO"
   },
+  "hilo_pf": {
+    "title": "Provably Fair",
+    "intro": "The server commits to the hash of its seed BEFORE you bet. The seed stays secret until you rotate it; rotating reveals it so you can verify your whole history.",
+    "hash_label": "Server seed (committed hash)",
+    "client_label": "Client seed (editable until your 1st bet)",
+    "nonce_label": "Nonce",
+    "save": "Save",
+    "rotate": "Rotate & reveal",
+    "saved": "Client seed updated.",
+    "rotated": "Seed rotated. The previous one was revealed.",
+    "error": "The operation could not be completed.",
+    "locked": "Locked: you already bet with this seed. Rotate to change the client seed.",
+    "revealed_title": "Revealed seed",
+    "revealed_note": "With this server_seed you can verify your previous bets (change the nonce in the verifier for each roll).",
+    "verify": "Open verifier →"
+  },
   "faucet": {
     "title": "Faucet",
     "claim_limit": "Claim up to",

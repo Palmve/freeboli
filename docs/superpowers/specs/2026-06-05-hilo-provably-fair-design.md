@@ -45,9 +45,15 @@ Tabla `public.hilo_seeds`:
   bloquea el activo, lo marca `active=FALSE, revealed_at=now()`, inserta uno nuevo activo
   (nonce 0; client_seed = `p_new_client_seed` o aleatorio); devuelve el revelado + el nuevo hash.
 
-> Nota: requiere `pgcrypto` (`CREATE EXTENSION IF NOT EXISTS pgcrypto`). Si no se desea
-> generar la semilla en SQL, alternativa: la API genera server_seed/hash y los pasa al RPC.
-> Decisión: generar en SQL para que el RPC sea la única fuente y la atomicidad sea total.
+> **Decisión (revisada):** la `server_seed`/hash/`client_seed` se generan en **Node**
+> (`crypto.randomBytes`, `hashServerSeed`) y se pasan al RPC como parámetros `p_new_*`,
+> usados solo cuando hay que crear. Evita depender del esquema de `pgcrypto` en Supabase
+> y reutiliza el hashing del verificador. La atomicidad (lock + nonce) sigue en el RPC.
+>
+> **Seguridad:** los RPC de semilla se llaman **solo con service role** (admin client) y se
+> les `REVOKE EXECUTE ... FROM public, anon, authenticated`, para que un usuario no pueda
+> invocar el RPC con el `p_user_id` de otro y leerle la `server_seed`. La API pasa siempre
+> `currentUser.id`.
 
 ## Endpoints
 | Ruta | Método | Qué hace |

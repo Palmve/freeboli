@@ -141,6 +141,46 @@ export interface HiLoVerification {
   nonce: number;
 }
 
+/** Genera una server_seed nueva (32 bytes hex) y su hash de compromiso. */
+export function generateServerSeed(): { serverSeed: string; serverSeedHash: string } {
+  const serverSeed = randomHex(32);
+  return { serverSeed, serverSeedHash: hashServerSeed(serverSeed) };
+}
+
+/** Genera una client_seed por defecto (16 bytes hex). */
+export function generateClientSeed(): string {
+  return randomHex(16);
+}
+
+export interface HiLoSettlement {
+  roll: number;
+  choice: HiLoChoice;
+  win: boolean;
+  bet: number;
+  payout: number;
+  odds: number;
+  effectiveOdds: number;
+  k: number;
+}
+
+/**
+ * Liquida una tirada a partir de un roll YA calculado (función pura, sin semillas).
+ * Es la fuente única de la regla HI/LO y del pago (cuota efectiva 9800/k).
+ */
+export function settleHiLo(
+  bet: number,
+  choice: HiLoChoice,
+  oddsRaw: number | undefined,
+  roll: number
+): HiLoSettlement {
+  const odds = normalizeHiLoOdds(oddsRaw);
+  const k = hiLoWinningOutcomes(odds);
+  const effectiveOdds = hiLoEffectiveOdds(k);
+  const win = choice === "hi" ? roll >= HILO_ROLL_MOD - k : roll <= k - 1;
+  const payout = win ? Math.floor(bet * effectiveOdds) : 0;
+  return { roll, choice, win, bet, payout, odds, effectiveOdds, k };
+}
+
 export interface HiLoResult {
   roll: number;
   choice: HiLoChoice;
@@ -174,20 +214,16 @@ export function playHiLo(
   const nonceNum = typeof nonce === "number" && Number.isInteger(nonce) && nonce >= 0 ? nonce : 0;
 
   const roll = rollFromSeeds(server_seed, client_seed, nonceNum);
-  const odds = normalizeHiLoOdds(oddsRaw);
-  const k = hiLoWinningOutcomes(odds);
-  const effectiveOdds = hiLoEffectiveOdds(k);
-  const win = choice === "hi" ? roll >= HILO_ROLL_MOD - k : roll <= k - 1;
-  const payout = win ? Math.floor(bet * effectiveOdds) : 0;
+  const s = settleHiLo(bet, choice, oddsRaw, roll);
 
   return {
-    roll,
-    choice,
-    win,
-    bet,
-    payout,
-    odds,
-    effectiveOdds,
+    roll: s.roll,
+    choice: s.choice,
+    win: s.win,
+    bet: s.bet,
+    payout: s.payout,
+    odds: s.odds,
+    effectiveOdds: s.effectiveOdds,
     verification: {
       server_seed,
       server_seed_hash,

@@ -215,6 +215,22 @@
     "roll_label": "Número obtenido (0–9999):",
     "back_hilo": "← Volver a HI-LO"
   },
+  "hilo_pf": {
+    "title": "Provably Fair",
+    "intro": "El servidor compromete el hash de su semilla ANTES de que apuestes. La semilla se mantiene secreta hasta que la rotas; al rotar se revela y puedes verificar todo tu historial.",
+    "hash_label": "Server seed (hash comprometido)",
+    "client_label": "Client seed (editable hasta tu 1ª apuesta)",
+    "nonce_label": "Nonce",
+    "save": "Guardar",
+    "rotate": "Rotar y revelar",
+    "saved": "Client seed actualizado.",
+    "rotated": "Semilla rotada. La anterior se ha revelado.",
+    "error": "No se pudo completar la operación.",
+    "locked": "Bloqueado: ya apostaste con esta semilla. Rota para cambiar el client seed.",
+    "revealed_title": "Semilla revelada",
+    "revealed_note": "Con esta server_seed puedes verificar tus apuestas anteriores (cambia el nonce en el verificador para cada tirada).",
+    "verify": "Abrir verificador →"
+  },
   "faucet": {
     "title": "Faucet",
     "claim_limit": "Reclama hasta",

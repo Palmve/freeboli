@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
-import { playHiLo, hiLoWinningOutcomes, hiLoEffectiveOdds, hiLoMinBet } from "@/lib/hilo";
+import { settleHiLo, rollFromSeeds, hiLoWinningOutcomes, hiLoEffectiveOdds, hiLoMinBet, generateServerSeed, generateClientSeed } from "@/lib/hilo";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { AFFILIATE_GAME_PERCENT, MAX_WIN_POINTS, MAX_DAILY_WIN_POINTS } from "@/lib/config";
 import { fetchUserLevel } from "@/lib/levels";
 import { getSetting } from "@/lib/site-settings";
@@ -51,8 +52,8 @@ export async function POST(req: Request) {
 
   const bet = Math.floor(Number(body.bet));
   const choice = body.choice === "hi" || body.choice === "lo" ? body.choice : null;
-  const client_seed = typeof body.client_seed === "string" ? body.client_seed.trim().slice(0, 64) : undefined;
-  
+  // El client_seed ya NO se toma de la request: viene de la semilla comprometida (provably fair).
+
   let odds = Number(body.odds);
   if (!Number.isFinite(odds) || odds < 1.01 || odds > 4900) odds = 2;
 
@@ -139,27 +140,49 @@ export async function POST(req: Request) {
     );
   }
 
-  // 2. Descuento atómico de la apuesta e incremento de contador de nivel
+  // 2. Semilla comprometida + nonce atómico (provably fair). Antes del descuento:
+  // si el descuento fallara (saldo), a lo sumo queda un nonce sin usar (inocuo),
+  // nunca se cobra sin tirada.
+  const admin = createAdminClient();
+  const seedFallback = generateServerSeed();
+  const { data: seedData, error: seedError } = await admin.rpc("next_hilo_nonce", {
+    p_user_id: userId,
+    p_new_server_seed: seedFallback.serverSeed,
+    p_new_server_seed_hash: seedFallback.serverSeedHash,
+    p_new_client_seed: generateClientSeed(),
+  });
+  if (seedError || !seedData?.[0]) {
+    return NextResponse.json({ error: seedError?.message || "No se pudo obtener la semilla de juego." }, { status: 500 });
+  }
+  const seed = seedData[0];
+
+  // 3. Descuento atómico de la apuesta e incremento de contador de nivel
   const { data: subData, error: subError } = await supabase.rpc("place_hilo_bet", {
     p_user_id: userId,
     p_amount: bet,
   });
 
   if (subError || !subData?.[0]?.success) {
-    return NextResponse.json({ 
-        error: subError?.message || "Saldo insuficiente o error en la transaccion." 
+    return NextResponse.json({
+        error: subError?.message || "Saldo insuficiente o error en la transaccion."
     }, { status: 400 });
   }
 
   const balanceAfterBet = Number(subData[0].result_balance);
-  const nonce = (count ?? 0) + 1;
+  const betSeq = (count ?? 0) + 1; // solo para la cadencia del rollup
 
-  // 3. Jugar el resultado
-  const result = playHiLo(bet, choice, odds, client_seed, nonce);
+  // 4. Calcular el roll con la semilla comprometida y liquidar (función pura)
+  const roll = rollFromSeeds(seed.server_seed, seed.client_seed, seed.nonce);
+  const result = settleHiLo(bet, choice, odds, roll);
   let finalPoints = balanceAfterBet;
-  const { verification } = result;
+  // Verificación pública: NUNCA se expone server_seed (se revela solo al rotar).
+  const verification = {
+    server_seed_hash: seed.server_seed_hash,
+    client_seed: seed.client_seed,
+    nonce: seed.nonce,
+  };
 
-  // 4. Registrar la apuesta (Operación paralela con el premio)
+  // 5. Registrar la apuesta (Operación paralela con el premio)
   const inserts = [
     supabase.from("movements").insert({
       user_id: userId,
@@ -172,7 +195,7 @@ export async function POST(req: Request) {
         payout: result.payout,
         odds: result.effectiveOdds,
         odds_requested: result.odds,
-        server_seed: verification.server_seed,
+        seed_id: seed.seed_id,
         server_seed_hash: verification.server_seed_hash,
         client_seed: verification.client_seed,
         nonce: verification.nonce,
@@ -225,7 +248,7 @@ export async function POST(req: Request) {
 
   // 6. 🧹 OPTIMIZACIÓN v1.082: Limpieza de historial diferida (Lazy Rollup)
   // Solo se ejecuta cada 50 jugadas para no ralentizar el juego manual/auto
-  if (nonce % 50 === 0) {
+  if (betSeq % 50 === 0) {
     const { data: oldHiLo } = await supabase
       .from("movements")
       .select("id, points, type, created_at")
