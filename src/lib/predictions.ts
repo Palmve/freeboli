@@ -101,6 +101,8 @@ export async function getActiveRoundWithOdds(asset: PredictionAsset, type: Predi
   let oddsMicro = 0;
 
   const houseEdge = await getSetting<number>("PREDICTION_HOUSE_EDGE", 0.05);
+  // Cap de cuota máxima (mitigación auditoría): 30x -> 10x por defecto, editable en admin.
+  const maxOddsCap = await getSetting<number>("PREDICTION_MAX_ODDS", 10);
 
   if (round.type === "micro") {
     // (MICRO eliminado; se mantiene solo para resolver rondas antiguas que sigan vivas.)
@@ -110,8 +112,8 @@ export async function getActiveRoundWithOdds(asset: PredictionAsset, type: Predi
     else oddsMicro = 0;
   } else {
     const totalTimeSec = round.type === "mini" ? 600 : 3600;
-    oddsUp = calculateDynamicOdds("up", round.opening_price, currentPrice, timeLeftSec, totalTimeSec, round.asset as any, houseEdge);
-    oddsDown = calculateDynamicOdds("down", round.opening_price, currentPrice, timeLeftSec, totalTimeSec, round.asset as any, houseEdge);
+    oddsUp = calculateDynamicOdds("up", round.opening_price, currentPrice, timeLeftSec, totalTimeSec, round.asset as any, houseEdge, maxOddsCap);
+    oddsDown = calculateDynamicOdds("down", round.opening_price, currentPrice, timeLeftSec, totalTimeSec, round.asset as any, houseEdge, maxOddsCap);
   }
 
   return {

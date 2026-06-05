@@ -98,14 +98,32 @@ export async function getCryptoPrice(asset: Asset): Promise<number | null> {
 }
 
 const SIGMAS: Record<Asset, number> = {
-  BTC: 0.0065,  // Volatilidad moderada (Bitcoin)
-  SOL: 0.012,   // Volatilidad media (Solana)
+  BTC: 0.0065,  // Desviación típica del % de cambio en 1 hora (Bitcoin)
+  SOL: 0.012,   // Desviación típica del % de cambio en 1 hora (Solana)
   BOLIS: 0.035, // Alta volatilidad (Token nativo/Memecoin)
 };
 
+/** CDF normal estándar Φ(x) — aproximación de Abramowitz-Stegun (error < 7.5e-8). */
+function normCdf(x: number): number {
+  const t = 1 / (1 + 0.2316419 * Math.abs(x));
+  const d = 0.3989422804014327 * Math.exp(-(x * x) / 2);
+  const p = d * t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+  return x >= 0 ? 1 - p : p;
+}
+
 /**
- * Calcula la cuota dinámica para una predicción usando decaimiento de volatilidad suavizado.
- * Basado en un modelo de difusión logística optimizado para bajo volumen.
+ * Calcula la cuota dinámica para una predicción UP/DOWN.
+ *
+ * Modelo (corrección auditoría #1, v1.161.0): bajo log-precio martingala (mercado
+ * eficiente, deriva 0) la probabilidad VERDADERA de cerrar por encima de la apertura es
+ *     P(cierre > apertura) = Φ( ln(P_now/P_start) / (σ·√T_left) )
+ * con σ = SIGMAS[asset]/√3600 (volatilidad por segundo; SIGMAS calibran la ronda de 1h).
+ * La cuota se deriva de esa probabilidad: odds = (1/prob)·(1−edge). Así el RTP de
+ * CUALQUIER lado/estrategia = 1−edge (no explotable), a diferencia del modelo sigmoide
+ * anterior que subreaccionaba y sobrepagaba al favorito (ver scripts/audit_predictions.mjs).
+ *
+ * El escalado por duración es automático vía √T_left: una mini (10 min) es más decisiva
+ * que una hourly para el mismo % de movimiento, sin factores ad-hoc.
  */
 export function calculateDynamicOdds(
   side: "up" | "down",
@@ -114,38 +132,32 @@ export function calculateDynamicOdds(
   timeLeftSec: number,
   totalTimeSec: number = 3600,
   asset: Asset = "BTC",
-  houseEdge: number = 0.05
+  houseEdge: number = 0.05,
+  /**
+   * Cap de cuota máxima (configurable: site_settings.PREDICTION_MAX_ODDS). Bajado de 30
+   * a 10 como mitigación: a cuotas altas el lado improbable era explotable (RTP del jugador
+   * hasta ~215% en alta volatilidad). Ver scripts/audit_predictions.mjs.
+   */
+  maxOddsCap: number = 10
 ): number {
   if (startPrice <= 0 || currentPrice <= 0) return 1.90;
 
-  const diffPct = (currentPrice - startPrice) / startPrice;
+  // Volatilidad por segundo (SIGMAS calibran la desviación del % a 1h: σ_seg = σ_1h/√3600).
+  const sigPerSec = (SIGMAS[asset] || 0.006) / Math.sqrt(3600);
+  const tLeft = Math.max(1, timeLeftSec);
+  const sigMove = sigPerSec * Math.sqrt(tLeft); // desviación del movimiento que queda
 
-  // Tiempo relativo restante (1.0 inicio -> 0 final)
-  const tRel = Math.max(0.0001, timeLeftSec / totalTimeSec);
+  // Probabilidad verdadera de cerrar por encima de la apertura: Φ( ln(P_now/P_start)/σ_move ).
+  const z = Math.log(currentPrice / startPrice) / sigMove;
+  const probUp = Math.max(0.02, Math.min(0.98, normCdf(z)));
+  const winProb = side === "up" ? probUp : 1 - probUp;
 
-  // Parámetros de sensibilidad
-  const k = 0.8; // Suavizado para evitar cuotas extremas demasiado rápido
-  // sigma calibrado a la DURACIÓN de la ronda: la volatilidad escala ~sqrt(tiempo).
-  // Los SIGMAS base representan una ronda de 1h; una mini (10 min) usa un sigma menor,
-  // de modo que un mismo movimiento % resulta más decisivo (menos tiempo para revertir).
-  const sigma = (SIGMAS[asset] || 0.006) * Math.sqrt(totalTimeSec / 3600);
-
-  /**
-   * Modelo: Probabilidad Sigmoide Escalada
-   * Agregamos 0.08 al tiempo relativo para mantener incertidumbre "suave" hasta el final.
-   */
-  const timeFactor = Math.sqrt(tRel + 0.08);
-  const exponent = (k * diffPct) / (sigma * timeFactor);
-  const probUp = 1 / (1 + Math.exp(-exponent));
-
-  // Limitar probabilidad para evitar odds infinitas
-  const finalProbUp = Math.max(0.01, Math.min(0.99, probUp));
-  const winProb = side === "up" ? finalProbUp : 1 - finalProbUp;
-
-  // Aplicar House Edge y calcular cuota
+  // Cuota a partir de la probabilidad real, con el margen de la casa (edge).
   const odds = (1 / winProb) * (1 - houseEdge);
 
-  // Cuota mínima 1.05x para que siempre haya beneficio, Máxima 30x para limitar riesgo en low-volume
-  const maxOdds = tRel < 0.05 ? 20 : 30; // Más conservador al final
+  // Cuota mínima 1.05x para que siempre haya beneficio; máxima = maxOddsCap (configurable).
+  // En el último 5% de la ronda se recorta a 2/3 del cap (más conservador al final).
+  const tRel = timeLeftSec / totalTimeSec;
+  const maxOdds = tRel < 0.05 ? Math.max(1.05, Math.round(maxOddsCap * 0.67)) : maxOddsCap;
   return parseFloat(Math.max(1.05, Math.min(maxOdds, odds)).toFixed(2));
 }

@@ -105,7 +105,7 @@ export async function POST(req: Request) {
 
   // Tope de exposición por ronda y lado: limita la pérdida máxima de la casa si ese lado
   // gana (p. ej. un movimiento brusco). Cap configurable; defecto 1.000.000 fichas/lado.
-  const maxRoundExposure = await getSetting<number>("PREDICTION_MAX_ROUND_PAYOUT_PER_SIDE", 1_000_000);
+  const maxRoundExposure = await getSetting<number>("PREDICTION_MAX_ROUND_PAYOUT_PER_SIDE", 400_000);
   const { data: sideBets } = await supabase
     .from("prediction_bets")
     .select("potential_payout")

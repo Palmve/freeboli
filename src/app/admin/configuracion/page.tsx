@@ -71,6 +71,8 @@ const FIELDS: SettingField[] = [
   // Predicciones
   { key: "PREDICTION_HOUSE_EDGE", label: "Comisión Casa (%)", type: "number", description: "Porcentaje de comisión (0.05 = 5%)", group: "Predicciones (General)", defaultValue: "0.05" },
   { key: "PREDICTION_CUTOFF_SECONDS", label: "Tiempo de Cierre (s)", type: "number", description: "Segundos antes del fin de hora para cerrar (600 = 10 min)", group: "Predicciones (General)", defaultValue: "600" },
+  { key: "PREDICTION_MAX_ODDS", label: "Cuota máxima (cap)", type: "number", description: "Cuota máxima ofrecida. Bajado a 10 (mitigación: a 30x el lado improbable era explotable).", group: "Predicciones (General)", defaultValue: "10" },
+  { key: "PREDICTION_MAX_ROUND_PAYOUT_PER_SIDE", label: "Tope exposición por lado (pts)", type: "number", description: "Pago máximo acumulado por lado y ronda. Acota la pérdida de la casa si ese lado gana.", group: "Predicciones (General)", defaultValue: "400000" },
   // Soporte
   { key: "TELEGRAM_BOT_TOKEN", label: "Telegram Bot Token", type: "text" as any, description: "Token del bot para notificaciones de soporte", group: "Soporte" },
   { key: "TELEGRAM_CHAT_ID", label: "ID de Chat Telegram", type: "text", description: "Chat ID para alertas (numérico)", group: "Soporte" },
