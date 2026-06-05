@@ -213,7 +213,13 @@
     "hash_ok": "El hash del server seed coincide.",
     "hash_bad": "El hash del server seed NO coincide.",
     "roll_label": "Número obtenido (0–9999):",
-    "back_hilo": "← Volver a HI-LO"
+    "back_hilo": "← Volver a HI-LO",
+    "field_server_seed": "Server seed",
+    "field_server_seed_hash": "Server seed hash",
+    "field_client_seed": "Client seed",
+    "field_nonce": "Nonce",
+    "ph_server_seed": "Pégala tras rotar tu semilla",
+    "verify_btn": "Verificar"
   },
   "hilo_pf": {
     "title": "Provably Fair",

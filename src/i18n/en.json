@@ -213,7 +213,13 @@
     "hash_ok": "Server seed hash matches.",
     "hash_bad": "Server seed hash does NOT match.",
     "roll_label": "Roll result (0–9999):",
-    "back_hilo": "← Back to HI-LO"
+    "back_hilo": "← Back to HI-LO",
+    "field_server_seed": "Server seed",
+    "field_server_seed_hash": "Server seed hash",
+    "field_client_seed": "Client seed",
+    "field_nonce": "Nonce",
+    "ph_server_seed": "Paste it after rotating your seed",
+    "verify_btn": "Verify"
   },
   "hilo_pf": {
     "title": "Provably Fair",
