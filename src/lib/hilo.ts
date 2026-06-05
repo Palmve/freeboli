@@ -50,12 +50,17 @@ export function normalizeHiLoOdds(oddsRaw?: number): number {
 }
 
 /**
- * Cantidad de valores de tirada ganadores para HI (o para LO), con RTP ~98%:
+ * Cantidad de valores de tirada ganadores para HI (o para LO), con RTP ≤ 98%:
  * (k/10000) × cuota ≈ 0.98 → k ≈ 9800/cuota.
- * Tope k ≤ 9900 para mantener un RTP consistente incluso en cuotas bajas.
+ *
+ * IMPORTANTE: se usa Math.floor (no Math.round). Con Math.round, la cuantización
+ * de k en cuotas altas (k pequeño) producía RTP > 100% en ~149k cuotas
+ * (ej. odds=3919.93 → round(2.5)=3 → RTP=117.6%), una fuga de dinero explotable.
+ * floor garantiza que el RTP nunca supere el objetivo (~98%); la casa nunca pierde
+ * su ventaja por redondeo. Tope k ≤ 9900 para cuotas muy bajas.
  */
 export function hiLoWinningOutcomes(oddsEffective: number): number {
-  const raw = Math.round((HILO_HOUSE_EDGE_FACTOR * 100) / oddsEffective);
+  const raw = Math.floor((HILO_HOUSE_EDGE_FACTOR * 100) / oddsEffective);
   return Math.min(9900, Math.max(1, raw));
 }
 
