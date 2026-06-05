@@ -220,16 +220,13 @@
     "field_nonce": "Nonce",
     "ph_server_seed": "Pega aquí la server seed revelada",
     "verify_btn": "Verificar",
-    "error_empty": "Rellena los campos. Consíguelos pulsando VER en una tirada del historial, o rotando tu semilla en el panel Provably Fair (eso revela la server seed).",
-    "howto_title": "¿De dónde saco estos datos?",
-    "howto_a": "Opción A: pulsa VER en una tirada del historial y los campos se rellenan solos (solo si esa semilla ya fue revelada).",
-    "howto_b": "Opción B: en /hi-lo, panel Provably Fair, pulsa “Rotar y revelar”. Copia aquí la server seed que aparece; el hash y el client seed están en el panel, y el nonce es el de cada tirada (puedes cambiarlo para verificar varias)."
+    "error_empty": "Rellena los campos, o mejor: pulsa VER en cualquier tirada del historial y se rellenan y verifican solos."
   },
   "hilo_pf": {
     "title": "Provably Fair",
-    "intro": "El servidor compromete el hash de su semilla ANTES de que apuestes. La semilla se mantiene secreta hasta que la rotas; al rotar se revela y puedes verificar todo tu historial.",
-    "hash_label": "Server seed (hash comprometido)",
-    "client_label": "Client seed (editable hasta tu 1ª apuesta)",
+    "intro": "El servidor compromete el hash de la semilla ANTES de cada tirada. Al terminar la tirada se revela su semilla, así verificas cada jugada al instante con el botón VER del historial.",
+    "hash_label": "Server seed (hash · próxima tirada)",
+    "client_label": "Client seed (editable)",
     "nonce_label": "Nonce",
     "save": "Guardar",
     "rotate": "Rotar y revelar",

@@ -140,16 +140,21 @@ export async function POST(req: Request) {
     );
   }
 
-  // 2. Semilla comprometida + nonce atómico (provably fair). Antes del descuento:
-  // si el descuento fallara (saldo), a lo sumo queda un nonce sin usar (inocuo),
-  // nunca se cobra sin tirada.
+  // 2. Semilla comprometida (verificación INSTANTÁNEA). Usa la semilla activa (su hash
+  // ya estaba comprometido) y la rota a una nueva en la misma operación. La usada se
+  // revela en la respuesta y se guarda en el movimiento -> cada tirada es verificable al
+  // momento; la siguiente usa otra semilla, así revelar la usada no compromete nada.
+  // Antes del descuento: si el saldo fallara, a lo sumo se rota una semilla (inocuo).
   const admin = createAdminClient();
-  const seedFallback = generateServerSeed();
-  const { data: seedData, error: seedError } = await admin.rpc("next_hilo_nonce", {
+  const nextSeed = generateServerSeed();
+  const fallbackSeed = generateServerSeed();
+  const { data: seedData, error: seedError } = await admin.rpc("consume_hilo_seed", {
     p_user_id: userId,
-    p_new_server_seed: seedFallback.serverSeed,
-    p_new_server_seed_hash: seedFallback.serverSeedHash,
-    p_new_client_seed: generateClientSeed(),
+    p_next_server_seed: nextSeed.serverSeed,
+    p_next_server_seed_hash: nextSeed.serverSeedHash,
+    p_fallback_server_seed: fallbackSeed.serverSeed,
+    p_fallback_server_seed_hash: fallbackSeed.serverSeedHash,
+    p_fallback_client_seed: generateClientSeed(),
   });
   if (seedError || !seedData?.[0]) {
     return NextResponse.json({ error: seedError?.message || "No se pudo obtener la semilla de juego." }, { status: 500 });
@@ -171,13 +176,14 @@ export async function POST(req: Request) {
   const balanceAfterBet = Number(subData[0].result_balance);
   const betSeq = (count ?? 0) + 1; // solo para la cadencia del rollup
 
-  // 4. Calcular el roll con la semilla comprometida y liquidar (función pura)
-  const roll = rollFromSeeds(seed.server_seed, seed.client_seed, seed.nonce);
+  // 4. Calcular el roll con la semilla USADA (revelada) y liquidar (función pura)
+  const roll = rollFromSeeds(seed.used_server_seed, seed.client_seed, seed.nonce);
   const result = settleHiLo(bet, choice, odds, roll);
   let finalPoints = balanceAfterBet;
-  // Verificación pública: NUNCA se expone server_seed (se revela solo al rotar).
+  // Verificación pública: la semilla usada SE REVELA (la siguiente tirada usa otra).
   const verification = {
-    server_seed_hash: seed.server_seed_hash,
+    server_seed: seed.used_server_seed,
+    server_seed_hash: seed.used_server_seed_hash,
     client_seed: seed.client_seed,
     nonce: seed.nonce,
   };
@@ -195,7 +201,7 @@ export async function POST(req: Request) {
         payout: result.payout,
         odds: result.effectiveOdds,
         odds_requested: result.odds,
-        seed_id: seed.seed_id,
+        server_seed: verification.server_seed,
         server_seed_hash: verification.server_seed_hash,
         client_seed: verification.client_seed,
         nonce: verification.nonce,
@@ -340,11 +346,14 @@ export async function POST(req: Request) {
     payout: result.payout,
     odds: result.effectiveOdds,
     newBalance: finalPoints,
+    // Semilla USADA revelada -> el jugador verifica esta tirada al instante.
     verification: {
-      // Solo devolvemos el hash — el seed completo queda en BD para verificación vía /hi-lo/verificar
+      server_seed: verification.server_seed,
       server_seed_hash: verification.server_seed_hash,
       client_seed: verification.client_seed,
       nonce: verification.nonce,
     },
+    // Hash de la próxima semilla comprometida (para el panel: se ve ANTES de la siguiente tirada).
+    next_server_seed_hash: seed.next_server_seed_hash,
   });
 }

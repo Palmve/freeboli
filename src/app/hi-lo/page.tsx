@@ -50,6 +50,7 @@ type Result = {
   payout: number;
   newBalance: number;
   verification?: { server_seed?: string; server_seed_hash: string; client_seed: string; nonce: number };
+  next_server_seed_hash?: string;
 };
 
 type HistoryEntry = {
@@ -128,14 +129,13 @@ export default function HiLoPage() {
   const [isPaused, setIsPaused] = useState(false);
   const historyIdRef = useRef(0);
 
-  // === Provably Fair (semilla comprometida) ===
+  // === Provably Fair (semilla comprometida, verificación instantánea) ===
   const [seedHash, setSeedHash] = useState<string | null>(null);
   const [seedClientSeed, setSeedClientSeed] = useState<string>("");
   const [seedNonce, setSeedNonce] = useState<number>(0);
   const [seedClientInput, setSeedClientInput] = useState<string>("");
   const [seedBusy, setSeedBusy] = useState(false);
   const [seedMsg, setSeedMsg] = useState<string>("");
-  const [revealedSeed, setRevealedSeed] = useState<{ server_seed: string; server_seed_hash: string; client_seed: string; nonce: number } | null>(null);
 
   const loadSeed = useCallback(async () => {
     try {
@@ -162,28 +162,6 @@ export default function HiLoPage() {
       const d = await r.json();
       if (r.ok) { setSeedClientSeed(d.client_seed); setSeedMsg(t("hilo_pf.saved")); }
       else setSeedMsg(d.error || t("hilo_pf.error"));
-    } catch { setSeedMsg(t("hilo_pf.error")); }
-    setSeedBusy(false);
-  }
-
-  async function rotateSeed() {
-    setSeedBusy(true);
-    setSeedMsg("");
-    try {
-      const r = await fetch("/api/hi-lo/seed/rotate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const d = await r.json();
-      if (r.ok) {
-        if (d.revealed) setRevealedSeed(d.revealed);
-        setSeedHash(d.server_seed_hash);
-        setSeedClientSeed(d.client_seed);
-        setSeedClientInput(d.client_seed);
-        setSeedNonce(0);
-        setSeedMsg(t("hilo_pf.rotated"));
-      } else setSeedMsg(d.error || t("hilo_pf.error"));
     } catch { setSeedMsg(t("hilo_pf.error")); }
     setSeedBusy(false);
   }
@@ -361,7 +339,8 @@ export default function HiLoPage() {
     setDisplayRoll(padRoll(data.roll));
     setLastResult(data);
     setBalance(data.newBalance);
-    if (data.verification) setSeedNonce(data.verification.nonce);
+    if (data.verification) setSeedNonce(data.verification.nonce + 1);
+    if (data.next_server_seed_hash) setSeedHash(data.next_server_seed_hash);
     if (typeof window !== "undefined") {
       if (amount >= 1) localStorage.setItem("hilo_last_bet", String(amount));
       window.dispatchEvent(new CustomEvent("freeboli-balance-update", { detail: data.newBalance }));
@@ -414,7 +393,8 @@ export default function HiLoPage() {
         const data = await playOne(currentBet, choiceToUse, oddsPlay);
         if (!data) break;
         setBalance(data.newBalance);
-        if (data.verification) setSeedNonce(data.verification.nonce);
+        if (data.verification) setSeedNonce(data.verification.nonce + 1);
+        if (data.next_server_seed_hash) setSeedHash(data.next_server_seed_hash);
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("freeboli-balance-update", { detail: data.newBalance }));
         }
@@ -1129,54 +1109,27 @@ export default function HiLoPage() {
                 type="text"
                 value={seedClientInput}
                 onChange={(e) => setSeedClientInput(e.target.value)}
-                disabled={seedNonce > 0 || seedBusy}
+                disabled={seedBusy}
                 maxLength={64}
                 className="flex-1 rounded border border-slate-600 bg-slate-900 px-2 py-1.5 font-mono text-xs text-white disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={saveClientSeed}
-                disabled={seedNonce > 0 || seedBusy || !seedClientInput.trim() || seedClientInput === seedClientSeed}
+                disabled={seedBusy || !seedClientInput.trim() || seedClientInput === seedClientSeed}
                 className="rounded bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-600 disabled:opacity-40"
               >
                 {t("hilo_pf.save")}
               </button>
             </div>
-            {seedNonce > 0 && <p className="mt-1 text-xs text-slate-500">{t("hilo_pf.locked")}</p>}
           </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-xs font-semibold text-slate-300 uppercase">{t("hilo_pf.nonce_label")}: </span>
-              <span className="font-mono text-sm text-white">{seedNonce}</span>
-            </div>
-            <button
-              type="button"
-              onClick={rotateSeed}
-              disabled={seedBusy}
-              className="rounded bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-900 hover:bg-amber-400 disabled:opacity-40"
-            >
-              {t("hilo_pf.rotate")}
-            </button>
+          <div>
+            <span className="text-xs font-semibold text-slate-300 uppercase">{t("hilo_pf.nonce_label")}: </span>
+            <span className="font-mono text-sm text-white">{seedNonce}</span>
           </div>
 
           {seedMsg && <p className="text-xs text-slate-400">{seedMsg}</p>}
-
-          {revealedSeed && (
-            <div className="rounded-lg border border-amber-500/40 bg-slate-900/80 p-3">
-              <p className="text-xs font-semibold text-amber-400 uppercase">{t("hilo_pf.revealed_title")}</p>
-              <p className="mt-1 break-all font-mono text-xs text-slate-300">{revealedSeed.server_seed}</p>
-              <p className="mt-2 text-xs text-slate-400">{t("hilo_pf.revealed_note")}</p>
-              <Link
-                href={`/hi-lo/verificar?server_seed=${encodeURIComponent(revealedSeed.server_seed)}&server_seed_hash=${encodeURIComponent(revealedSeed.server_seed_hash)}&client_seed=${encodeURIComponent(revealedSeed.client_seed)}&nonce=${revealedSeed.nonce}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-2 inline-block text-amber-400 hover:underline text-xs"
-              >
-                {t("hilo_pf.verify")}
-              </Link>
-            </div>
-          )}
         </div>
       </div>
 

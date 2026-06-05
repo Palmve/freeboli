@@ -114,14 +114,6 @@ function VerificarContent() {
       <h1 className="text-2xl font-bold text-white">{t("hilo_verify.title")}</h1>
       <p className="text-slate-400 text-sm">{t("hilo_verify.intro")}</p>
 
-      <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-4 text-sm text-slate-300">
-        <p className="font-semibold text-slate-200">{t("hilo_verify.howto_title")}</p>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-400">
-          <li>{t("hilo_verify.howto_a")}</li>
-          <li>{t("hilo_verify.howto_b")}</li>
-        </ul>
-      </div>
-
       <div className="card space-y-3">
         {field(t("hilo_verify.field_server_seed"), serverSeed, setServerSeed, {
           placeholder: t("hilo_verify.ph_server_seed"),
