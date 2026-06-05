@@ -97,7 +97,7 @@ export async function getCryptoPrice(asset: Asset): Promise<number | null> {
   }
 }
 
-const SIGMAS: Record<Asset, number> = {
+export const SIGMAS: Record<Asset, number> = {
   BTC: 0.0065,  // Desviación típica del % de cambio en 1 hora (Bitcoin)
   SOL: 0.012,   // Desviación típica del % de cambio en 1 hora (Solana)
   BOLIS: 0.035, // Alta volatilidad (Token nativo/Memecoin)
