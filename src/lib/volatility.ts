@@ -1,9 +1,12 @@
 /**
  * Estimación de volatilidad realizada (σ viva) para el modelo de cuotas de Predicciones.
  * σ = desviación típica del % de cambio en 1 hora (mismas unidades que SIGMAS de price-oracle).
+ *
+ * Módulo SIN imports a propósito: así los tests Node (type-strip) lo cargan sin cruzar
+ * imports con extensión, y el baseline σ entra como PARÁMETRO (su única fuente sigue siendo
+ * SIGMAS en price-oracle, que pasan los llamadores: cron y getModelSigma).
  * Ver docs/superpowers/specs/2026-06-05-prediccion-sigma-viva-ewma-design.md
  */
-import { SIGMAS } from "./price-oracle.ts";
 
 /** Memoria de la EWMA (λ≈0.97 ⇒ ~33h de memoria efectiva sobre datos horarios). */
 const EWMA_LAMBDA = 0.97;
