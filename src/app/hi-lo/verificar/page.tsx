@@ -52,7 +52,7 @@ function VerificarContent() {
       setDone(false);
 
       if (!ss.trim() || !cs.trim() || n === "") {
-        setErrorMsg(t("hilo_verify.error_params"));
+        setErrorMsg(t("hilo_verify.error_empty"));
         return;
       }
       const nonceNum = parseInt(n, 10);
@@ -113,6 +113,14 @@ function VerificarContent() {
     <div className="mx-auto max-w-lg space-y-6 py-8">
       <h1 className="text-2xl font-bold text-white">{t("hilo_verify.title")}</h1>
       <p className="text-slate-400 text-sm">{t("hilo_verify.intro")}</p>
+
+      <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-4 text-sm text-slate-300">
+        <p className="font-semibold text-slate-200">{t("hilo_verify.howto_title")}</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-400">
+          <li>{t("hilo_verify.howto_a")}</li>
+          <li>{t("hilo_verify.howto_b")}</li>
+        </ul>
+      </div>
 
       <div className="card space-y-3">
         {field(t("hilo_verify.field_server_seed"), serverSeed, setServerSeed, {

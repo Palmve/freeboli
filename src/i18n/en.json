@@ -218,8 +218,12 @@
     "field_server_seed_hash": "Server seed hash",
     "field_client_seed": "Client seed",
     "field_nonce": "Nonce",
-    "ph_server_seed": "Paste it after rotating your seed",
-    "verify_btn": "Verify"
+    "ph_server_seed": "Paste the revealed server seed here",
+    "verify_btn": "Verify",
+    "error_empty": "Fill in the fields. Get them by clicking VER on a roll in your history, or by rotating your seed in the Provably Fair panel (that reveals the server seed).",
+    "howto_title": "Where do I get this data?",
+    "howto_a": "Option A: click VER on a roll in your history and the fields auto-fill (only if that seed was already revealed).",
+    "howto_b": "Option B: on /hi-lo, Provably Fair panel, click “Rotate & reveal”. Copy the server seed shown here; the hash and client seed are in the panel, and the nonce is the one of each roll (change it to verify several)."
   },
   "hilo_pf": {
     "title": "Provably Fair",
