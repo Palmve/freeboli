@@ -171,11 +171,15 @@ export default function HiLoPage() {
   }, [session?.user, lang]);
 
   const betNum = Math.floor(Number(bet)) || 0;
-  const minBet = 1;
   const maxBet = balance != null ? Math.min(balance, levelMaxBet) : levelMaxBet;
   const oddsNumManual = Math.max(ODDS_MIN, Math.min(ODDS_MAX, Number(manualBetOdds) || 2));
   const oddsNumAuto = Math.max(ODDS_MIN, Math.min(ODDS_MAX, Number(autoBetOdds) || 2));
   const hiLoRules = hiLoRuleThresholds(oddsNumManual);
+  const autoRules = hiLoRuleThresholds(oddsNumAuto);
+  // Cuota efectiva (lo que paga el servidor) y apuesta mínima para profit ≥ 1.
+  const effOddsManual = hiLoRules.effectiveOdds;
+  const minBet = hiLoRules.minBet;
+  const autoBaseNum = Math.floor(Number(autoBaseBet)) || 0;
 
   function handleManualBetOddsChange(value: string) {
     const v = value.replace(",", ".");
@@ -276,8 +280,10 @@ export default function HiLoPage() {
   async function playManual(overrideChoice?: "hi" | "lo") {
     const amount = Math.floor(Number(bet));
     const c = overrideChoice ?? choice;
-    if (!c || amount < 1) {
-      setError(t("hilo.error_bet_manual"));
+    if (!c || amount < minBet) {
+      setError(amount < minBet && amount >= 1
+        ? `A la cuota ${effOddsManual.toFixed(2)}x la apuesta mínima es ${minBet.toLocaleString()} pts.`
+        : t("hilo.error_bet_manual"));
       return;
     }
     setError("");
@@ -532,7 +538,7 @@ export default function HiLoPage() {
             <>
               <p className="mb-1 text-sm font-semibold text-slate-300 uppercase">{t("hilo.manual_max_win")}</p>
               <p className="mb-2 rounded border border-slate-600 bg-slate-900/80 px-2 py-1.5 font-mono text-amber-400">
-                {Math.floor(betNum * (oddsNumManual - 1)).toLocaleString()} pts
+                {Math.floor(betNum * (effOddsManual - 1)).toLocaleString()} pts
               </p>
               <p className="mb-2 text-sm font-semibold text-slate-300 uppercase">{t("hilo.manual_bet_amount")}</p>
               <div className="flex flex-wrap items-center gap-2">
@@ -573,10 +579,15 @@ export default function HiLoPage() {
                 onChange={(e) => setBet(e.target.value)}
                 className="mt-2 w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 font-mono text-white"
               />
-              <p className={`mt-2 text-sm ${Math.floor(betNum * (oddsNumManual - 1)) > MAX_WIN_POINTS ? "text-red-400" : "text-slate-400"}`}>
-                {t("hilo.potential_profit")}: {Math.floor(betNum * oddsNumManual).toLocaleString()} pts
-                {Math.floor(betNum * (oddsNumManual - 1)) > MAX_WIN_POINTS && ` ${t("hilo.exceeds_limit")}`}
+              <p className={`mt-2 text-sm ${Math.floor(betNum * (effOddsManual - 1)) > MAX_WIN_POINTS ? "text-red-400" : "text-slate-400"}`}>
+                {t("hilo.potential_profit")}: {Math.floor(betNum * effOddsManual).toLocaleString()} pts
+                {Math.floor(betNum * (effOddsManual - 1)) > MAX_WIN_POINTS && ` ${t("hilo.exceeds_limit")}`}
               </p>
+              {betNum > 0 && betNum < minBet && (
+                <p className="mt-1 text-xs text-amber-400">
+                  Cuota {effOddsManual.toFixed(2)}x · apuesta mínima {minBet.toLocaleString()} pts (para ganancia ≥ 1).
+                </p>
+              )}
               <p className="mt-2 text-sm font-semibold text-slate-300 uppercase">{t("hilo.odds_title")}</p>
               <input
                 type="number"
@@ -604,11 +615,16 @@ export default function HiLoPage() {
               <p className="mb-2 text-sm font-semibold text-slate-300 uppercase">{t("hilo.auto_base_bet")}</p>
               <input
                 type="number"
-                min={1}
+                min={autoRules.minBet}
                 value={autoBaseBet}
                 onChange={(e) => setAutoBaseBet(e.target.value)}
                 className="w-full rounded border border-slate-600 bg-slate-900 px-3 py-2 font-mono text-white"
               />
+              {autoBaseNum > 0 && autoBaseNum < autoRules.minBet && (
+                <p className="mt-1 text-xs text-amber-400">
+                  Cuota {autoRules.effectiveOdds.toFixed(2)}x · apuesta base mínima {autoRules.minBet.toLocaleString()} pts.
+                </p>
+              )}
               <p className="mt-3 text-sm font-semibold text-slate-300 uppercase">{t("hilo.auto_max_bet")}</p>
               <input
                 type="number"
@@ -714,7 +730,7 @@ export default function HiLoPage() {
               <button
                 type="button"
                 onClick={() => playManual("hi")}
-                disabled={loading || balance == null || balance < betNum || betNum < 1 || isPaused}
+                disabled={loading || balance == null || balance < betNum || betNum < minBet || isPaused}
                 className="flex-1 rounded-lg py-4 font-bold transition bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50"
               >
                 {t("hilo.btn_bet_hi")}
@@ -722,7 +738,7 @@ export default function HiLoPage() {
               <button
                 type="button"
                 onClick={() => playManual("lo")}
-                disabled={loading || balance == null || balance < betNum || betNum < 1 || isPaused}
+                disabled={loading || balance == null || balance < betNum || betNum < minBet || isPaused}
                 className="flex-1 rounded-lg py-4 font-bold transition bg-amber-600 text-white hover:bg-amber-500 disabled:opacity-50"
               >
                 {t("hilo.btn_bet_lo")}
@@ -735,7 +751,7 @@ export default function HiLoPage() {
                   <button
                     type="button"
                     onClick={startAuto}
-                    disabled={balance == null || balance < (Math.floor(Number(autoBaseBet)) || 1) || isPaused}
+                    disabled={balance == null || balance < autoBaseNum || autoBaseNum < autoRules.minBet || isPaused}
                     className="w-full rounded-lg bg-amber-500 py-3 font-bold text-slate-900 hover:bg-amber-400 disabled:opacity-50 sm:py-4"
                   >
                     {t("hilo.btn_start_auto")}

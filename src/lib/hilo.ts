@@ -12,6 +12,14 @@ export const HILO_ODDS_MIN = 1.01;
 export const HILO_ODDS_MAX = 4900;
 
 /**
+ * Límites de k (resultados ganadores). La cuota efectiva es 9800/k, así que:
+ *   k=2    -> 9800/2 = 4900   (cuota máxima)
+ *   k=9702 -> 9800/9702 ≈ 1.0101 (cuota mínima, ≥ 1.01)
+ */
+const HILO_K_MIN = 2;
+const HILO_K_MAX = 9702;
+
+/**
  * Calcula el roll de forma determinista a partir de server_seed, client_seed y nonce.
  * Misma fórmula que en el verificador del navegador (provably fair).
  */
@@ -50,22 +58,44 @@ export function normalizeHiLoOdds(oddsRaw?: number): number {
 }
 
 /**
- * Cantidad de valores de tirada ganadores para HI (o para LO), con RTP ≤ 98%:
- * (k/10000) × cuota ≈ 0.98 → k ≈ 9800/cuota.
+ * Cantidad de valores de tirada ganadores para HI (o para LO).
  *
- * IMPORTANTE: se usa Math.floor (no Math.round). Con Math.round, la cuantización
- * de k en cuotas altas (k pequeño) producía RTP > 100% en ~149k cuotas
- * (ej. odds=3919.93 → round(2.5)=3 → RTP=117.6%), una fuga de dinero explotable.
- * floor garantiza que el RTP nunca supere el objetivo (~98%); la casa nunca pierde
- * su ventaja por redondeo. Tope k ≤ 9900 para cuotas muy bajas.
+ * El roll es entero en [0, 9999], así que P(ganar) sólo puede ser k/10000 con k
+ * entero. Para un RTP exacto del 98% se "snapea" la cuota pedida a la rejilla:
+ *   k = round(9800 / cuotaPedida)
+ * y luego se paga la cuota EFECTIVA 9800/k (ver hiLoEffectiveOdds). Como el pago
+ * se deriva de k, el redondeo (round) ya es seguro: RTP = (k/10000)·(9800/k) = 0.98
+ * SIEMPRE, sin posibilidad de RTP > 100%.
  */
-export function hiLoWinningOutcomes(oddsEffective: number): number {
-  const raw = Math.floor((HILO_HOUSE_EDGE_FACTOR * 100) / oddsEffective);
-  return Math.min(9900, Math.max(1, raw));
+export function hiLoWinningOutcomes(oddsRequested: number): number {
+  const raw = Math.round((HILO_HOUSE_EDGE_FACTOR * 100) / oddsRequested);
+  return Math.min(HILO_K_MAX, Math.max(HILO_K_MIN, raw));
+}
+
+/**
+ * Cuota efectiva (la que se MUESTRA y se PAGA) derivada de k: 9800/k.
+ * Garantiza RTP = (k/10000)·(9800/k) = 98% exacto, independiente de la cuantización.
+ */
+export function hiLoEffectiveOdds(k: number): number {
+  return (HILO_HOUSE_EDGE_FACTOR * 100) / k;
+}
+
+/**
+ * Apuesta mínima para que la ganancia (profit) sea ≥ 1 punto a la cuota efectiva dada.
+ * floor(bet·odds) − bet ≥ 1  ⟺  bet ≥ 1/(odds−1).
+ */
+export function hiLoMinBet(effectiveOdds: number): number {
+  if (!(effectiveOdds > 1)) return 1;
+  return Math.max(1, Math.ceil(1 / (effectiveOdds - 1)));
 }
 
 export interface HiLoRuleThresholds {
+  /** Cuota pedida por el usuario tras clamp. */
   odds: number;
+  /** Cuota efectiva (la que se muestra y se paga) = 9800/k. */
+  effectiveOdds: number;
+  /** Apuesta mínima para que la ganancia sea ≥ 1 punto a la cuota efectiva. */
+  minBet: number;
   k: number;
   hiMin: number;
   loMax: number;
@@ -80,13 +110,15 @@ export interface HiLoRuleThresholds {
 export function hiLoRuleThresholds(oddsRaw?: number): HiLoRuleThresholds {
   const odds = normalizeHiLoOdds(oddsRaw);
   const k = hiLoWinningOutcomes(odds);
+  const effectiveOdds = hiLoEffectiveOdds(k);
+  const minBet = hiLoMinBet(effectiveOdds);
   const hiMin = HILO_ROLL_MOD - k;
   const loMax = k - 1;
   const deadMin = k;
   const deadMax = HILO_ROLL_MOD - k - 1;
   const hasDeadZone = deadMin <= deadMax;
   const winChancePctLabel = (k / 100).toFixed(2);
-  return { odds, k, hiMin, loMax, deadMin, deadMax, hasDeadZone, winChancePctLabel };
+  return { odds, effectiveOdds, minBet, k, hiMin, loMax, deadMin, deadMax, hasDeadZone, winChancePctLabel };
 }
 
 /**
@@ -115,6 +147,10 @@ export interface HiLoResult {
   win: boolean;
   bet: number;
   payout: number;
+  /** Cuota pedida (clamp). */
+  odds: number;
+  /** Cuota efectiva pagada = 9800/k. */
+  effectiveOdds: number;
   verification: HiLoVerification;
 }
 
@@ -139,8 +175,10 @@ export function playHiLo(
 
   const roll = rollFromSeeds(server_seed, client_seed, nonceNum);
   const odds = normalizeHiLoOdds(oddsRaw);
-  const win = isPlayerWin(roll, choice, odds);
-  const payout = win ? Math.floor(bet * odds) : 0;
+  const k = hiLoWinningOutcomes(odds);
+  const effectiveOdds = hiLoEffectiveOdds(k);
+  const win = choice === "hi" ? roll >= HILO_ROLL_MOD - k : roll <= k - 1;
+  const payout = win ? Math.floor(bet * effectiveOdds) : 0;
 
   return {
     roll,
@@ -148,6 +186,8 @@ export function playHiLo(
     win,
     bet,
     payout,
+    odds,
+    effectiveOdds,
     verification: {
       server_seed,
       server_seed_hash,

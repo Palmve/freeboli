@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
-import { playHiLo } from "@/lib/hilo";
+import { playHiLo, hiLoWinningOutcomes, hiLoEffectiveOdds, hiLoMinBet } from "@/lib/hilo";
 import { AFFILIATE_GAME_PERCENT, MAX_WIN_POINTS, MAX_DAILY_WIN_POINTS } from "@/lib/config";
 import { fetchUserLevel } from "@/lib/levels";
 import { getSetting } from "@/lib/site-settings";
@@ -56,9 +56,21 @@ export async function POST(req: Request) {
   let odds = Number(body.odds);
   if (!Number.isFinite(odds) || odds < 1.01 || odds > 4900) odds = 2;
 
+  // Cuota efectiva (snap a la rejilla k) y apuesta mínima para que el profit sea ≥ 1.
+  const k = hiLoWinningOutcomes(odds);
+  const effectiveOdds = hiLoEffectiveOdds(k);
+  const minBet = hiLoMinBet(effectiveOdds);
+
   if (!choice || bet < 1 || isNaN(bet)) {
     return NextResponse.json(
       { error: "Apuesta inválida (mínimo 1 punto) y elección hi o lo." },
+      { status: 400 }
+    );
+  }
+
+  if (bet < minBet) {
+    return NextResponse.json(
+      { error: `A la cuota ${effectiveOdds.toFixed(2)}x la apuesta mínima es ${minBet.toLocaleString()} puntos (para que la ganancia sea ≥ 1).` },
       { status: 400 }
     );
   }
@@ -112,7 +124,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const potentialWin = Math.floor(bet * odds) - bet;
+  const potentialWin = Math.floor(bet * effectiveOdds) - bet;
   if (potentialWin > maxWin) {
     return NextResponse.json(
       { error: `Ganancia maxima por jugada: ${maxWin.toLocaleString()} puntos. Reduce tu apuesta o la cuota.` },
@@ -158,6 +170,8 @@ export async function POST(req: Request) {
         roll: result.roll,
         win: result.win,
         payout: result.payout,
+        odds: result.effectiveOdds,
+        odds_requested: result.odds,
         server_seed: verification.server_seed,
         server_seed_hash: verification.server_seed_hash,
         client_seed: verification.client_seed,
@@ -301,6 +315,7 @@ export async function POST(req: Request) {
     win: result.win,
     bet: result.bet,
     payout: result.payout,
+    odds: result.effectiveOdds,
     newBalance: finalPoints,
     verification: {
       // Solo devolvemos el hash — el seed completo queda en BD para verificación vía /hi-lo/verificar
