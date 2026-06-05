@@ -41,3 +41,53 @@ export function ewmaSigmaFromCloses(closes: number[], lambda: number = EWMA_LAMB
 export function clampSigma(raw: number, baseline: number): number {
   return Math.max(baseline * 0.5, Math.min(baseline * 4, raw));
 }
+
+const FETCH_TIMEOUT_MS = 3500;
+
+async function fetchJsonTimed(url: string): Promise<any | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal, next: { revalidate: 0 } } as any);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Cierres horarios desde Binance (índice 4 de cada vela). ~168 velas = 7 días. */
+async function binanceCloses(asset: "BTC" | "SOL"): Promise<number[] | null> {
+  const symbol = asset === "BTC" ? "BTCUSDT" : "SOLUSDT";
+  const d = await fetchJsonTimed(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=169`);
+  if (!Array.isArray(d)) return null;
+  const closes = d.map((k: any) => parseFloat(k?.[4])).filter((n) => Number.isFinite(n) && n > 0);
+  return closes.length ? closes : null;
+}
+
+/** Fallback: cierres horarios desde Coinbase (índice 4; vienen del más nuevo al más viejo). */
+async function coinbaseCloses(asset: "BTC" | "SOL"): Promise<number[] | null> {
+  const product = asset === "BTC" ? "BTC-USD" : "SOL-USD";
+  const d = await fetchJsonTimed(`https://api.exchange.coinbase.com/products/${product}/candles?granularity=3600`);
+  if (!Array.isArray(d)) return null;
+  // Cada vela: [time, low, high, open, close, volume]. Ordenar por time ascendente.
+  const sorted = [...d].sort((a, b) => (a?.[0] ?? 0) - (b?.[0] ?? 0));
+  const closes = sorted.map((k: any) => parseFloat(k?.[4])).filter((n) => Number.isFinite(n) && n > 0);
+  return closes.length ? closes : null;
+}
+
+/**
+ * σ realizada del activo: klines horarias (Binance→Coinbase) → EWMA → clamp a [×0.5, ×4]
+ * del baseline. ok=false si la fuente falla o hay datos insuficientes (sigma = baseline).
+ * `baseline` se recibe por parámetro (su fuente es SIGMAS en price-oracle) para que este
+ * módulo NO importe nada y los tests Node lo carguen sin cruzar imports con extensión.
+ */
+export async function computeRealizedSigma(asset: "BTC" | "SOL", baseline: number): Promise<{ sigma: number; ok: boolean }> {
+  const closes = (await binanceCloses(asset)) ?? (await coinbaseCloses(asset));
+  if (!closes) return { sigma: baseline, ok: false };
+  const raw = ewmaSigmaFromCloses(closes);
+  if (raw === null) return { sigma: baseline, ok: false };
+  return { sigma: clampSigma(raw, baseline), ok: true };
+}
