@@ -138,12 +138,17 @@ export function calculateDynamicOdds(
    * a 10 como mitigación: a cuotas altas el lado improbable era explotable (RTP del jugador
    * hasta ~215% en alta volatilidad). Ver scripts/audit_predictions.mjs.
    */
-  maxOddsCap: number = 10
+  maxOddsCap: number = 10,
+  /** σ horaria a usar (σ viva). Si se omite, usa el baseline SIGMAS[asset]. */
+  sigmaOverride?: number
 ): number {
   if (startPrice <= 0 || currentPrice <= 0) return 1.90;
 
   // Volatilidad por segundo (SIGMAS calibran la desviación del % a 1h: σ_seg = σ_1h/√3600).
-  const sigPerSec = (SIGMAS[asset] || 0.006) / Math.sqrt(3600);
+  const sigmaHourly = (typeof sigmaOverride === "number" && sigmaOverride > 0)
+    ? sigmaOverride
+    : (SIGMAS[asset] || 0.006);
+  const sigPerSec = sigmaHourly / Math.sqrt(3600);
   const tLeft = Math.max(1, timeLeftSec);
   const sigMove = sigPerSec * Math.sqrt(tLeft); // desviación del movimiento que queda
 

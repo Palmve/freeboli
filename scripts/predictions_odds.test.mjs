@@ -64,4 +64,17 @@ for (const cap of [10, 5, 30]) {
 }
 ok("cuota dentro de [1.05, cap] y respeta cap configurable");
 
-console.log(`\n✅ ${passed}/4 grupos de aserciones OK`);
+// 5) sigmaOverride: una σ mayor aplana las cuotas (menos confianza en el favorito).
+for (const asset of ["BTC", "SOL"]) {
+  const Pnow = 100.3;
+  const oBase = calculateDynamicOdds("up", 100, Pnow, 1800, 3600, asset, EDGE);            // σ baseline
+  const oHiVol = calculateDynamicOdds("up", 100, Pnow, 1800, 3600, asset, EDGE, 10, 0.03); // σ override alta
+  assert.ok(oHiVol > oBase, `${asset}: σ mayor debería subir la cuota del favorito (${oHiVol} <= ${oBase})`);
+  // La prob implícita con override debe seguir == Φ(z) con esa σ.
+  const z = Math.log(Pnow / 100) / (0.03 / Math.sqrt(3600) * Math.sqrt(1800));
+  const implied = (1 - EDGE) / oHiVol;
+  if (oHiVol > 1.06 && oHiVol < 9.9) assert.ok(Math.abs(implied - normCdf(z)) < 0.01, `${asset}: implícita ${implied} != Φ(z) ${normCdf(z)}`);
+}
+ok("sigmaOverride: σ mayor aplana cuotas y la implícita sigue == Φ(z|σ)");
+
+console.log(`\n✅ ${passed}/5 grupos de aserciones OK`);
