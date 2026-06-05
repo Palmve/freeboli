@@ -69,10 +69,12 @@ const FIELDS: SettingField[] = [
   { key: "WITHDRAWAL_AUTO_APPROVE_ENABLED", label: "Retiros automáticos habilitados", type: "number", description: "1 = permitir pagos automáticos; 0 = forzar todas las solicitudes a Pendiente", group: "Seguridad", defaultValue: "0" },
   { key: "MAX_DAILY_AFFILIATE_COMMISSION", label: "Tope diario comisiones referidos (pts)", type: "number", description: "Máximo de puntos que un usuario puede recibir por comisiones de referidos en 24h. Evita el farming entre cuentas propias.", group: "Seguridad", defaultValue: "5000" },
   // Predicciones
-  { key: "PREDICTION_HOUSE_EDGE", label: "Comisión Casa (%)", type: "number", description: "Porcentaje de comisión (0.05 = 5%)", group: "Predicciones (General)", defaultValue: "0.05" },
+  { key: "PREDICTION_HOUSE_EDGE", label: "Comisión Casa (%)", type: "number", description: "Porcentaje de comisión (0.07 = 7%)", group: "Predicciones (General)", defaultValue: "0.07" },
   { key: "PREDICTION_CUTOFF_SECONDS", label: "Tiempo de Cierre (s)", type: "number", description: "Segundos antes del fin de hora para cerrar (600 = 10 min)", group: "Predicciones (General)", defaultValue: "600" },
   { key: "PREDICTION_MAX_ODDS", label: "Cuota máxima (cap)", type: "number", description: "Cuota máxima ofrecida. Bajado a 10 (mitigación: a 30x el lado improbable era explotable).", group: "Predicciones (General)", defaultValue: "10" },
   { key: "PREDICTION_MAX_ROUND_PAYOUT_PER_SIDE", label: "Tope exposición por lado (pts)", type: "number", description: "Pago máximo acumulado por lado y ronda. Acota la pérdida de la casa si ese lado gana.", group: "Predicciones (General)", defaultValue: "400000" },
+  { key: "PREDICTION_SIGMA_LIVE_BTC", label: "σ viva BTC (auto)", type: "json", description: "Volatilidad realizada EWMA (auto-gestionada por el cron). Objeto {sigma, at}.", group: "Predicciones (General)" },
+  { key: "PREDICTION_SIGMA_LIVE_SOL", label: "σ viva SOL (auto)", type: "json", description: "Volatilidad realizada EWMA (auto-gestionada por el cron). Objeto {sigma, at}.", group: "Predicciones (General)" },
   // Soporte
   { key: "TELEGRAM_BOT_TOKEN", label: "Telegram Bot Token", type: "text" as any, description: "Token del bot para notificaciones de soporte", group: "Soporte" },
   { key: "TELEGRAM_CHAT_ID", label: "ID de Chat Telegram", type: "text", description: "Chat ID para alertas (numérico)", group: "Soporte" },
