@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { executeBotCycle } from "@/lib/bot-engine";
 import { resolvePendingRounds } from "@/lib/predictions";
-import { processDeposits, awardPrizes, runDailySummary } from "@/lib/cron-tasks";
+import { processDeposits, awardPrizes, runDailySummary, updateLiveVolatility } from "@/lib/cron-tasks";
 import { requireCronSecret } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +27,13 @@ export async function GET(req: Request) {
     results.steps.predictions = await resolvePendingRounds();
   } catch (e: any) {
     results.steps.predictions = { ok: false, error: e.message };
+  }
+
+  // 2.b Actualizar σ viva (EWMA) para el modelo de cuotas de Predicciones.
+  try {
+    results.steps.volatility = await updateLiveVolatility();
+  } catch (e: any) {
+    results.steps.volatility = { ok: false, error: e.message };
   }
 
   // 3. Ejecutar ciclo del bot (Swaps, volumen, etc.)

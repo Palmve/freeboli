@@ -22,7 +22,10 @@ import {
 import { getDepositKeypair } from "@/lib/deposit-wallet";
 import { BOLIS_MINT } from "@/lib/config";
 import { alertDepositDetected, alertWithdrawalRequest, alertWithdrawalCompleted } from "@/lib/telegram";
-import { getSetting } from "@/lib/site-settings";
+import { getSetting, clearSettingsCache } from "@/lib/site-settings";
+import { computeRealizedSigma } from "@/lib/volatility";
+import { SIGMAS } from "@/lib/price-oracle";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { sendDailySummary, sendTelegramMessage, sendActivityPulse, sendNoActivityAlert } from "@/lib/telegram";
 import { sendBolisToWallet } from "@/lib/solana";
 import { POINTS_PER_BOLIS } from "@/lib/config";
@@ -458,4 +461,28 @@ export async function processWithdrawals() {
   }
 
   return { ok: true, processed: processed.length, errors: errors.length ? errors : undefined };
+}
+
+/**
+ * Precalcula la σ viva (EWMA de klines) de BTC/SOL y la persiste en site_settings como
+ * objeto {sigma, at}. Si una fuente falla (ok=false), NO sobrescribe (conserva el último
+ * bueno). La ruta de odds la lee con frescura<3h y piso max(baseline). Idempotente.
+ */
+export async function updateLiveVolatility(): Promise<{ ok: boolean; updated: string[]; skipped: string[] }> {
+  const supabase = createAdminClient();
+  const updated: string[] = [];
+  const skipped: string[] = [];
+  for (const asset of ["BTC", "SOL"] as const) {
+    const { sigma, ok } = await computeRealizedSigma(asset, SIGMAS[asset]);
+    if (!ok) { skipped.push(asset); continue; }
+    const { error } = await supabase
+      .from("site_settings")
+      .upsert(
+        { key: `PREDICTION_SIGMA_LIVE_${asset}`, value: { sigma, at: Date.now() }, updated_at: new Date().toISOString() },
+        { onConflict: "key" }
+      );
+    if (error) skipped.push(asset); else updated.push(asset);
+  }
+  clearSettingsCache();
+  return { ok: skipped.length === 0, updated, skipped };
 }
