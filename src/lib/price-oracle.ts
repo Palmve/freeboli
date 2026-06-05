@@ -125,7 +125,10 @@ export function calculateDynamicOdds(
 
   // Parámetros de sensibilidad
   const k = 0.8; // Suavizado para evitar cuotas extremas demasiado rápido
-  const sigma = SIGMAS[asset] || 0.006;
+  // sigma calibrado a la DURACIÓN de la ronda: la volatilidad escala ~sqrt(tiempo).
+  // Los SIGMAS base representan una ronda de 1h; una mini (10 min) usa un sigma menor,
+  // de modo que un mismo movimiento % resulta más decisivo (menos tiempo para revertir).
+  const sigma = (SIGMAS[asset] || 0.006) * Math.sqrt(totalTimeSec / 3600);
 
   /**
    * Modelo: Probabilidad Sigmoide Escalada

@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCryptoPrice, calculateDynamicOdds } from "./price-oracle";
 import { getSetting } from "./site-settings";
+import { MAX_DAILY_WIN_POINTS } from "@/lib/config";
 
 export type PredictionAsset = "BTC" | "SOL" | "BOLIS";
 export type PredictionRoundType = "hourly" | "mini" | "micro";
@@ -140,6 +141,9 @@ export async function resolvePendingRounds() {
 
   if (!pending || pending.length === 0) return 0;
 
+  // Tope diario de ganancias en Predicciones (paridad con HI-LO).
+  const maxDaily = await getSetting<number>("MAX_DAILY_WIN_POINTS", MAX_DAILY_WIN_POINTS);
+
   const results = await Promise.all(pending.map(async (round) => {
     try {
       const closePriceRaw = await getCryptoPrice(round.asset as PredictionAsset);
@@ -182,12 +186,13 @@ export async function resolvePendingRounds() {
             }
           }
 
-          // RESOLUCIÓN ATÓMICA vía RPC (Migración 018)
+          // RESOLUCIÓN ATÓMICA vía RPC (Migración 018 + tope diario en 036)
           await supabase.rpc("resolve_prediction_bet", {
               p_bet_id: bet.id,
               p_round_id: round.id,
               p_status: status,
-              p_payout: payout
+              p_payout: payout,
+              p_max_daily: maxDaily
           });
         }
       }
