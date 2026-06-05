@@ -1,7 +1,21 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCryptoPrice, calculateDynamicOdds } from "./price-oracle";
+import { SIGMAS } from "./price-oracle";
 import { getSetting } from "./site-settings";
 import { MAX_DAILY_WIN_POINTS } from "@/lib/config";
+import { resolveModelSigma } from "./volatility";
+
+/** σ del modelo para un activo, leyendo el setting live PREDICTION_SIGMA_LIVE_<ASSET>. */
+export async function getModelSigma(asset: "BTC" | "SOL"): Promise<number> {
+  const baseline = SIGMAS[asset];
+  const live = await getSetting<{ sigma?: number; at?: number } | null>(`PREDICTION_SIGMA_LIVE_${asset}`, null);
+  return resolveModelSigma(
+    typeof live?.sigma === "number" ? live.sigma : null,
+    typeof live?.at === "number" ? live.at : null,
+    Date.now(),
+    baseline
+  );
+}
 
 export type PredictionAsset = "BTC" | "SOL" | "BOLIS";
 export type PredictionRoundType = "hourly" | "mini" | "micro";

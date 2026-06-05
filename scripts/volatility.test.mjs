@@ -1,6 +1,6 @@
 // Tests puros de la estimación de σ (sin red). Importa el .ts real (Node 24 type-strip).
 import assert from "node:assert/strict";
-import { ewmaSigmaFromCloses, clampSigma } from "../src/lib/volatility.ts";
+import { ewmaSigmaFromCloses, clampSigma, resolveModelSigma } from "../src/lib/volatility.ts";
 
 let passed = 0;
 const ok = (n) => { passed++; console.log(`  ✓ ${n}`); };
@@ -30,4 +30,18 @@ assert.equal(clampSigma(0.05, 0.0065), 0.0065 * 4);     // por encima del techo
 assert.equal(clampSigma(0.01, 0.0065), 0.01);           // dentro
 ok("clampSigma: acota a [baseline×0.5, baseline×4]");
 
-console.log(`\n✅ ${passed}/4 grupos de aserciones OK`);
+// 5) resolveModelSigma: frescura (<3h) y piso max(baseline).
+const NOW = 1_000_000_000_000;
+const H3 = 3 * 3600 * 1000;
+const base = 0.0065;
+// ausente ⇒ baseline
+assert.equal(resolveModelSigma(null, null, NOW, base), base);
+// viejo (>3h) ⇒ baseline
+assert.equal(resolveModelSigma(0.02, NOW - H3 - 1, NOW, base), base);
+// fresco y por encima del baseline ⇒ ese valor
+assert.equal(resolveModelSigma(0.02, NOW - 1000, NOW, base), 0.02);
+// fresco pero por debajo del baseline ⇒ piso = baseline
+assert.equal(resolveModelSigma(0.001, NOW - 1000, NOW, base), base);
+ok("resolveModelSigma: frescura <3h + piso max(baseline)");
+
+console.log(`\n✅ ${passed}/5 grupos de aserciones OK`);

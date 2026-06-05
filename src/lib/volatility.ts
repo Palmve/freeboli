@@ -91,3 +91,21 @@ export async function computeRealizedSigma(asset: "BTC" | "SOL", baseline: numbe
   if (raw === null) return { sigma: baseline, ok: false };
   return { sigma: clampSigma(raw, baseline), ok: true };
 }
+
+/** 3h: tolera hasta 2 ticks horarios perdidos antes de caer al baseline. */
+export const SIGMA_MAX_AGE_MS = 3 * 3600 * 1000;
+
+/**
+ * Decide la σ del modelo a partir del valor live leído: si falta o está viejo (>maxAge),
+ * usa el baseline; si no, aplica el piso conservador max(valor, baseline). PURA.
+ */
+export function resolveModelSigma(
+  rawSigma: number | null,
+  atMillis: number | null,
+  nowMillis: number,
+  baseline: number,
+  maxAgeMs: number = SIGMA_MAX_AGE_MS
+): number {
+  if (rawSigma == null || atMillis == null || nowMillis - atMillis > maxAgeMs) return baseline;
+  return Math.max(rawSigma, baseline);
+}
