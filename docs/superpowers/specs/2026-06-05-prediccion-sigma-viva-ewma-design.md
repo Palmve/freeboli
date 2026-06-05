@@ -100,10 +100,13 @@ apuesta / consulta de odds
 | Key | Antes | Después | Nota |
 |---|---|---|---|
 | `PREDICTION_HOUSE_EDGE` | 0.05 | **0.07** | Default en `predictions.ts`, seed migración, editable admin |
-| `PREDICTION_SIGMA_LIVE_BTC` | — | baseline 0.0065 (init) | Auto-gestionado por el cron; visible en admin |
-| `PREDICTION_SIGMA_LIVE_BTC_AT` | — | timestamp | Frescura |
-| `PREDICTION_SIGMA_LIVE_SOL` | — | baseline 0.012 (init) | Auto-gestionado por el cron |
-| `PREDICTION_SIGMA_LIVE_SOL_AT` | — | timestamp | Frescura |
+| `PREDICTION_SIGMA_LIVE_BTC` | — | `{"sigma":0.0065,"at":0}` (init) | Objeto `{sigma, at(epoch ms)}`; auto-gestionado por el cron |
+| `PREDICTION_SIGMA_LIVE_SOL` | — | `{"sigma":0.012,"at":0}` (init) | Objeto `{sigma, at(epoch ms)}`; auto-gestionado por el cron |
+
+Un único key por activo con valor objeto `{sigma, at}` (en vez de keys `_AT` separadas): así
+`getSetting` lo devuelve ya parseado como objeto y se evita el problema de `JSON.parse` con
+timestamps en formato string. `at` es epoch ms; `at:0` fuerza el piso baseline hasta que el
+primer tick del cron escribe la σ realizada.
 
 Migración **`038_prediction_live_volatility.sql`**: sube edge a 0.07 e inicializa los
 `PREDICTION_SIGMA_LIVE_*` al baseline (para que la 1ª lectura, antes del 1er cron, funcione).
