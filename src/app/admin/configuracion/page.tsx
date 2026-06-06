@@ -68,6 +68,8 @@ const FIELDS: SettingField[] = [
   { key: "WITHDRAWALS_ENABLED", label: "Retiros habilitados (Global)", type: "number", description: "1 = permitir retiros; 0 = BLOQUEAR todos los retiros (Emergencia)", group: "Seguridad", defaultValue: "1" },
   { key: "WITHDRAWAL_AUTO_APPROVE_ENABLED", label: "Retiros automáticos habilitados", type: "number", description: "1 = permitir pagos automáticos; 0 = forzar todas las solicitudes a Pendiente", group: "Seguridad", defaultValue: "0" },
   { key: "MAX_DAILY_AFFILIATE_COMMISSION", label: "Tope diario comisiones referidos (pts)", type: "number", description: "Máximo de puntos que un usuario puede recibir por comisiones de referidos en 24h. Evita el farming entre cuentas propias.", group: "Seguridad", defaultValue: "5000" },
+  { key: "WAGERING_MULTIPLIER", label: "Wagering: multiplicador de bono (x)", type: "number", description: "Multiplicador de apuesta requerido para desbloquear fichas de bono antes de poder retirarlas. Default 20 (el usuario debe apostar 20× el monto del bono).", group: "Seguridad", defaultValue: "20" },
+  { key: "WITHDRAWAL_DAILY_GLOBAL_CAP_BOLIS", label: "Retiros: tope global diario (BOLIS)", type: "number", description: "Máximo de BOLIS que el sistema paga automáticamente en un día natural. Al superarlo, los retiros quedan en 'pending' para revisión manual. Default 500.", group: "Seguridad", defaultValue: "500" },
   // Predicciones
   { key: "PREDICTION_HOUSE_EDGE", label: "Comisión Casa (%)", type: "number", description: "Porcentaje de comisión (0.07 = 7%)", group: "Predicciones (General)", defaultValue: "0.07" },
   { key: "PREDICTION_CUTOFF_SECONDS", label: "Tiempo de Cierre (s)", type: "number", description: "Segundos antes del fin de hora para cerrar (600 = 10 min)", group: "Predicciones (General)", defaultValue: "600" },
@@ -726,6 +728,34 @@ export default function ConfiguracionPage() {
                     </table>
                   </div>
                 )}
+              </div>
+
+              {/* Wagering y Tope Global de Retiros */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+                <h3 className="text-base font-bold text-white">💸 Wagering y Tope Global de Retiros</h3>
+                {[
+                  FIELDS.find(f => f.key === "WAGERING_MULTIPLIER"),
+                  FIELDS.find(f => f.key === "WITHDRAWAL_DAILY_GLOBAL_CAP_BOLIS"),
+                ].filter(Boolean).map((field) => field && (
+                  <div key={field.key} className="space-y-2">
+                    <div className="flex justify-between items-baseline">
+                      <label className="text-sm font-black text-slate-300 uppercase tracking-tighter">{field.label}</label>
+                      {field.defaultValue !== undefined && (
+                        <span className="text-[10px] text-amber-500/60 font-bold uppercase">Por defecto: {field.defaultValue}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed">{field.description}</p>
+                    <input
+                      type="number"
+                      value={values[field.key] ?? ""}
+                      onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
+                      className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white font-mono focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                ))}
+                <button onClick={handleSave} disabled={saving} className="w-full py-3 bg-amber-500 text-slate-950 font-black rounded-2xl hover:bg-amber-400 transition shadow-xl shadow-amber-500/20 disabled:opacity-50">
+                  {saving ? "Guardando..." : "Guardar Ajustes"}
+                </button>
               </div>
             </section>
           ) : activeTab === "Niveles" ? (
