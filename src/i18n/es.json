@@ -727,6 +727,7 @@
     "err_withdraw_failed": "No se pudo procesar el retiro. Inténtalo más tarde.",
     "pending_global_cap": "Retiro solicitado. Por la alta demanda de pagos de hoy, se procesará manualmente en breve.",
     "pending_new_account": "Retiro solicitado. Por ser una cuenta reciente, se revisará manualmente antes del pago.",
+    "pending_under_review": "Retiro solicitado. Se revisará manualmente antes del pago como parte de nuestras verificaciones de seguridad.",
     "pending_manual": "Retiro solicitado correctamente. Se procesará pronto desde administración."
   },
   "footer": {

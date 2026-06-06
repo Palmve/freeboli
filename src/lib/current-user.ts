@@ -18,6 +18,14 @@ export function isUserBlocked(status: UserStatus): boolean {
   return status === "suspendido" || status === "bloqueado";
 }
 
+// M3: una cuenta marcada para revisión ('evaluar') NO puede auto-pagarse on-chain.
+// Puede solicitar el retiro, pero queda en 'pending' para revisión manual del admin.
+// Solo 'normal' es elegible para auto-pago (suspendido/bloqueado ni siquiera llegan
+// aquí porque isUserBlocked los corta antes).
+export function canAutoWithdraw(status: UserStatus): boolean {
+  return status === "normal";
+}
+
 function nextAuthJwtSecret(): string {
   const secret = process.env.NEXTAUTH_SECRET;
   const isProd = process.env.NODE_ENV === "production" || IS_VERCEL;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser, isUserBlocked } from "@/lib/current-user";
+import { getCurrentUser, isUserBlocked, canAutoWithdraw } from "@/lib/current-user";
 import { MIN_WITHDRAW_POINTS, POINTS_PER_BOLIS } from "@/lib/config";
 import { rateLimit } from "@/lib/rate-limit";
 import { alertWithdrawalRequest, alertSuspiciousActivity } from "@/lib/telegram";
@@ -209,9 +209,29 @@ export async function POST(req: Request) {
     }).catch(() => {});
   }
 
+  // M3: cuentas marcadas para revisión ('evaluar') NO se auto-pagan. El retiro se
+  // registra pero queda en 'pending' para revisión manual del admin. Evita que una
+  // cuenta sospechosa drene la reserva on-chain antes de ser revisada.
+  const accountUnderReview = !canAutoWithdraw(currentUser.status);
+  if (accountUnderReview) {
+    await flagWithdrawalAnomaly({
+      withdrawalId,
+      userId,
+      wallet,
+      points,
+      reason: `Cuenta en revisión (status='${currentUser.status}'): retiro retenido para revisión manual.`,
+    }).catch(() => {});
+    await logSecurityEvent({
+      eventType: "withdrawal_under_review_hold",
+      userId,
+      details: { status: currentUser.status, points, wallet },
+      severity: "high",
+    }).catch(() => {});
+  }
+
   // Límite de 100,000 puntos para retiros automáticos según requerimiento
   // Además debe estar habilitado el auto-pago globalmente y para el nivel del usuario
-  const isAutoEligible = autoWithdrawGlobal === 1 && autoWithdrawUserLevel && points <= 100000 && !accountTooNew && !globalCapReached;
+  const isAutoEligible = autoWithdrawGlobal === 1 && autoWithdrawUserLevel && points <= 100000 && !accountTooNew && !globalCapReached && !accountUnderReview;
   let txHash = null;
 
   let autoError = null;
@@ -298,6 +318,6 @@ export async function POST(req: Request) {
     balance: newBalance,
     autoProcessed: !!txHash,
     bolisAmount: bolisAmount,
-    pendingReason: !txHash ? (globalCapReached ? "global_cap" : (accountTooNew ? "new_account" : "manual")) : null,
+    pendingReason: !txHash ? (accountUnderReview ? "under_review" : (globalCapReached ? "global_cap" : (accountTooNew ? "new_account" : "manual"))) : null,
   });
 }

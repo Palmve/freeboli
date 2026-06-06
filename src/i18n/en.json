@@ -727,6 +727,7 @@
     "err_withdraw_failed": "Could not process the withdrawal. Please try again later.",
     "pending_global_cap": "Withdrawal requested. Due to high payout demand today, it will be processed manually shortly.",
     "pending_new_account": "Withdrawal requested. As this is a recent account, it will be reviewed manually before payout.",
+    "pending_under_review": "Withdrawal requested. It will be reviewed manually before payout as part of our security checks.",
     "pending_manual": "Withdrawal requested successfully. It will be processed soon from admin."
   },
   "footer": {

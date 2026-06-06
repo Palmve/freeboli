@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserId, getCurrentUser, isUserBlocked } from "@/lib/current-user";
+import { getCurrentUserId, getCurrentUser, isUserBlocked, canAutoWithdraw } from "@/lib/current-user";
 import { getRequestIp, getRequestIpHash } from "@/lib/ip";
 import { getSetting } from "@/lib/site-settings";
 import { rateLimit } from "@/lib/rate-limit";
@@ -42,6 +42,17 @@ export async function POST(request: Request) {
   if (!currentUser) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   if (isUserBlocked(currentUser.status)) {
     return NextResponse.json({ error: "Tu cuenta está suspendida o bloqueada." }, { status: 403 });
+  }
+  // M3: cuentas marcadas para revisión ('evaluar') no pueden reclamar faucet hasta
+  // que un admin las apruebe. Mensaje neutro para no avisar de que están marcadas.
+  if (!canAutoWithdraw(currentUser.status)) {
+    await logSecurityEvent({
+      eventType: "faucet_under_review_block",
+      userId: currentUser.id,
+      details: { status: currentUser.status },
+      severity: "low",
+    }).catch(() => {});
+    return NextResponse.json({ error: "El faucet no está disponible para tu cuenta en este momento. Vuelve a intentarlo más tarde." }, { status: 403 });
   }
   const userId = currentUser.id;
 

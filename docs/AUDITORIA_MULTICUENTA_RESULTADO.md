@@ -208,3 +208,28 @@ Recordatorio operativo: migraciones ANTES del deploy, subir versión (`package.j
 - Todo verificado en código (`config.ts`, `levels.ts`, `streaks.ts`, `faucet/route.ts`, `withdraw/route.ts`, `register/route.ts`, `affiliates/route.ts`, `affiliate-guard.ts`, `hi-lo/play/route.ts`, `predictions/bet/route.ts`, `captcha.ts`, `email-normalize.ts`, `current-user.ts`).
 - Cifras de faucet calculadas con los tiers por defecto de `streaks.ts`. Si los settings de admin (`site_settings`) sobre-escriben estos valores en producción, recalcular con los reales.
 - Pendiente de confirmar en runtime: saldo real de la Master Wallet y si `WITHDRAWAL_AUTO_APPROVE` está activo en producción (de estarlo, el vector 6 es explotable hoy; si está en `false`, todo va a manual y el riesgo baja a "carga de trabajo del admin").
+
+---
+
+## Estado y PENDIENTES (actualizado 2026-06-06)
+
+**HECHO — desplegado en producción v1.163.0** (rama mergeada a `main`, migración 039 aplicada al proyecto prod `tiyjxmyknpgefjslkkrc`):
+- **M1 (wagering 20×)**: bonos (faucet, bienvenida, comisiones, referido, recompensas de nivel) jugables pero NO retirables hasta apostarlos 20×. Depósitos exentos. Grandfather de saldos previos. Columnas `balances.locked_points`/`wagering_remaining`, RPC `credit_bonus_points`, RPCs de juego/retiro redefinidos. Setting `WAGERING_MULTIPLIER` (admin).
+- **M2 (tope global)**: presupuesto diario global de pagos on-chain (setting `WITHDRAWAL_DAILY_GLOBAL_CAP_BOLIS`=500); al superarlo el retiro queda en `pending`.
+- Textos de retiro/wagering bilingües es/en.
+
+**PENDIENTE — confirmar en runtime (no es código):**
+1. Saldo real de la Master Wallet de Solana.
+2. Si `WITHDRAWAL_AUTO_APPROVE` está activo en producción (define si el auto-pago on-chain está vivo).
+
+**HECHO — M3 implementado (v1.164.0, solo código, sin migración):**
+- Nueva función `canAutoWithdraw(status)` en `current-user.ts` (solo `normal` es elegible para auto-pago).
+- **Retiro**: una cuenta `evaluar` puede solicitar retiro pero NO se auto-paga → queda en `pending` para revisión manual + evento `withdrawal_under_review_hold` + `flagWithdrawalAnomaly`. Nuevo `pendingReason: "under_review"` con texto neutro i18n es/en (`pending_under_review`).
+- **Faucet**: una cuenta `evaluar` no puede reclamar faucet (mensaje neutro, sin avisarle) + evento `faucet_under_review_block`.
+- Juegos (HI-LO/Predicciones) NO se bloquean a propósito: no hay fuga (edge a favor de la casa).
+
+**PENDIENTE — mitigaciones M4/M5 (no implementadas):**
+- **M4** — Afiliados: la **comisión de faucet (10%) es dinero creado** → bajarla/eliminarla o ligarla a depósito del referido. El **bono verificado** es esquivable rotando IP (sólo se chequea IP de registro) → añadir device fingerprint/ASN o exigir depósito. Coste: bajo-medio.
+- **M5** — Subir coste del sybil: mover la verja de retiro del nivel 3 al 4; device fingerprint; **extender el canonical de puntos a Outlook/Hotmail/Live/Yahoo/iCloud** en `email-normalize.ts` (hoy sólo Gmail) — cierra `a.b@outlook.com` ≠ `ab@outlook.com`. Coste: bajo (canonical), medio (fingerprint).
+
+**Prioridad pendiente sugerida:** M3 (trivial y cierra el hueco de `evaluar`) → M5-canonical (10 líneas) → M4 → M5-fingerprint.
