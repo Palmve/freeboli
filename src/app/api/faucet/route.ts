@@ -199,10 +199,12 @@ export async function POST(request: Request) {
     );
   }
 
-  // --- Update balance atomically ---
-  const { data: addData, error: addError } = await supabase.rpc("atomic_add_points", {
-    target_user_id: userId,
-    amount_to_add: payout
+  // --- Update balance atomically (BONO: aplica wagering) ---
+  const wagerMult = await getSetting<number>("WAGERING_MULTIPLIER", 20);
+  const { data: addData, error: addError } = await supabase.rpc("credit_bonus_points", {
+    p_user_id: userId,
+    p_amount: payout,
+    p_wager_mult: wagerMult,
   });
 
   if (addError || !addData?.[0]?.success) {
@@ -247,9 +249,10 @@ export async function POST(request: Request) {
       if (capAllowed) {
         const commission = Math.floor((payout * cfg.commission) / 100);
         if (commission > 0) {
-          await supabase.rpc("atomic_add_points", {
-            target_user_id: ref.referrer_id,
-            amount_to_add: commission
+          await supabase.rpc("credit_bonus_points", {
+            p_user_id: ref.referrer_id,
+            p_amount: commission,
+            p_wager_mult: wagerMult,
           });
 
           await supabase.from("movements").insert({
@@ -309,7 +312,7 @@ export async function GET() {
 
   const { data: balance } = await supabase
     .from("balances")
-    .select("points")
+    .select("points, locked_points, wagering_remaining")
     .eq("user_id", userId)
     .single();
 
@@ -373,5 +376,7 @@ export async function GET() {
     needsEngagement,
     engagementEvery: cfg.engagementEvery,
     emailVerified,
+    withdrawable: Math.max(0, Number(balance?.points ?? 0) - Number(balance?.locked_points ?? 0)),
+    wageringRemaining: Number(balance?.wagering_remaining ?? 0),
   });
 }
