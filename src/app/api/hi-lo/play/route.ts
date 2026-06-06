@@ -319,7 +319,8 @@ export async function POST(req: Request) {
         if (capAllowed) {
           const commission = Math.floor((bet * gameCommPercent) / 100);
           if (commission > 0) {
-            await supabase.rpc("atomic_add_points", { target_user_id: ref.referrer_id, amount_to_add: commission });
+            const wagerMult = await getSetting<number>("WAGERING_MULTIPLIER", 20);
+            await supabase.rpc("credit_bonus_points", { p_user_id: ref.referrer_id, p_amount: commission, p_wager_mult: wagerMult });
             await supabase.from("movements").insert({
               user_id: ref.referrer_id,
               type: "comision_afiliado",
