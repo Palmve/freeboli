@@ -9,12 +9,13 @@ import { fetchUserLevel } from "@/lib/levels";
 import { PublicKey } from "@solana/web3.js";
 import { persistentRateLimit, logSecurityEvent, flagWithdrawalAnomaly } from "@/lib/security";
 import { getRequestIpHash } from "@/lib/ip";
+import { isGlobalCapReached } from "@/lib/wagering";
 
 export async function POST(req: Request) {
   const currentUser = await getCurrentUser();
-  if (!currentUser) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  if (!currentUser) return NextResponse.json({ code: "unauthorized", error: "No autorizado." }, { status: 401 });
   if (isUserBlocked(currentUser.status)) {
-    return NextResponse.json({ error: "Tu cuenta está suspendida o bloqueada." }, { status: 403 });
+    return NextResponse.json({ code: "account_blocked", error: "Tu cuenta está suspendida o bloqueada." }, { status: 403 });
   }
   const userId = currentUser.id;
 
@@ -25,10 +26,7 @@ export async function POST(req: Request) {
   // Capa 1: Rate-limit en memoria (rápida, primera barrera)
   const { allowed: inMemAllowed, retryAfterSeconds: inMemRetry } = rateLimit(`withdraw:${userId}`, withdrawRateMax, windowMs);
   if (!inMemAllowed) {
-    return NextResponse.json(
-      { error: `Demasiadas solicitudes de retiro. Espera ${Math.ceil(inMemRetry / 60)} minuto(s).` },
-      { status: 429 }
-    );
+    return NextResponse.json({ code: "rate_limit", params: [Math.ceil(inMemRetry / 60)], error: `Demasiadas solicitudes de retiro. Espera ${Math.ceil(inMemRetry / 60)} minuto(s).` }, { status: 429 });
   }
 
   // Capa 2: Rate-limit persistente en Supabase (global entre todos los workers de Vercel)
@@ -44,14 +42,12 @@ export async function POST(req: Request) {
       details: { endpoint: "withdraw", retryAfterSeconds: persRetry },
       severity: "medium",
     });
-    return NextResponse.json(
-      { error: `Demasiadas solicitudes de retiro. Espera ${Math.ceil(persRetry / 60)} minuto(s).` },
-      { status: 429 }
-    );
+    return NextResponse.json({ code: "rate_limit", params: [Math.ceil(persRetry / 60)], error: `Demasiadas solicitudes de retiro. Espera ${Math.ceil(persRetry / 60)} minuto(s).` }, { status: 429 });
   }
 
   const body = await req.json().catch(() => ({}));
   const points = Number(body.points);
+  const bolisAmount = points / POINTS_PER_BOLIS;
   const wallet = typeof body.wallet === "string" ? body.wallet.trim() : "";
 
   const supabase = await createClient();
@@ -72,10 +68,7 @@ export async function POST(req: Request) {
   // 0. Verificación de habilitación GLOBAL de retiros
   const withdrawalsEnabled = await getSetting<number>("WITHDRAWALS_ENABLED", 1);
   if (withdrawalsEnabled === 0) {
-    return NextResponse.json(
-      { error: "Los retiros se encuentran temporalmente deshabilitados por mantenimiento o seguridad. Inténtalo más tarde." },
-      { status: 503 }
-    );
+    return NextResponse.json({ code: "withdrawals_disabled", error: "Los retiros se encuentran temporalmente deshabilitados por mantenimiento o seguridad. Inténtalo más tarde." }, { status: 503 });
   }
 
   const userLevel = await fetchUserLevel(supabase, userId);
@@ -84,34 +77,22 @@ export async function POST(req: Request) {
 
   // 1. Validar Puntos y Billetera (Formato Básico y Red Solana)
   if (!Number.isInteger(points) || points < MIN_WITHDRAW_POINTS || !wallet || wallet.length < 32) {
-    return NextResponse.json(
-      { error: `Datos inválidos. Mínimo ${MIN_WITHDRAW_POINTS.toLocaleString()} puntos.` },
-      { status: 400 }
-    );
+    return NextResponse.json({ code: "invalid_data", params: [MIN_WITHDRAW_POINTS.toLocaleString()], error: `Datos inválidos. Mínimo ${MIN_WITHDRAW_POINTS.toLocaleString()} puntos.` }, { status: 400 });
   }
 
   if (requestedBolis > maxWithdrawBolis) {
     // Si maxWithdrawBolis es 0, el nivel no tiene derecho a retiro
     if (maxWithdrawBolis === 0) {
-      return NextResponse.json(
-        { error: `El nivel ${userLevel.icon} ${userLevel.name} no tiene derecho a retiro. Sube al nivel Jugador para desbloquear los retiros (mínimo 10,000 puntos).` },
-        { status: 403 }
-      );
+      return NextResponse.json({ code: "level_no_withdraw", error: `El nivel ${userLevel.icon} ${userLevel.name} no tiene derecho a retiro. Sube al nivel Jugador para desbloquear los retiros (mínimo 10,000 puntos).` }, { status: 403 });
     }
-    return NextResponse.json(
-      { error: `Tu nivel (${userLevel.name}) permite un retiro máximo de ${maxWithdrawBolis} BOLIS (${(maxWithdrawBolis * POINTS_PER_BOLIS).toLocaleString()} puntos) por solicitud.` },
-      { status: 400 }
-    );
+    return NextResponse.json({ code: "level_max", params: [userLevel.name, maxWithdrawBolis, (maxWithdrawBolis * POINTS_PER_BOLIS).toLocaleString()], error: `Tu nivel (${userLevel.name}) permite un retiro máximo de ${maxWithdrawBolis} BOLIS (${(maxWithdrawBolis * POINTS_PER_BOLIS).toLocaleString()} puntos) por solicitud.` }, { status: 400 });
   }
 
   try {
     // Verificación estricta de la dirección de Solana
     new PublicKey(wallet);
   } catch (e) {
-    return NextResponse.json(
-      { error: "La dirección introducida no es una billetera válida de la red Solana. Por favor, revísala." },
-      { status: 400 }
-    );
+    return NextResponse.json({ code: "invalid_wallet", error: "La dirección introducida no es una billetera válida de la red Solana. Por favor, revísala." }, { status: 400 });
   }
 
   // ... (supabase ya está creado arriba)
@@ -125,10 +106,7 @@ export async function POST(req: Request) {
 
   if (!usageError && previousUsage && previousUsage.length > 0) {
     if (previousUsage[0].user_id !== userId) {
-      return NextResponse.json(
-        { error: "Esta billetera protegida ya fue utilizada por otro usuario. Por reglas Anti-Fraude, debes usar una billetera de Solana única y personal." },
-        { status: 403 }
-      );
+      return NextResponse.json({ code: "wallet_reused", error: "Esta billetera protegida ya fue utilizada por otro usuario. Por reglas Anti-Fraude, debes usar una billetera de Solana única y personal." }, { status: 403 });
     }
   }
 
@@ -156,10 +134,7 @@ export async function POST(req: Request) {
       `Frecuencia de retiro alta detectada (${recentWithdrawals} en 24h). Retiro de ${points.toLocaleString()} pts BLOQUEADO automáticamente.`
     );
 
-    return NextResponse.json(
-      { error: "Tu solicitud de retiro ha sido bloqueada temporalmente por seguridad debido a la alta frecuencia de retiros en las últimas 24 horas. Por favor, contacta con soporte." },
-      { status: 403 }
-    );
+    return NextResponse.json({ code: "frequency_blocked", error: "Tu solicitud de retiro ha sido bloqueada temporalmente por seguridad debido a la alta frecuencia de retiros en las últimas 24 horas. Por favor, contacta con soporte." }, { status: 403 });
   }
 
   if (hasOverride) {
@@ -174,8 +149,9 @@ export async function POST(req: Request) {
   });
 
   if (withdrawError || !withdrawData?.[0]?.success) {
-    return NextResponse.json({ 
-        error: withdrawError?.message || "Saldo insuficiente o error al procesar el retiro." 
+    return NextResponse.json({
+        code: withdrawData?.[0]?.error_message || "withdraw_failed",
+        error: withdrawError?.message || "No se pudo procesar el retiro."
     }, { status: 400 });
   }
 
@@ -210,11 +186,32 @@ export async function POST(req: Request) {
 
   const autoWithdrawGlobal = await getSetting<number>("WITHDRAWAL_AUTO_APPROVE_ENABLED", 1);
   const autoWithdrawUserLevel = await getSetting<boolean>("WITHDRAWAL_AUTO_APPROVE", false);
-  const bolisAmount = points / POINTS_PER_BOLIS;
+
+  // M2: presupuesto GLOBAL de pagos on-chain por día. Al superarlo, el retiro
+  // queda en 'pending' (no auto-pago) en vez de drenar la reserva sin control.
+  const dailyCapBolis = await getSetting<number>("WITHDRAWAL_DAILY_GLOBAL_CAP_BOLIS", 500);
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const { data: paidTodayRows } = await supabase
+    .from("withdrawals")
+    .select("points")
+    .eq("status", "completed")
+    .gte("processed_at", dayStart.toISOString());
+  const paidBolisToday = (paidTodayRows ?? []).reduce((s, w) => s + Number(w.points), 0) / POINTS_PER_BOLIS;
+  const globalCapReached = isGlobalCapReached({ paidBolisToday, thisBolis: bolisAmount, capBolis: dailyCapBolis });
+
+  if (globalCapReached) {
+    await logSecurityEvent({
+      eventType: "withdrawal_global_cap_reached",
+      userId,
+      details: { paidBolisToday, thisBolis: bolisAmount, capBolis: dailyCapBolis },
+      severity: "medium",
+    }).catch(() => {});
+  }
 
   // Límite de 100,000 puntos para retiros automáticos según requerimiento
   // Además debe estar habilitado el auto-pago globalmente y para el nivel del usuario
-  const isAutoEligible = autoWithdrawGlobal === 1 && autoWithdrawUserLevel && points <= 100000 && !accountTooNew;
+  const isAutoEligible = autoWithdrawGlobal === 1 && autoWithdrawUserLevel && points <= 100000 && !accountTooNew && !globalCapReached;
   let txHash = null;
 
   let autoError = null;
@@ -301,5 +298,6 @@ export async function POST(req: Request) {
     balance: newBalance,
     autoProcessed: !!txHash,
     bolisAmount: bolisAmount,
+    pendingReason: !txHash ? (globalCapReached ? "global_cap" : (accountTooNew ? "new_account" : "manual")) : null,
   });
 }
