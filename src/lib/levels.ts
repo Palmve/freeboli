@@ -263,9 +263,25 @@ export async function checkAndNotifyLevelUp(supabase: any, userId: string, email
   // ganó arriba, así que esto se ejecuta una sola vez por subida de nivel).
   if (currentLevel.rewardPoints > 0) {
     try {
-      await supabase.rpc("atomic_add_points", {
-        target_user_id: userId,
-        amount_to_add: currentLevel.rewardPoints
+      // Leemos el multiplicador con el supabase ya disponible para NO importar
+      // site-settings.ts (arrastra supabase/server -> next/headers al bundle de
+      // cliente, pues levels.ts lo consumen componentes cliente).
+      let wagerMult = 20;
+      try {
+        const { data: wm } = await supabase
+          .from("site_settings")
+          .select("value")
+          .eq("key", "WAGERING_MULTIPLIER")
+          .single();
+        if (wm?.value != null) {
+          const parsed = typeof wm.value === "string" ? JSON.parse(wm.value) : wm.value;
+          if (Number.isFinite(Number(parsed))) wagerMult = Number(parsed);
+        }
+      } catch { /* fallback 20 */ }
+      await supabase.rpc("credit_bonus_points", {
+        p_user_id: userId,
+        p_amount: currentLevel.rewardPoints,
+        p_wager_mult: wagerMult,
       });
 
       await supabase.from("movements").insert({

@@ -11,6 +11,17 @@ import LevelProgressCard from "@/components/LevelProgressCard";
 
 const REQUIRE_AUTH = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
 
+function translateWithdrawResponse(
+  t: (k: string) => string,
+  data: { code?: string; params?: (string | number)[]; error?: string }
+): string {
+  if (!data.code) return data.error || t("withdraw.error_request");
+  let msg = t(`withdraw.err_${data.code}`);
+  if (msg === `withdraw.err_${data.code}`) return data.error || t("withdraw.error_request"); // sin clave: fallback ES
+  (data.params ?? []).forEach((p, i) => { msg = msg.replace(`{${i}}`, String(p)); });
+  return msg;
+}
+
 export default function RetirarPage() {
   const { data: session, status } = useSession();
   const { t } = useLang();
@@ -78,15 +89,16 @@ export default function RetirarPage() {
       const data = await res.json().catch(() => ({}));
       setLoading(false);
       if (!res.ok) {
-        setError(data.error || t("withdraw.error_request"));
+        setError(translateWithdrawResponse(t, data));
         return;
       }
       if (data.autoProcessed) {
-          setMessage(t("withdraw.success_auto"));
+        setMessage(t("withdraw.success_auto"));
       } else if (data.autoError) {
-          setMessage(t("withdraw.error_auto_fail").replace("{0}", data.autoError));
+        setMessage(t("withdraw.error_auto_fail").replace("{0}", data.autoError));
       } else {
-          setMessage(t("withdraw.success_manual"));
+        const reason = data.pendingReason || "manual";
+        setMessage(t(`withdraw.pending_${reason}`));
       }
       setWithdrawPoints("");
       setWithdrawWallet("");

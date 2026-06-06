@@ -709,7 +709,25 @@
     "card_ok_bolis": "BOLIS",
     "card_ok_footer": "Sube de nivel para aumentar tu límite de retiro. Cada rango superior desbloquea más BOLIS.",
     "card_ok_link": "Ver todos los límites por rango →",
-    "invalid_wallet_solana": "Dirección de red Solana no válida"
+    "invalid_wallet_solana": "Dirección de red Solana no válida",
+    "err_unauthorized": "No autorizado.",
+    "err_account_blocked": "Tu cuenta está suspendida o bloqueada.",
+    "err_rate_limit": "Demasiadas solicitudes de retiro. Espera {0} minuto(s).",
+    "err_withdrawals_disabled": "Los retiros están temporalmente deshabilitados por mantenimiento o seguridad. Inténtalo más tarde.",
+    "err_invalid_data": "Datos inválidos. El mínimo de retiro es {0} puntos.",
+    "err_level_no_withdraw": "Tu nivel aún no tiene derecho a retiro. Sube al nivel Jugador (🥇) para desbloquear los retiros.",
+    "err_level_max": "Tu nivel ({0}) permite un retiro máximo de {1} BOLIS ({2} puntos) por solicitud.",
+    "err_invalid_wallet": "La dirección no es una billetera válida de la red Solana. Revísala.",
+    "err_wallet_reused": "Esta billetera ya fue utilizada por otra cuenta. Por reglas anti-fraude, usa una billetera de Solana única y personal.",
+    "err_frequency_blocked": "Retiro bloqueado temporalmente por la alta frecuencia de retiros en las últimas 24 horas. Contacta con soporte.",
+    "err_wagering_locked": "Saldo retirable insuficiente: aún tienes bono por desbloquear. Apuesta para completar el requisito de juego y poder retirar.",
+    "err_insufficient_balance": "Saldo insuficiente para este retiro.",
+    "err_influencer_amount_exceeded": "El monto supera el límite permitido para tu cuenta.",
+    "err_influencer_daily_limit": "Has alcanzado el límite de retiros diarios de tu cuenta.",
+    "err_withdraw_failed": "No se pudo procesar el retiro. Inténtalo más tarde.",
+    "pending_global_cap": "Retiro solicitado. Por la alta demanda de pagos de hoy, se procesará manualmente en breve.",
+    "pending_new_account": "Retiro solicitado. Por ser una cuenta reciente, se revisará manualmente antes del pago.",
+    "pending_manual": "Retiro solicitado correctamente. Se procesará pronto desde administración."
   },
   "footer": {
     "bolis_info": "Para más información sobre el comercio de Bolis de Solana {0}"
@@ -732,5 +750,12 @@
     "btn_sending": "Enviando...",
     "btn_send": "Enviar Reporte",
     "error_send": "Error al enviar"
+  },
+  "wagering": {
+    "withdrawable": "Retirable",
+    "locked_bonus": "Bono bloqueado",
+    "unlock_progress": "Apuesta {0} fichas más para desbloquear tus retiros.",
+    "fully_unlocked": "¡Saldo desbloqueado! Ya puedes retirar.",
+    "explainer": "Las fichas de bono (faucet, bienvenida, comisiones) deben apostarse {0}× antes de poder retirarse. Los depósitos se retiran al instante."
   }
 }

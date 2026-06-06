@@ -238,9 +238,11 @@ export async function POST(request: Request) {
   }
 
   // 4. OTORGAR BONO ATÓMICAMENTE
-  const { data: addData, error: addError } = await supabase.rpc("atomic_add_points", {
-    target_user_id: userId,
-    amount_to_add: bonusAmount
+  const wagerMult = await getSetting<number>("WAGERING_MULTIPLIER", 20);
+  const { data: addData, error: addError } = await supabase.rpc("credit_bonus_points", {
+    p_user_id: userId,
+    p_amount: bonusAmount,
+    p_wager_mult: wagerMult,
   });
 
   if (addError || !addData?.[0]?.success) {

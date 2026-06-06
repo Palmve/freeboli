@@ -1,13 +1,14 @@
 {
   "name": "freeboli",
-  "version": "1.162.0",
+  "version": "1.163.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "node scripts/seed-admin.cjs"
+    "seed": "node scripts/seed-admin.cjs",
+    "test": "node --import tsx --test scripts/test_wagering.mjs"
   },
   "dependencies": {
     "@solana/spl-token": "^0.4.9",
@@ -32,6 +33,7 @@
     "eslint-config-next": "14.2.18",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
+    "tsx": "^4.22.4",
     "typescript": "^5.9.3"
   }
 }

@@ -255,7 +255,12 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-  await supabase.from("balances").insert({ user_id: inserted.id, points: WELCOME_POINTS });
+  const wagerMult = await getSetting<number>("WAGERING_MULTIPLIER", 20);
+  await supabase.rpc("credit_bonus_points", {
+    p_user_id: inserted.id,
+    p_amount: WELCOME_POINTS,
+    p_wager_mult: wagerMult,
+  });
   await supabase.from("movements").insert({
     user_id: inserted.id,
     type: "recompensa",
