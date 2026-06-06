@@ -1,7 +1,18 @@
--- 039_wagering_locked_balance.sql
--- M1 (wagering) + soporte para M2 (settings).
--- Añade contadores de bono a balances e integra el wagering en los RPCs de juego y retiro.
--- Grandfather: columnas DEFAULT 0 => saldos existentes quedan 100% retirables.
+-- ============================================================================
+-- PROD_039_aplicar_y_verificar.sql
+-- Copia y pega TODO este archivo en: Supabase -> SQL Editor -> New query -> Run
+--
+-- PARTE A = la migración 039 (DDL, idempotente: se puede correr varias veces).
+-- PARTE B = smoke test de verificación (va en BEGIN ... ROLLBACK: NO deja datos).
+--
+-- Puedes correr todo de una vez. La PARTE A se aplica (commit implícito) y la
+-- PARTE B se revierte sola con el ROLLBACK final, así que no ensucia la BD.
+-- ============================================================================
+
+
+-- ============================================================================
+-- PARTE A — MIGRACIÓN 039 (wagering M1 + settings M2)
+-- ============================================================================
 
 -- 1. Columnas nuevas (grandfather con default 0)
 ALTER TABLE public.balances
@@ -216,3 +227,69 @@ VALUES
   ('WAGERING_MULTIPLIER', to_jsonb(20), now()),
   ('WITHDRAWAL_DAILY_GLOBAL_CAP_BOLIS', to_jsonb(500), now())
 ON CONFLICT (key) DO NOTHING;
+
+
+-- ============================================================================
+-- PARTE B — VERIFICACIÓN ESTRUCTURAL (read-only, no inserta nada, sin FK).
+-- Confirma que la migración quedó aplicada. Resultado esperado (3 filas):
+--   columnas  -> locked_points, wagering_remaining
+--   funciones -> create_withdrawal_request, credit_bonus_points, place_hilo_bet, place_prediction_bet
+--   settings  -> WAGERING_MULTIPLIER=20, WITHDRAWAL_DAILY_GLOBAL_CAP_BOLIS=500
+-- ============================================================================
+
+SELECT 'columnas' AS check, string_agg(column_name, ', ' ORDER BY column_name) AS detalle
+FROM information_schema.columns
+WHERE table_schema = 'public' AND table_name = 'balances'
+  AND column_name IN ('locked_points', 'wagering_remaining')
+UNION ALL
+SELECT 'funciones', string_agg(DISTINCT proname, ', ' ORDER BY proname)
+FROM pg_proc
+WHERE proname IN ('credit_bonus_points', 'place_hilo_bet', 'place_prediction_bet', 'create_withdrawal_request')
+UNION ALL
+SELECT 'settings', string_agg(key || '=' || value::text, ', ' ORDER BY key)
+FROM public.site_settings
+WHERE key IN ('WAGERING_MULTIPLIER', 'WITHDRAWAL_DAILY_GLOBAL_CAP_BOLIS');
+
+
+-- ============================================================================
+-- PARTE C (OPCIONAL) — TEST FUNCIONAL con un usuario REAL, dentro de
+-- BEGIN ... ROLLBACK: NO deja datos. Usa el primer usuario de profiles.
+-- Para ejecutarlo: descomenta el bloque (quita el /* y el */) y córrelo solo.
+-- Mira los mensajes "NOTICE" en la pestaña de resultados. Esperado:
+--   1) tras bono   -> points=100 locked=100 wagering=2000
+--   2) retiro 50   -> success=false error=wagering_locked
+--   3) tras apostar-> locked=0 wagering=0
+--   4) retiro 50   -> success=true
+-- ============================================================================
+/*
+BEGIN;
+DO $$
+DECLARE
+  u UUID;
+  bal RECORD;
+  w RECORD;
+BEGIN
+  SELECT id INTO u FROM public.profiles LIMIT 1;
+  IF u IS NULL THEN RAISE NOTICE 'No hay usuarios en profiles; test omitido.'; RETURN; END IF;
+
+  INSERT INTO public.balances (user_id, points, locked_points, wagering_remaining)
+  VALUES (u, 0, 0, 0)
+  ON CONFLICT (user_id) DO UPDATE SET points = 0, locked_points = 0, wagering_remaining = 0;
+
+  PERFORM public.credit_bonus_points(u, 100, 20);
+  SELECT points, locked_points, wagering_remaining INTO bal FROM public.balances WHERE user_id = u;
+  RAISE NOTICE '1) tras bono -> points=% locked=% wagering=% (esperado 100/100/2000)', bal.points, bal.locked_points, bal.wagering_remaining;
+
+  SELECT success, error_message INTO w FROM public.create_withdrawal_request(u, 50, 'TestWalletAddrxxxxxxxxxxxxxxxxxxxxx');
+  RAISE NOTICE '2) retiro bloqueado -> success=% error=% (esperado false/wagering_locked)', w.success, w.error_message;
+
+  UPDATE public.balances SET points = 5000 WHERE user_id = u;
+  PERFORM public.place_hilo_bet(u, 2000);
+  SELECT points, locked_points, wagering_remaining INTO bal FROM public.balances WHERE user_id = u;
+  RAISE NOTICE '3) tras apostar -> locked=% wagering=% (esperado 0/0)', bal.locked_points, bal.wagering_remaining;
+
+  SELECT success, error_message INTO w FROM public.create_withdrawal_request(u, 50, 'TestWalletAddrxxxxxxxxxxxxxxxxxxxxx');
+  RAISE NOTICE '4) retiro permitido -> success=% error=% (esperado true)', w.success, w.error_message;
+END $$;
+ROLLBACK;
+*/
