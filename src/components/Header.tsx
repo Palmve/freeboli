@@ -23,7 +23,7 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userLevel, setUserLevel] = useState<{ level: number; name: string; icon: string; color: string } | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
-  const { t } = useLang();
+  const { t, lang, changeLang } = useLang();
 
   useEffect(() => {
     if (REQUIRE_AUTH || session?.user) return;
@@ -163,6 +163,25 @@ export function Header() {
                 </span>
               </Link>
             )}
+            {/* Language selector — siempre visible (con o sin login) */}
+            <div className="flex items-center rounded bg-slate-800 overflow-hidden ml-0.5">
+              <button
+                onClick={() => changeLang("es")}
+                className={`px-1.5 py-1.5 text-sm leading-none transition ${lang === "es" ? "bg-amber-500/20" : "opacity-50 hover:opacity-100"}`}
+                title="Español"
+                aria-label="Español"
+              >
+                🇪🇸
+              </button>
+              <button
+                onClick={() => changeLang("en")}
+                className={`px-1.5 py-1.5 text-sm leading-none transition ${lang === "en" ? "bg-amber-500/20" : "opacity-50 hover:opacity-100"}`}
+                title="English"
+                aria-label="English"
+              >
+                🇺🇸
+              </button>
+            </div>
             <button
               onClick={() => setHelpOpen(true)}
               className="bg-slate-800 p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-amber-400 transition ml-0.5"

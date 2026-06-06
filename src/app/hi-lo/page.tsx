@@ -657,6 +657,36 @@ export default function HiLoPage() {
           ) : (
             <>
               <p className="mb-2 text-sm font-semibold text-slate-300 uppercase">{t("hilo.auto_base_bet")}</p>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAutoBaseBet(String(Math.max(autoRules.minBet, Math.floor(autoBaseNum / 2))))}
+                  className="rounded bg-slate-700 px-2 py-1 text-xs font-medium text-slate-300 hover:bg-slate-600"
+                >
+                  /2
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAutoBaseBet(String(Math.min(maxBet, Math.floor(autoBaseNum * 2) || autoRules.minBet)))}
+                  className="rounded bg-slate-700 px-2 py-1 text-xs font-medium text-slate-300 hover:bg-slate-600"
+                >
+                  2x
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAutoBaseBet(String(autoRules.minBet))}
+                  className="rounded bg-slate-700 px-2 py-1 text-xs font-medium text-slate-300 hover:bg-slate-600"
+                >
+                  {t("hilo.btn_min")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAutoBaseBet(String(maxBet))}
+                  className="rounded bg-slate-700 px-2 py-1 text-xs font-medium text-slate-300 hover:bg-slate-600"
+                >
+                  {t("hilo.btn_max")}
+                </button>
+              </div>
               <input
                 type="number"
                 min={autoRules.minBet}
