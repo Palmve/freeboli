@@ -709,7 +709,25 @@
     "card_ok_bolis": "BOLIS",
     "card_ok_footer": "Level up to increase your withdrawal limit. Higher ranks unlock more BOLIS.",
     "card_ok_link": "See all limits by rank →",
-    "invalid_wallet_solana": "Invalid Solana network address"
+    "invalid_wallet_solana": "Invalid Solana network address",
+    "err_unauthorized": "Not authorized.",
+    "err_account_blocked": "Your account is suspended or blocked.",
+    "err_rate_limit": "Too many withdrawal requests. Wait {0} minute(s).",
+    "err_withdrawals_disabled": "Withdrawals are temporarily disabled for maintenance or security. Try again later.",
+    "err_invalid_data": "Invalid data. The minimum withdrawal is {0} points.",
+    "err_level_no_withdraw": "Your level can't withdraw yet. Reach Player level (🥇) to unlock withdrawals.",
+    "err_level_max": "Your level ({0}) allows a maximum withdrawal of {1} BOLIS ({2} points) per request.",
+    "err_invalid_wallet": "The address is not a valid Solana wallet. Please check it.",
+    "err_wallet_reused": "This wallet was already used by another account. Anti-fraud rules require a unique, personal Solana wallet.",
+    "err_frequency_blocked": "Withdrawal temporarily blocked due to high withdrawal frequency in the last 24 hours. Please contact support.",
+    "err_wagering_locked": "Not enough withdrawable balance: you still have bonus to unlock. Place bets to complete the wagering requirement before withdrawing.",
+    "err_insufficient_balance": "Insufficient balance for this withdrawal.",
+    "err_influencer_amount_exceeded": "The amount exceeds the limit allowed for your account.",
+    "err_influencer_daily_limit": "You have reached your account's daily withdrawal limit.",
+    "err_withdraw_failed": "Could not process the withdrawal. Please try again later.",
+    "pending_global_cap": "Withdrawal requested. Due to high payout demand today, it will be processed manually shortly.",
+    "pending_new_account": "Withdrawal requested. As this is a recent account, it will be reviewed manually before payout.",
+    "pending_manual": "Withdrawal requested successfully. It will be processed soon from admin."
   },
   "footer": {
     "bolis_info": "For more information about Solana Bolis trading {0}"
@@ -732,5 +750,12 @@
     "btn_sending": "Sending...",
     "btn_send": "Send Report",
     "error_send": "Error sending"
+  },
+  "wagering": {
+    "withdrawable": "Withdrawable",
+    "locked_bonus": "Locked bonus",
+    "unlock_progress": "Wager {0} more chips to unlock your withdrawals.",
+    "fully_unlocked": "Balance unlocked! You can withdraw now.",
+    "explainer": "Bonus chips (faucet, welcome, commissions) must be wagered {0}× before they can be withdrawn. Deposits withdraw instantly."
   }
 }
