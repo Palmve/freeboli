@@ -228,8 +228,14 @@ Recordatorio operativo: migraciones ANTES del deploy, subir versión (`package.j
 - **Faucet**: una cuenta `evaluar` no puede reclamar faucet (mensaje neutro, sin avisarle) + evento `faucet_under_review_block`.
 - Juegos (HI-LO/Predicciones) NO se bloquean a propósito: no hay fuga (edge a favor de la casa).
 
-**PENDIENTE — mitigaciones M4/M5 (no implementadas):**
-- **M4** — Afiliados: la **comisión de faucet (10%) es dinero creado** → bajarla/eliminarla o ligarla a depósito del referido. El **bono verificado** es esquivable rotando IP (sólo se chequea IP de registro) → añadir device fingerprint/ASN o exigir depósito. Coste: bajo-medio.
-- **M5** — Subir coste del sybil: mover la verja de retiro del nivel 3 al 4; device fingerprint; **extender el canonical de puntos a Outlook/Hotmail/Live/Yahoo/iCloud** en `email-normalize.ts` (hoy sólo Gmail) — cierra `a.b@outlook.com` ≠ `ab@outlook.com`. Coste: bajo (canonical), medio (fingerprint).
+**HECHO PARCIAL — M4 (v1.165.0, solo código, sin migración):**
+- Contexto: M1 (wagering 20×) ya neutralizó lo crítico de M4 — tanto la comisión de faucet como el bono verificado pasan por `credit_bonus_points` (bloqueados tras 20× de wagering), así que ya no son fuga directa. M4 quedó como defensa en profundidad.
+- **Comisión de faucet (10%)**: se deja como está (M1 la cubre; sigue configurable por admin con `AFFILIATE_FAUCET_PERCENT`). Sin cambios.
+- **Bono verificado — chequeo de IP endurecido**: `checkSameIPReferral` ya no mira solo la IP de registro exacta. Ahora cruza `{registration_ip, last_ip}` de referente y referido y detecta (a) coincidencia exacta de cualquier par (evento `sybil_same_ip_referral`, high) y (b) misma subred /24 IPv4 o /64 IPv6 (evento `sybil_same_subnet_referral`, medium). Solo bloquea el bono, no la cuenta.
 
-**Prioridad pendiente sugerida:** M3 (trivial y cierra el hueco de `evaluar`) → M5-canonical (10 líneas) → M4 → M5-fingerprint.
+**PENDIENTE — mitigaciones opcionales (no implementadas):**
+- **M4-extra (descartado por ahora)** — Exigir depósito del referido para el bono / device fingerprint. M1 ya lo hace poco rentable. La infra de depósitos (`/api/deposit/...`) existe si se quiere retomar.
+- **M5-fingerprint** — Subir coste del sybil: mover la verja de retiro del nivel 3 al 4; device fingerprint en registro/faucet. Coste: medio.
+- **M5-canonical — DESCARTADO (premisa errónea del informe).** El truco de los puntos solo existe en Gmail (ya cubierto en `email-normalize.ts`). Outlook/Hotmail/Yahoo/iCloud SÍ distinguen los puntos: `a.b@outlook.com` y `ab@outlook.com` son buzones de personas distintas. Extender el borrado de puntos a esos dominios daría **falsos positivos** (bloquearía usuarios legítimos). Único resto válido: Yahoo usa `-tag` en vez de `+tag` (hueco menor, no implementado).
+
+**Prioridad pendiente sugerida:** M5-fingerprint (defensa en profundidad) si se quiere; el resto del daño crítico ya está cerrado por M1/M2/M3 + endurecimiento de IP de M4.

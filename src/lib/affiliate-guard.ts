@@ -53,9 +53,32 @@ export async function checkAffiliateCommissionCap(
 }
 
 /**
- * Verifica si referrer y referred comparten la misma IP de registro.
- * Esto detecta cuentas Sybil creadas por el mismo usuario.
- * @returns true si comparten IP (sospechoso)
+ * Reduce una IP a su "red" para detectar rotación perezosa dentro de la misma
+ * subred (CGNAT casero, VPN que reusa rango, móvil del mismo operador):
+ *  - IPv4 → /24 (primeros 3 octetos): "203.0.113.x" → "203.0.113"
+ *  - IPv6 → /64 aprox (primeros 4 grupos)
+ * Devuelve null si no se puede parsear.
+ */
+function ipNetwork(ip: string | null | undefined): string | null {
+  if (!ip) return null;
+  const v4 = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.\d{1,3}$/);
+  if (v4) return `${v4[1]}.${v4[2]}.${v4[3]}`;
+  if (ip.includes(":")) {
+    const groups = ip.split(":").filter(Boolean);
+    if (groups.length >= 4) return groups.slice(0, 4).join(":");
+  }
+  return null;
+}
+
+/**
+ * Verifica si referrer y referred comparten IP. Endurecido (M4): ya no se mira
+ * solo la IP de registro EXACTA — esa señal es trivial de esquivar rotando IP.
+ * Ahora se cruzan {registration_ip, last_ip} de ambos y se detecta:
+ *  - coincidencia EXACTA de cualquier par de IPs (señal fuerte → high)
+ *  - misma SUBRED /24 (IPv4) o /64 (IPv6) (señal media → medium; pilla rotación
+ *    perezosa, con algún falso positivo en redes compartidas — solo bloquea el
+ *    bono, no la cuenta)
+ * @returns true si hay señal de autorreferencia (sospechoso)
  */
 export async function checkSameIPReferral(
   supabase: SupabaseClient,
@@ -64,31 +87,45 @@ export async function checkSameIPReferral(
 ): Promise<boolean> {
   const { data: referrerProfile } = await supabase
     .from("profiles")
-    .select("registration_ip")
+    .select("registration_ip, last_ip")
     .eq("id", referrerId)
     .single();
 
   const { data: referredProfile } = await supabase
     .from("profiles")
-    .select("registration_ip")
+    .select("registration_ip, last_ip")
     .eq("id", referredId)
     .single();
 
-  if (
-    referrerProfile?.registration_ip &&
-    referredProfile?.registration_ip &&
-    referrerProfile.registration_ip === referredProfile.registration_ip
-  ) {
-    await logSecurityEvent({
-      eventType: "sybil_same_ip_referral",
-      userId: referrerId,
-      details: {
-        referredId,
-        note: "Referrer y referred registrados desde la misma IP",
-      },
-      severity: "high",
-    });
-    return true; // Sospechoso
+  const referrerIps = [referrerProfile?.registration_ip, referrerProfile?.last_ip].filter(Boolean) as string[];
+  const referredIps = [referredProfile?.registration_ip, referredProfile?.last_ip].filter(Boolean) as string[];
+
+  // 1. Coincidencia exacta de cualquier par (registro o última IP).
+  for (const a of referrerIps) {
+    if (referredIps.includes(a)) {
+      await logSecurityEvent({
+        eventType: "sybil_same_ip_referral",
+        userId: referrerId,
+        details: { referredId, matchType: "exact_ip", ip: a },
+        severity: "high",
+      });
+      return true;
+    }
+  }
+
+  // 2. Misma subred (rotación perezosa dentro del mismo rango).
+  const referrerNets = referrerIps.map(ipNetwork).filter(Boolean) as string[];
+  const referredNets = referredIps.map(ipNetwork).filter(Boolean) as string[];
+  for (const net of referrerNets) {
+    if (referredNets.includes(net)) {
+      await logSecurityEvent({
+        eventType: "sybil_same_subnet_referral",
+        userId: referrerId,
+        details: { referredId, matchType: "same_subnet", subnet: net },
+        severity: "medium",
+      });
+      return true;
+    }
   }
 
   return false;
